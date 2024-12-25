@@ -1,3 +1,0 @@
-﻿<Project>
-  <Import Project="..\build\InteractService.API.props" />
-</Project>
