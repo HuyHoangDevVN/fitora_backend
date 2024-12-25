@@ -15,3 +15,4 @@ D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\ob
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\ref\AuthService.Application.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\BuildingBlocks.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\BuildingBlocks.pdb
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.sourcelink.json

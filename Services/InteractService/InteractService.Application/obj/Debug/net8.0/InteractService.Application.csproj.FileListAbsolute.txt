@@ -15,3 +15,4 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Applic
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\refint\InteractService.Application.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\ref\InteractService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.sourcelink.json

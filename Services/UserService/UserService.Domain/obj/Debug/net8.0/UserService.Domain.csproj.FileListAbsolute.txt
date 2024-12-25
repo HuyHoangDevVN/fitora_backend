@@ -9,3 +9,4 @@ D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Deb
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\refint\UserService.Domain.dll
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.pdb
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\ref\UserService.Domain.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.sourcelink.json

@@ -42,3 +42,4 @@ D:\Workspace\DATN\fitora_backend\ApiGateways\ApiGateway\bin\Debug\net8.0\Newtons
 D:\Workspace\DATN\fitora_backend\ApiGateways\ApiGateway\bin\Debug\net8.0\Newtonsoft.Json.Bson.dll
 D:\Workspace\DATN\fitora_backend\ApiGateways\ApiGateway\bin\Debug\net8.0\Ocelot.dll
 D:\Workspace\DATN\fitora_backend\ApiGateways\ApiGateway\bin\Debug\net8.0\ocelot.json
+D:\Workspace\DATN\fitora_backend\ApiGateways\ApiGateway\obj\Debug\net8.0\ApiGateway.sourcelink.json

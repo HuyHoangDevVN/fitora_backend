@@ -157,3 +157,4 @@ D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Windows.Extensions.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\AuthService.Infrastructure.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\AuthService.Infrastructure.pdb
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\obj\Debug\net8.0\AuthService.API.sourcelink.json

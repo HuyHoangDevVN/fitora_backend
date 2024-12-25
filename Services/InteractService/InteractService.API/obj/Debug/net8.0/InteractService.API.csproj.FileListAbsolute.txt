@@ -37,3 +37,4 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\ob
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\InteractService.API.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\InteractService.API.genruntimeconfig.cache
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\ref\InteractService.API.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\InteractService.API.sourcelink.json

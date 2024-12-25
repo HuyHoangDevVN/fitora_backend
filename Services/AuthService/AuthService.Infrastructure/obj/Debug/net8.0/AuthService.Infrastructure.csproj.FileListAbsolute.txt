@@ -19,3 +19,4 @@ D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Infrastructure
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Infrastructure\bin\Debug\net8.0\AuthService.Domain.pdb
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Infrastructure\bin\Debug\net8.0\BuildingBlocks.pdb
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Infrastructure\obj\Debug\net8.0\AuthServ.03063B79.Up2Date
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Infrastructure\obj\Debug\net8.0\AuthService.Infrastructure.sourcelink.json

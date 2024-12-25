@@ -10,3 +10,4 @@ D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\
 D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\refint\BuildingBlocks.dll
 D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.pdb
 D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\ref\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.sourcelink.json

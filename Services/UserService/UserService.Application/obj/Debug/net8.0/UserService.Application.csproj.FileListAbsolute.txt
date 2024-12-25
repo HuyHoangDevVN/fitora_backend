@@ -15,3 +15,4 @@ D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Application\ob
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Application\obj\Debug\net8.0\refint\UserService.Application.dll
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Application\obj\Debug\net8.0\UserService.Application.pdb
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Application\obj\Debug\net8.0\ref\UserService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Application\obj\Debug\net8.0\UserService.Application.sourcelink.json
