@@ -1,0 +1,11 @@
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\bin\Debug\net8.0\UserService.Domain.deps.json
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\bin\Debug\net8.0\UserService.Domain.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\bin\Debug\net8.0\UserService.Domain.pdb
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.GeneratedMSBuildEditorConfig.editorconfig
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.AssemblyInfoInputs.cache
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.AssemblyInfo.cs
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.csproj.CoreCompileInputs.cache
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\refint\UserService.Domain.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\UserService.Domain.pdb
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.Domain\obj\Debug\net8.0\ref\UserService.Domain.dll

@@ -1,0 +1,17 @@
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\AuthService.Application.deps.json
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\AuthService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\AuthService.Application.pdb
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\AuthService.Domain.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\AuthService.Domain.pdb
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.csproj.AssemblyReference.cache
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.AssemblyInfoInputs.cache
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.AssemblyInfo.cs
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.csproj.CoreCompileInputs.cache
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthServ.67992DEE.Up2Date
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\refint\AuthService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\AuthService.Application.pdb
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\obj\Debug\net8.0\ref\AuthService.Application.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.Application\bin\Debug\net8.0\BuildingBlocks.pdb

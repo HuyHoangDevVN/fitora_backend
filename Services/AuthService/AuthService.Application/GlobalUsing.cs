@@ -1,0 +1,15 @@
+﻿global using BuildingBlocks.CQRS;
+global using AuthService.Application.DTOs.Auth.Requests;
+global using AuthService.Application.Mapper;
+global using AuthService.Application.Services.IServices;
+global using AuthService.Application.Helpers;
+global using AuthService.Application.Data;
+global using AuthService.Application.DTOs.Auth.Responses;
+global using AuthService.Domain.Models;
+global using AutoMapper;
+global using BuildingBlocks.Exceptions;
+global using AuthService.Application.Extensions;
+global using BuildingBlocks.Pagination;
+global using Microsoft.AspNetCore.Identity;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging;

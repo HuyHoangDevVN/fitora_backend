@@ -1,0 +1,12 @@
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\bin\Debug\net8.0\BuildingBlocks.deps.json
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\bin\Debug\net8.0\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\bin\Debug\net8.0\BuildingBlocks.pdb
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.csproj.AssemblyReference.cache
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.GeneratedMSBuildEditorConfig.editorconfig
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.AssemblyInfoInputs.cache
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.AssemblyInfo.cs
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.csproj.CoreCompileInputs.cache
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\refint\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\BuildingBlocks.pdb
+D:\Workspace\DATN\fitora_backend\BuildingBlocks\BuildingBlocks\obj\Debug\net8.0\ref\BuildingBlocks.dll

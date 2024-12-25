@@ -1,0 +1,18 @@
+using AuthService.Application.DTOs.Auth.Requests;
+using AuthService.Application.Services.IServices;
+using AutoMapper;
+using BuildingBlocks.CQRS;
+
+namespace AuthService.Application.Auths.Commands.AuthLogin;
+
+public class AuthLoginHandler
+    (IAuthRepository repository, IMapper mapper)
+    : ICommandHandler<AuthLoginCommand, AuthLoginResult>
+{
+    public async Task<AuthLoginResult> Handle(AuthLoginCommand command, CancellationToken cancellationToken)
+    {
+        var request = mapper.Map<LoginRequestDto>(command);
+        var response = await repository.LoginAsync(request);
+        return new AuthLoginResult(response);
+    }
+}
