@@ -1,6 +1,15 @@
-namespace UserService.Application;
-
-public class GlobalUsing
-{
-    
-}
+global using BuildingBlocks.CQRS;
+global using UserService.Application.DTOs.User.Requests;
+global using UserService.Application.DTOs.User.Responses;
+global using UserService.Application.Services.IServices;
+// global using UserService.Application.Helpers;
+// global using UserService.Application.Extensions;
+global using UserService.Application.Data;
+global using UserService.Domain.Models;
+global using UserService.Application.Mapper;
+global using AutoMapper;
+global using BuildingBlocks.Exceptions;
+global using BuildingBlocks.Pagination;
+global using Microsoft.AspNetCore.Identity;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging;

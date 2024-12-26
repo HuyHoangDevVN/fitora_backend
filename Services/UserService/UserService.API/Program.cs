@@ -4,6 +4,11 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// builder.Services
+//     .AddApplicationServices(builder.Configuration)
+//     .AddInfrastructureServices(builder.Configuration);
+
+
 var app = builder.Build();
 
 

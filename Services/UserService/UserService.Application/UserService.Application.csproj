@@ -10,12 +10,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Data\" />
-    <Folder Include="DTOs\" />
     <Folder Include="Extensions\" />
     <Folder Include="Helpers\" />
-    <Folder Include="Mapper\" />
-    <Folder Include="Services\" />
     <Folder Include="Users\Commands\" />
     <Folder Include="Users\Events\" />
     <Folder Include="Users\Queries\" />
