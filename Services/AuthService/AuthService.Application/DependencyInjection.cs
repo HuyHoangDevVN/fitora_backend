@@ -1,7 +1,9 @@
 ﻿using System.Reflection;
 using System.Text;
 using AuthService.Application.Auths.Commands.AuthLogin;
+using AuthService.Application.Messaging;
 using AuthService.Application.Services;
+using AuthService.Domain.Abstractions;
 using BuildingBlocks.Behaviors;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,9 +28,6 @@ public static class DependencyInjection
 
 
         services.AddValidatorsFromAssemblyContaining<AuthLoginCommandValidator>();
-        
-
-        
 
         services.Configure<JwtOptionsSetting>(options =>
         {
@@ -36,6 +35,10 @@ public static class DependencyInjection
             options.Audience = configuration["ApiSettings:JwtOptions:Audience"]!;
             options.Issuer = configuration["ApiSettings:JwtOptions:Issuer"]!;
         });
+        
+        services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMQ"));
+        services.AddScoped(typeof(IRabbitMQPublisher<>), typeof(RabbitMQPublisher<>));
+        services.AddScoped(typeof(IRabbitMQConsumer<>), typeof(RabbitMQConsumer<>));
 
         services.AddStackExchangeRedisCache(options =>
         {
@@ -60,7 +63,7 @@ public static class DependencyInjection
         var secret = jwtOptions["Secret"]!;
         var audience = jwtOptions["Audience"]!;
         var issuer = jwtOptions["Issuer"]!;
-        
+
 // config authentication jwt
         var key = Encoding.UTF8.GetBytes(secret);
 
@@ -97,6 +100,4 @@ public static class DependencyInjection
         services.AddSingleton(tokenValidationParameters);
         return services;
     }
-    
-    
 }
