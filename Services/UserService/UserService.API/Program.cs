@@ -1,12 +1,15 @@
+using UserService.Application;
+using UserService.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddAuthorization(); 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// builder.Services
-//     .AddApplicationServices(builder.Configuration)
-//     .AddInfrastructureServices(builder.Configuration);
+builder.Services
+    .AddApplicationServices(builder.Configuration)
+    .AddInfrastructureServices(builder.Configuration);
 
 
 var app = builder.Build();

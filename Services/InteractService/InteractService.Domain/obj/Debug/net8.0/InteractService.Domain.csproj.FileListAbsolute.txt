@@ -10,3 +10,7 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\obj\Debug\net8.0\InteractService.Domain.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\obj\Debug\net8.0\ref\InteractService.Domain.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\obj\Debug\net8.0\InteractService.Domain.sourcelink.json
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\bin\Debug\net8.0\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\bin\Debug\net8.0\BuildingBlocks.pdb
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\obj\Debug\net8.0\InteractService.Domain.csproj.AssemblyReference.cache
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Domain\obj\Debug\net8.0\Interact.ED61128F.Up2Date

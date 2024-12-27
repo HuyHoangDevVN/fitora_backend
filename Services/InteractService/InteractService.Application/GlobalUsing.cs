@@ -1,0 +1,15 @@
+global using BuildingBlocks.CQRS;
+global using InteractService.Application.DTOs.Post.Requests;
+global using InteractService.Application.DTOs.Post.Responses;
+global using InteractService.Application.Services.IServices;
+// global using InteractService.Application.Helpers;
+// global using InteractService.Application.Extensions;
+global using InteractService.Application.Data;
+global using InteractService.Domain.Models;
+global using InteractService.Application.Mapper;
+global using AutoMapper;
+global using BuildingBlocks.Exceptions;
+global using BuildingBlocks.Pagination;
+global using Microsoft.AspNetCore.Identity;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging;

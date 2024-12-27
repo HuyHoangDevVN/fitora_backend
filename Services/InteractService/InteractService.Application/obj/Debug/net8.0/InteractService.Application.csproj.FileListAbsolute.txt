@@ -2,9 +2,7 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Applic
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Application.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Application.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Domain.dll
-D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Infrastructure.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Domain.pdb
-D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\InteractService.Infrastructure.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.csproj.AssemblyReference.cache
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.GeneratedMSBuildEditorConfig.editorconfig
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.AssemblyInfoInputs.cache
@@ -16,3 +14,5 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Applic
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.pdb
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\ref\InteractService.Application.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\obj\Debug\net8.0\InteractService.Application.sourcelink.json
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\BuildingBlocks.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.Application\bin\Debug\net8.0\BuildingBlocks.pdb
