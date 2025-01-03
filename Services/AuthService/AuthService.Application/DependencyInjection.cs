@@ -37,8 +37,8 @@ public static class DependencyInjection
         });
         
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMQ"));
-        services.AddScoped(typeof(IRabbitMQPublisher<>), typeof(RabbitMQPublisher<>));
-        services.AddScoped(typeof(IRabbitMQConsumer<>), typeof(RabbitMQConsumer<>));
+        services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
+        services.AddScoped(typeof(IRabbitMqConsumer<>), typeof(RabbitMqConsumer<>));
 
         services.AddStackExchangeRedisCache(options =>
         {

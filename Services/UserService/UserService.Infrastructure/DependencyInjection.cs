@@ -1,3 +1,4 @@
+using BuildingBlocks.RepositoryBase.EntityFramework;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         // Add service to the container
         // services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         //services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {

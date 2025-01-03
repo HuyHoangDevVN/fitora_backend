@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Text;
 using BuildingBlocks.Behaviors;
+using BuildingBlocks.RepositoryBase.EntityFramework;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -8,6 +9,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FeatureManagement;
 using Microsoft.IdentityModel.Tokens;
 using UserService.Application.Mapper;
+using UserService.Application.Messaging;
+using UserService.Application.Messaging.MessageHandlers;
+using UserService.Application.Messaging.MessageHandlers.IHandlers;
+using UserService.Application.Services;
+using UserService.Domain.Abstractions;
 
 namespace UserService.Application;
 
@@ -32,6 +38,14 @@ public static class DependencyInjection
         //     options.Audience = configuration["ApiSettings:JwtOptions:Audience"]!;
         //     options.Issuer = configuration["ApiSettings:JwtOptions:Issuer"]!;
         // });
+        
+        services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
+        
+        services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
+        services.AddSingleton<IRabbitMqConsumer<UserRegisteredMessageDto>, RabbitMqConsumer<UserRegisteredMessageDto>>();
+        services.AddScoped<IMessageHandler<UserRegisteredMessageDto>, UserRegisteredMessageHandler>();
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddHostedService<RabbitMqConsumerHostedService>();
 
         services.AddStackExchangeRedisCache(options =>
         {

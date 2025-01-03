@@ -6,11 +6,11 @@ using RabbitMQ.Client;
 
 namespace AuthService.Application.Messaging
 {
-    public class RabbitMQPublisher<T> : IRabbitMQPublisher<T>
+    public class RabbitMqPublisher<T> : IRabbitMqPublisher<T>
     {
         private readonly RabbitMqSettings _settings;
 
-        public RabbitMQPublisher(IOptions<RabbitMqSettings> settings)
+        public RabbitMqPublisher(IOptions<RabbitMqSettings> settings)
         {
             _settings = settings.Value;
         }

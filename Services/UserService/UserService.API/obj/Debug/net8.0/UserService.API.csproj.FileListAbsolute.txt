@@ -157,3 +157,5 @@ D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\runtimes\win-x64\native\krb5_64.dll
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\runtimes\win-x64\native\krbcc64.dll
 D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Windows.Extensions.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\Newtonsoft.Json.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\RabbitMQ.Client.dll

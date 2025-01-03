@@ -11,7 +11,7 @@ using UserService.Infrastructure.Data;
 namespace UserService.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241227082219_Initial")]
+    [Migration("20241227170053_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,15 +24,15 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.Block", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("BlockedUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("BlockedUserId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("BlockerUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("BlockerUserId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -57,9 +57,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.Follow", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -67,17 +67,11 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("FollowedId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("FollowedId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("FollowedUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("FollowerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("FollowerUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("FollowerId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -99,9 +93,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.FriendRequest", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -115,17 +109,11 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("ReceiverId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ReceiverId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("ReceiverUserId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("SenderId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("SenderUserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -141,9 +129,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.FriendShip", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -157,22 +145,26 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("UserId1")
-                        .HasColumnType("int");
+                    b.Property<Guid>("User1Id")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("UserId2")
-                        .HasColumnType("int");
+                    b.Property<Guid>("User2Id")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("User1Id");
+
+                    b.HasIndex("User2Id");
 
                     b.ToTable("FriendShips");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.Group", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -201,9 +193,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.GroupInvite", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -211,8 +203,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("GroupId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -220,11 +212,11 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("ReceiverUserID")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ReceiverUserID")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("SenderUserID")
-                        .HasColumnType("int");
+                    b.Property<Guid>("SenderUserID")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -242,9 +234,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.GroupMember", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -252,8 +244,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("GroupId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -264,8 +256,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -278,9 +270,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -309,9 +301,9 @@ namespace UserService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("UserService.Domain.Models.UserInfo", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Address")
                         .HasColumnType("longtext");
@@ -349,8 +341,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -383,11 +375,15 @@ namespace UserService.Infrastructure.Data.Migrations
                 {
                     b.HasOne("UserService.Domain.Models.User", "Followed")
                         .WithMany()
-                        .HasForeignKey("FollowedId");
+                        .HasForeignKey("FollowedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("UserService.Domain.Models.User", "Follower")
                         .WithMany()
-                        .HasForeignKey("FollowerId");
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Followed");
 
@@ -398,15 +394,38 @@ namespace UserService.Infrastructure.Data.Migrations
                 {
                     b.HasOne("UserService.Domain.Models.User", "Receiver")
                         .WithMany()
-                        .HasForeignKey("ReceiverId");
+                        .HasForeignKey("ReceiverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("UserService.Domain.Models.User", "Sender")
                         .WithMany()
-                        .HasForeignKey("SenderId");
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.FriendShip", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.User", "User1")
+                        .WithMany()
+                        .HasForeignKey("User1Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.User", "User2")
+                        .WithMany()
+                        .HasForeignKey("User2Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User1");
+
+                    b.Navigation("User2");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.GroupInvite", b =>

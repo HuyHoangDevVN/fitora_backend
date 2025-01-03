@@ -1,7 +1,7 @@
 namespace UserService.Application.Services.IServices;
 
-public interface IRabbitMQConsumer<T>
+public interface IRabbitMqConsumer<T>
 {
-    Task StartConsumingAsync(Func<T, Task> messageHandler);
+    Task StartConsumingAsync(string userRegisterQueue, Func<T, Task> messageHandler);
     Task StopConsumingAsync();
 }

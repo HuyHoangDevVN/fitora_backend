@@ -4,20 +4,24 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using UserService.Domain.Abstractions;
+using Microsoft.Extensions.DependencyInjection;
+using UserService.Application.Messaging.MessageHandlers.IHandlers;
 
 namespace UserService.Application.Messaging
 {
-    public class RabbitMQConsumer<T> : IRabbitMQConsumer<T>, IAsyncDisposable
+    public class RabbitMqConsumer<T> : IRabbitMqConsumer<T>
     {
         private readonly RabbitMqSettings _settings;
         private readonly IConnection _connection;
         private readonly IModel _channel;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private Task _consumerTask;
+        private readonly IServiceProvider _serviceProvider;
 
-        public RabbitMQConsumer(IOptions<RabbitMqSettings> settings)
+        public RabbitMqConsumer(IOptions<RabbitMqSettings> settings, IServiceProvider serviceProvider)
         {
             _settings = settings.Value;
+            _serviceProvider = serviceProvider;
 
             var factory = new ConnectionFactory
             {
@@ -31,14 +35,15 @@ namespace UserService.Application.Messaging
 
             _channel.ExchangeDeclare(exchange: _settings.ExchangeName, type: ExchangeType.Direct);
             _channel.QueueDeclare(queue: _settings.QueueName, durable: true, exclusive: false, autoDelete: false);
-            _channel.QueueBind(queue: _settings.QueueName, exchange: _settings.ExchangeName, routingKey: _settings.RoutingKey);
+            _channel.QueueBind(queue: _settings.QueueName, exchange: _settings.ExchangeName,
+                routingKey: _settings.RoutingKey);
 
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
-        public async Task StartConsumingAsync(Func<T, Task> messageHandler)
+        public async Task StartConsumingAsync(string queueName, Func<T, Task> messageHandler)
         {
-            var consumer = new AsyncEventingBasicConsumer(_channel);
+            var consumer = new EventingBasicConsumer(_channel);
 
             consumer.Received += async (model, ea) =>
             {
@@ -51,7 +56,7 @@ namespace UserService.Application.Messaging
 
                     if (message != null)
                     {
-                        await messageHandler(message);
+                        await messageHandler(message); // Gọi hàm xử lý message được truyền vào
                         _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
                     }
                     else
@@ -66,11 +71,12 @@ namespace UserService.Application.Messaging
                 }
             };
 
-            _channel.BasicConsume(queue: _settings.QueueName, autoAck: false, consumer: consumer);
+            _channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
 
             _consumerTask = Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
             await _consumerTask;
         }
+
 
         public async Task StopConsumingAsync()
         {

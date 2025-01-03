@@ -1,3 +1,5 @@
+using UserInfo = UserService.Domain.Models.UserInfo;
+
 namespace UserService.Application.Data;
 
 public interface IApplicationDbContext

@@ -2,10 +2,10 @@ using BuildingBlocks.Abstractions;
 
 namespace UserService.Domain.Models;
 
-public class Block : Entity<int>
+public class Block : Entity<Guid>
 {
-    public int BlockerUserId { get; set; } = default!;
-    public User BlockerUser { get; set; } = default!;
-    public int BlockedUserId { get; set; } = default!;
-    public User BlockedUser { get; set; } = default!;
+    public Guid BlockerUserId { get; set; } = default!;
+    public User? BlockerUser { get; set; }
+    public Guid BlockedUserId { get; set; } = default!;
+    public User? BlockedUser { get; set; }
 }

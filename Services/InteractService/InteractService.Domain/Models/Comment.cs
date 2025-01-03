@@ -3,12 +3,12 @@ using BuildingBlocks.Abstractions.Entities;
 
 namespace InteractService.Domain.Models;
 
-public class Comment : Entity<int>, ISoftDelete
+public class Comment : Entity<Guid>, ISoftDelete
 {
-    public int UserId { get; set; }
-    public int PostId { get; set; }
+    public Guid UserId { get; set; }
+    public Guid PostId { get; set; }
     public Post Post { get; set; } = null!;
-    public int ParentCommentId { get; set; }
+    public Guid ParentCommentId { get; set; }
     public Comment ParentComment { get; set; } = null!;
     public string Content { get; set; } = string.Empty;
     public int Votes { get; set; } = 0;

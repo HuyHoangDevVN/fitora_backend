@@ -14,7 +14,7 @@ public class AuthRepository
     IJwtTokenGenerator jwtTokenGenerator,
     IMapper mapper,
     IKeyRepository<Guid> keyRepository,
-    IHttpContextAccessor accessor, IRabbitMQPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
+    IHttpContextAccessor accessor, IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
 : IAuthRepository
 {
     private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)

@@ -3,10 +3,10 @@ using UserService.Domain.Enums;
 
 namespace UserService.Domain.Models;
 
-public class FriendRequest : Entity<int>
+public class FriendRequest : Entity<Guid>
 {
-    public int SenderId { get; set; } = default!;
-    public int ReceiverId { get; set; } = default!;
+    public Guid SenderId { get; set; } = default!;
+    public Guid ReceiverId { get; set; } = default!;
     public StatusFriendRequest Status { get; set; } = StatusFriendRequest.Pending;
     
     public User? Sender { get; set; }

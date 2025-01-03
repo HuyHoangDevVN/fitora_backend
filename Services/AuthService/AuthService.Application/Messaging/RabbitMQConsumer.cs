@@ -10,7 +10,7 @@ using RabbitMQ.Client.Events;
 
 namespace AuthService.Application.Messaging
 {
-    public class RabbitMQConsumer<T> : IRabbitMQConsumer<T>, IAsyncDisposable
+    public class RabbitMqConsumer<T> : IRabbitMqConsumer<T>, IAsyncDisposable
     {
         private readonly RabbitMqSettings _settings;
         private readonly IConnection _connection;
@@ -18,7 +18,7 @@ namespace AuthService.Application.Messaging
         private readonly CancellationTokenSource _cancellationTokenSource;
         private Task _consumerTask;
 
-        public RabbitMQConsumer(IOptions<RabbitMqSettings> settings)
+        public RabbitMqConsumer(IOptions<RabbitMqSettings> settings)
         {
             _settings = settings.Value;
 

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace InteractService.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241227092714_Initial")]
+    [Migration("20241228005108_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,9 +24,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.Comment", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -47,17 +47,17 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("ParentCommentId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ParentCommentId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("PostId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("ReplyCount")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("Votes")
                         .HasColumnType("int");
@@ -73,9 +73,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.Post", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -87,8 +87,8 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("GroupId")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("GroupId")
+                        .HasColumnType("char(36)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
@@ -106,8 +106,8 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -116,9 +116,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.React", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -135,14 +135,14 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<int>("ReactType")
                         .HasColumnType("int");
 
-                    b.Property<int>("TargetId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("TargetType")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -151,9 +151,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.Report", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -161,8 +161,8 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("HanldeBy")
-                        .HasColumnType("int");
+                    b.Property<Guid?>("HanldeBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -177,14 +177,14 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("TargetId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("TargetType")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -193,9 +193,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.Share", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -209,17 +209,17 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("OriginalPostId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("OriginalPostId")
+                        .HasColumnType("char(36)");
 
-                    b.Property<int>("PostId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("ShareTo")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -232,9 +232,9 @@ namespace InteractService.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("InteractService.Domain.Models.Tag", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
@@ -248,14 +248,14 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<int>("TargetId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("TargetType")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
