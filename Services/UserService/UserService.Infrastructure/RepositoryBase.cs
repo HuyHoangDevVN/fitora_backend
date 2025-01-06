@@ -26,27 +26,36 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         EF.CompileAsyncQuery<DbContext, Expression<Func<TEntity, bool>>, List<TEntity>>(
             (context, expression) => context.Set<TEntity>().Where(expression).ToList()
         );
+
     private static readonly Func<DbContext, Func<TEntity, bool>, Task<TEntity>> GetCompiledQuery =
         EF.CompileAsyncQuery<DbContext, Func<TEntity, bool>, TEntity>(
             (context, func) => context.Set<TEntity>().FirstOrDefault(func)!
         );
+
     private static readonly Func<DbContext, string, object, Task<TEntity>> GetByFieldCompiledQuery =
         EF.CompileAsyncQuery<DbContext, string, object, TEntity>(
             (context, fieldName, value) => context.Set<TEntity>()
                 .FirstOrDefault(e => EF.Property<object>(e, fieldName).Equals(value))!
         );
     
+    public IQueryable<TEntity> Query()
+    {
+        return _dbSet.AsQueryable();
+    }
+
     public async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
         return await GetAllCompiledQuery(_context);
     }
 
-    public async Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> expression, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> expression,
+        CancellationToken cancellationToken = default)
     {
         return await _dbSet!.Where(expression).ToListAsync(cancellationToken);
     }
 
-    public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> func, CancellationToken cancellationToken = default)
+    public async Task<TEntity?> GetAsync(Expression<Func<TEntity, bool>> func,
+        CancellationToken cancellationToken = default)
     {
         var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken);
         return entity!;
@@ -57,15 +66,18 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         await _dbSet!.AddAsync(entity, cancellationToken);
     }
 
-    public async Task UpdateAsync(Expression<Func<TEntity, bool>> func, object payload, CancellationToken cancellationToken = default)
+    public async Task UpdateAsync(Expression<Func<TEntity, bool>> func, object payload,
+        CancellationToken cancellationToken = default)
     {
-        var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ?? throw new NotFoundException($"{typeof(TEntity).Name} not found");
+        var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ??
+                     throw new NotFoundException($"{typeof(TEntity).Name} not found");
         _context.Entry(entity).CurrentValues.SetValues(payload);
     }
 
     public async Task DeleteAsync(Expression<Func<TEntity, bool>> func, CancellationToken cancellationToken = default)
     {
-        var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ?? throw new NotFoundException($"{typeof(TEntity).Name} not found");
+        var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ??
+                     throw new NotFoundException($"{typeof(TEntity).Name} not found");
         _dbSet.Remove(entity);
     }
 
@@ -80,7 +92,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         _dbSet!.UpdateRange(entities);
     }
 
-    public async Task<IEnumerable<TResult>> GetSelectAsync<TResult>(Expression<Func<TEntity, TResult>> selector, Expression<Func<TEntity, bool>>? conditions, CancellationToken cancellationToken = default)
+    public async Task<IEnumerable<TResult>> GetSelectAsync<TResult>(Expression<Func<TEntity, TResult>> selector,
+        Expression<Func<TEntity, bool>>? conditions, CancellationToken cancellationToken = default)
     {
         if (conditions != null)
             return await _dbSet!.Where(conditions).Select(selector).ToListAsync(cancellationToken);
@@ -91,7 +104,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
     {
         return (IEnumerable<SelectDto>)await _dbSet!.Select(selector).ToListAsync();
     }
-    
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);
@@ -100,7 +113,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
     public async Task<TEntity> GetByFieldAsync(string filedName, object value,
         CancellationToken cancellationToken = default)
     {
-        return await _dbSet!.AsNoTracking().FirstOrDefaultAsync(e => EF.Property<object>(e, filedName).Equals(value), cancellationToken) ??
+        return await _dbSet!.AsNoTracking()
+                   .FirstOrDefaultAsync(e => EF.Property<object>(e, filedName).Equals(value), cancellationToken) ??
                throw new NotFoundException($"{typeof(TEntity).Name} not found");
     }
 
@@ -134,7 +148,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         return pagedResult;
     }
 
-    
+
     public async Task<PaginatedResult<TResult>> GetPageWithIncludesAsync<TResult>(
         PaginationRequest paginationRequest,
         Expression<Func<TEntity, TResult>> selector,
@@ -170,9 +184,9 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             count: totalCount
         );
     }
-    
+
     public async Task<TEntity> GetByFieldWithIncludesAsync(
-        string fieldName, 
+        string fieldName,
         object value,
         List<Expression<Func<TEntity, object>>>? includes = null,
         CancellationToken cancellationToken = default)
@@ -188,12 +202,47 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         }
 
         var entity = await query.FirstOrDefaultAsync(
-            e => EF.Property<object>(e, fieldName).Equals(value), 
+            e => EF.Property<object>(e, fieldName).Equals(value),
             cancellationToken
         );
 
         return entity ?? throw new NotFoundException($"{typeof(TEntity).Name} with {fieldName} '{value}' not found");
     }
+    
+    
+    // Generic join method
+    public async Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
+        Expression<Func<TEntity, TKey>> outerKeySelector,
+        Expression<Func<TJoin, TKey>> innerKeySelector,
+        Expression<Func<TEntity, TJoin, TResult>> resultSelector) where TJoin : class
+    {
+        return await _dbSet.Join(
+                _context.Set<TJoin>(),  // Inner set
+                outerKeySelector,       // Outer key selector
+                innerKeySelector,       // Inner key selector
+                resultSelector          // Result selector
+            )
+            .ToListAsync();
+    }
 
- 
+    // Generic join with search
+    public async Task<List<TResult>> SearchJoinAsync<TJoin, TKey, TResult>(
+        Expression<Func<TEntity, TKey>> outerKeySelector,
+        Expression<Func<TJoin, TKey>> innerKeySelector,
+        Expression<Func<TEntity, TJoin, TResult>> resultSelector,
+        Expression<Func<TEntity, bool>> outerSearchPredicate, 
+        Expression<Func<TJoin, bool>>? innerSearchPredicate) 
+        where TJoin : class
+    {
+        return await _dbSet
+            .Where(outerSearchPredicate) 
+            .Join(
+                _context.Set<TJoin>().Where(innerSearchPredicate!),
+                outerKeySelector,
+                innerKeySelector,
+                resultSelector
+            )
+            .ToListAsync();
+    }
+
 }

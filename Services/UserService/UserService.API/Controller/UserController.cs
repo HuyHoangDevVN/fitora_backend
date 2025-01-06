@@ -6,6 +6,8 @@ using UserService.Application.DTOs.User.Requests;
 using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
 using UserService.Application.Usecases.Users.Commands.UpdateUser;
+using UserService.Application.Usecases.Users.Queries.GetUser;
+using UserService.Application.Usecases.Users.Queries.GetUsers;
 using UserService.Domain.Models;
 
 namespace UserService.API.Controller;
@@ -38,6 +40,22 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     {
         var result = await _sender.Send(new UpdateUserCommand(updateUserRequest));
         var response = new ResponseDto(result, Message: "Update Successful");
+        return Ok(response);
+    }
+
+    [HttpGet("get-user")]
+    public async Task<IActionResult> GetUser([FromQuery] GetUserRequest getUserRequest)
+    {
+        var result = await _sender.Send(new GetUserQuerry(getUserRequest));
+        var response = new ResponseDto(result, Message: "Get Successful");
+        return Ok(response);
+    }
+
+    [HttpGet("get-users")]
+    public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest getUsersRequest)
+    {
+        var result = await _sender.Send(new GetUsersQuerry(getUsersRequest));
+        var response = new ResponseDto(result, Message: "Get Successful");
         return Ok(response);
     }
 }

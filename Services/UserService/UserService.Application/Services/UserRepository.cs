@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using UserService.Application.Usecases.Users.Queries.GetUser;
 using UserService.Domain.Enums;
 using UserInfo = UserService.Domain.Models.UserInfo;
 
@@ -54,4 +56,62 @@ public class UserRepository : IUserRepository
         return true;
     }
 
+    public async Task<User?> GetUser(GetUserRequest request)
+    {
+        var filters = new Dictionary<Func<GetUserRequest, bool>, Expression<Func<User, bool>>>
+        {
+            { r => r.Id != Guid.Empty, u => u.Id == request.Id },
+            {
+                r => !string.IsNullOrWhiteSpace(r.Email),
+                u => request.Email != null && u.Email.ToLower() == request.Email.ToLower()
+            },
+            {
+                r => !string.IsNullOrWhiteSpace(r.UserName),
+                u => request.UserName != null && u.Username.ToLower() == request.UserName.ToLower()
+            }
+        };
+
+        foreach (var filter in filters)
+        {
+            if (filter.Key(request))
+            {
+                var user = await _userRepository.GetAsync(filter.Value);
+                if (user != null)
+                {
+                    var userInfo = await _userInfoRepository.GetAsync(ui => ui.UserId == user.Id);
+                    user.UserInfo = userInfo;
+                }
+
+                return user;
+            }
+        }
+
+        return null;
+    }
+
+    public async Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request)
+    {
+        var users = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
+            u => u.Id,
+            ui => ui.UserId,
+            (u, ui) => new UserWithInfoDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Username = u.Username,
+                FirstName = ui.FirstName,
+                LastName = ui.LastName,
+                Gender = ui.Gender,
+                BirthDate = ui.BirthDate ?? default(DateTime),
+                PhoneNumber = ui.PhoneNumber,
+                Address = ui.Address,
+                ProfilePictureUrl = ui.ProfilePictureUrl,
+                Bio = ui.Bio,
+            },
+            u => u.Email.Contains(request.Email!.ToLower()) || u.Username.Contains(request.Email!.ToLower()),
+            null
+        );
+        var count = users.Count();
+        return new PaginatedResult<UserWithInfoDto>(request.PageIndex, request.PageSize, count, users);
+    }
 }

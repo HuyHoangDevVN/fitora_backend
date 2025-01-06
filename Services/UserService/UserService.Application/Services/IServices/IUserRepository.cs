@@ -4,4 +4,6 @@ public interface IUserRepository
 {
     Task<bool> CreateUserAsync(User user);
     Task<bool> UpdateUserAsync(UpdateUserRequest request);
+    Task<User?> GetUser(GetUserRequest request);
+    Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request);
 }

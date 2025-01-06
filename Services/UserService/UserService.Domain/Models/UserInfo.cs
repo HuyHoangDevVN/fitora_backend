@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using BuildingBlocks.Abstractions;
 using UserService.Domain.Enums;
 
@@ -6,6 +7,7 @@ namespace UserService.Domain.Models;
 public class UserInfo : Entity<Guid>
 {
     public Guid UserId { get; set; }
+    [JsonIgnore] 
     public User User { get; set; } = default!;
     public string? FirstName { get; set; } = String.Empty;
     public string? LastName { get; set; } = String.Empty;
