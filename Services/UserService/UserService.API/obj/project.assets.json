@@ -5137,38 +5137,40 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\nguye\\.nuget\\packages\\": {}
+    "C:\\Users\\chumi\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
+      "projectUniqueName": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
       "projectName": "UserService.API",
-      "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
-      "packagesPath": "C:\\Users\\nguye\\.nuget\\packages\\",
-      "outputPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\obj\\",
+      "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
+      "packagesPath": "C:\\Users\\chumi\\.nuget\\packages\\",
+      "outputPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\nguye\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\chumi\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Workspace\\DATN\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj": {
-              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj"
+            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj": {
+              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj"
             },
-            "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj": {
-              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj"
+            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj": {
+              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj"
             },
-            "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj": {
-              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj"
+            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj": {
+              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj"
             }
           }
         }
@@ -5226,7 +5228,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
