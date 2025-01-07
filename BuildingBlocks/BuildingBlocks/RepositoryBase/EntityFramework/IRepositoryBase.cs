@@ -6,6 +6,7 @@ namespace BuildingBlocks.RepositoryBase.EntityFramework;
 
 public interface IRepositoryBase<TEntity> where TEntity : class
 {
+    IQueryable<TEntity> Query();
     Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default!);
 
     Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> expression,
@@ -28,7 +29,7 @@ public interface IRepositoryBase<TEntity> where TEntity : class
 
     Task<TEntity> GetByFieldAsync(string filedName, object value, CancellationToken cancellationToken = default!);
 
-    Task<PaginatedResult<TEntity>> GetPageAsync(PaginationRequest paginationRequest, 
+    Task<PaginatedResult<TEntity>> GetPageAsync(PaginationRequest paginationRequest,
         CancellationToken cancellationToken = default!, Expression<Func<TEntity, bool>>? conditions = null);
 
     Task<PaginatedResult<TResult>> GetPageWithIncludesAsync<TResult>(
@@ -45,4 +46,17 @@ public interface IRepositoryBase<TEntity> where TEntity : class
         CancellationToken cancellationToken = default);
 
     Task<IEnumerable<SelectDto>> GetSelectAsync<TResult>(Expression<Func<TEntity, TResult>> selector);
+
+    Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
+        Expression<Func<TEntity, TKey>> outerKeySelector,
+        Expression<Func<TJoin, TKey>> innerKeySelector,
+        Expression<Func<TEntity, TJoin, TResult>> resultSelector)  where TJoin : class;
+
+    Task<List<TResult>> SearchJoinAsync<TJoin, TKey, TResult>(
+        Expression<Func<TEntity, TKey>> outerKeySelector,
+        Expression<Func<TJoin, TKey>> innerKeySelector,
+        Expression<Func<TEntity, TJoin, TResult>> resultSelector,
+        Expression<Func<TEntity, bool>>? outerSearchPredicate, 
+        Expression<Func<TJoin, bool>>? innerSearchPredicate) 
+        where TJoin : class;
 }

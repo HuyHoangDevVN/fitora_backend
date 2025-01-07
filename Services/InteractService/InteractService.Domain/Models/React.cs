@@ -3,10 +3,10 @@ using InteractService.Domain.Enums;
 
 namespace InteractService.Domain.Models;
 
-public class React : Entity<int>
+public class React : Entity<Guid>
 {
-    public int UserId { get; set; }
+    public Guid UserId { get; set; }
     public TargetType TargetType { get; set; } = default!;
-    public int TargetId { get; set; }
+    public Guid TargetId { get; set; }
     public ReactType ReactType { get; set; } = default!;
 }

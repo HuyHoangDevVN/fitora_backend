@@ -14,7 +14,7 @@ public class AuthRepository
     IJwtTokenGenerator jwtTokenGenerator,
     IMapper mapper,
     IKeyRepository<Guid> keyRepository,
-    IHttpContextAccessor accessor)
+    IHttpContextAccessor accessor, IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
 : IAuthRepository
 {
     private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)
@@ -157,6 +157,18 @@ public class AuthRepository
                 new UserDto(user.Id.ToString(), user.UserName, user.FullName),
                 new LoginTokenResponseDto(accessToken, refreshToken)
             );
+            
+            
+            // Publish message to UserService after successful registration
+            var userRegisteredMessage = new UserRegisteredMessageDto
+            {
+                UserId = user.Id.ToString(),
+                Email = user.Email,
+                FullName = user.FullName
+            };
+
+            // Assuming you have injected IRabbitMQPublisher<UserRegisteredMessageDto>
+            await rabbitMQPublisher.PublishMessageAsync(userRegisteredMessage, "user_registration_queue");
 
             return response;
         }
