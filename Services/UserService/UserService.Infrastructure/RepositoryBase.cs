@@ -37,7 +37,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             (context, fieldName, value) => context.Set<TEntity>()
                 .FirstOrDefault(e => EF.Property<object>(e, fieldName).Equals(value))!
         );
-    
+
     public IQueryable<TEntity> Query()
     {
         return _dbSet.AsQueryable();
@@ -208,8 +208,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         return entity ?? throw new NotFoundException($"{typeof(TEntity).Name} with {fieldName} '{value}' not found");
     }
-    
-    
+
+
     // Generic join method
     public async Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
@@ -217,10 +217,10 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         Expression<Func<TEntity, TJoin, TResult>> resultSelector) where TJoin : class
     {
         return await _dbSet.Join(
-                _context.Set<TJoin>(),  // Inner set
-                outerKeySelector,       // Outer key selector
-                innerKeySelector,       // Inner key selector
-                resultSelector          // Result selector
+                _context.Set<TJoin>(), // Inner set
+                outerKeySelector, // Outer key selector
+                innerKeySelector, // Inner key selector
+                resultSelector // Result selector
             )
             .ToListAsync();
     }
@@ -230,18 +230,25 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
         Expression<Func<TEntity, TJoin, TResult>> resultSelector,
-        Expression<Func<TEntity, bool>> outerSearchPredicate, 
-        Expression<Func<TJoin, bool>>? innerSearchPredicate) 
+        Expression<Func<TEntity, bool>>? outerSearchPredicate,
+        Expression<Func<TJoin, bool>>? innerSearchPredicate)
         where TJoin : class
     {
-        return await _dbSet
-            .Where(outerSearchPredicate) 
-            .Join(
-                _context.Set<TJoin>().Where(innerSearchPredicate!),
-                outerKeySelector,
-                innerKeySelector,
-                resultSelector
-            )
+        IQueryable<TEntity> outerQuery = _dbSet;
+        IQueryable<TJoin> innerQuery = _context.Set<TJoin>();
+
+        if (outerSearchPredicate != null)
+        {
+            outerQuery = outerQuery.Where(outerSearchPredicate);
+        }
+
+        if (innerSearchPredicate != null)
+        {
+            innerQuery = innerQuery.Where(innerSearchPredicate);
+        }
+
+        return await outerQuery
+            .Join(innerQuery, outerKeySelector, innerKeySelector, resultSelector)
             .ToListAsync();
     }
 

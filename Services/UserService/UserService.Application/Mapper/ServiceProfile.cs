@@ -14,9 +14,7 @@ public class ServiceProfile : Profile
         CreateMap<UserRegisteredMessageDto, User>().ReverseMap();
         CreateMap<CreateUserRequest, User>().ReverseMap();
         CreateMap<CreateUserRequest, CreateUserCommand>().ReverseMap();
-        CreateMap<UpdateUserRequest, User>().ReverseMap();
-        CreateMap<UserInfoDetail, UserInfo>().ReverseMap();
-        CreateMap<UserDto, UpdateUserRequest>().ReverseMap();
+        CreateMap<UserInfoDto, UserInfo>().ReverseMap();
 
         #endregion
     }

@@ -3,7 +3,7 @@ using UserService.Application.Services;
 
 namespace UserService.Application.Usecases.Users.Queries.GetUsers;
 
-public class GetUsersHandler(UserRepository userRepos, IMapper mapper) : IQueryHandler<GetUsersQuerry,ResponseDto>
+public class GetUsersHandler(IUserRepository userRepos, IMapper mapper) : IQueryHandler<GetUsersQuerry,ResponseDto>
 {
     public async Task<ResponseDto> Handle(GetUsersQuerry request, CancellationToken cancellationToken)
     {

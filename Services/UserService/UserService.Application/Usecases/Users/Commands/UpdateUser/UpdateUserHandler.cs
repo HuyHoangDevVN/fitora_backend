@@ -1,10 +1,10 @@
 namespace UserService.Application.Usecases.Users.Commands.UpdateUser;
 
-public class UpdateUserHandler(IUserRepository userRepo, IMapper mapper) : ICommandHandler<UpdateUserCommand, UserDto>
+public class UpdateUserHandler(IUserRepository userRepo, IMapper mapper) : ICommandHandler<UpdateUserCommand, UserInfoDto>
 {
-    public async Task<UserDto> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
+    public async Task<UserInfoDto> Handle(UpdateUserCommand request, CancellationToken cancellationToken)
     {
         var isSuccess = await userRepo.UpdateUserAsync(request.Request);
-        return (isSuccess ? mapper.Map<UserDto>(request.Request) : null)!;
+        return (isSuccess ? (request.Request) : null);
     }
 }

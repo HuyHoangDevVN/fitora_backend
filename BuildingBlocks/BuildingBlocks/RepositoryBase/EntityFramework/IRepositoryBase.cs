@@ -56,7 +56,7 @@ public interface IRepositoryBase<TEntity> where TEntity : class
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
         Expression<Func<TEntity, TJoin, TResult>> resultSelector,
-        Expression<Func<TEntity, bool>> outerSearchPredicate, 
+        Expression<Func<TEntity, bool>>? outerSearchPredicate, 
         Expression<Func<TJoin, bool>>? innerSearchPredicate) 
         where TJoin : class;
 }

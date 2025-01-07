@@ -37,23 +37,12 @@ public class UserRepository : IUserRepository
         return isUserInfoSuccess;
     }
 
-    public async Task<bool> UpdateUserAsync(UpdateUserRequest request)
+    public async Task<bool> UpdateUserAsync(UserInfoDto request)
     {
-        var user = _mapper.Map<User>(request);
-
-        await _userRepository.UpdateAsync(u => u.Id == request.Id, user);
-        if (await _userRepository.SaveChangesAsync() <= 0)
-            return false;
-
-        if (request.UserInfo != null)
-        {
-            var userInfo = _mapper.Map<UserInfo>(request.UserInfo);
-            await _userInfoRepository.UpdateAsync(u => u.Id == request.Id, userInfo);
-            if (await _userInfoRepository.SaveChangesAsync() <= 0)
-                return false;
-        }
-
-        return true;
+        var user = _mapper.Map<UserInfo>(request);
+        await _userInfoRepository.UpdateAsync(u => u.Id == request.Id, user);
+        var result = (await _userInfoRepository.SaveChangesAsync() > 0);
+        return result;
     }
 
     public async Task<User?> GetUser(GetUserRequest request)
@@ -66,8 +55,8 @@ public class UserRepository : IUserRepository
                 u => request.Email != null && u.Email.ToLower() == request.Email.ToLower()
             },
             {
-                r => !string.IsNullOrWhiteSpace(r.UserName),
-                u => request.UserName != null && u.Username.ToLower() == request.UserName.ToLower()
+                r => !string.IsNullOrWhiteSpace(r.Username),
+                u => request.Username != null && u.Username.ToLower() == request.Username.ToLower()
             }
         };
 
@@ -91,6 +80,14 @@ public class UserRepository : IUserRepository
 
     public async Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request)
     {
+        Expression<Func<User, bool>>? searchPredicate = null;
+        if (!string.IsNullOrEmpty(request.Email) || !string.IsNullOrEmpty(request.UserName))
+        {
+            searchPredicate = u =>
+                (string.IsNullOrEmpty(request.Email) || u.Email.Contains(request.Email.ToLower())) &&
+                (string.IsNullOrEmpty(request.UserName) || u.Username.Contains(request.UserName.ToLower()));
+        }
+
         var users = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
             u => u.Id,
             ui => ui.UserId,
@@ -108,10 +105,14 @@ public class UserRepository : IUserRepository
                 ProfilePictureUrl = ui.ProfilePictureUrl,
                 Bio = ui.Bio,
             },
-            u => u.Email.Contains(request.Email!.ToLower()) || u.Username.Contains(request.Email!.ToLower()),
+            searchPredicate,
             null
         );
+
         var count = users.Count();
-        return new PaginatedResult<UserWithInfoDto>(request.PageIndex, request.PageSize, count, users);
+
+        var pagedUsers = users.Skip((request.PageIndex - 1) * request.PageSize).Take(request.PageSize).ToList();
+
+        return new PaginatedResult<UserWithInfoDto>(request.PageIndex, request.PageSize, count, pagedUsers);
     }
 }

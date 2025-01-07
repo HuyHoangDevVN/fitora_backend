@@ -3,6 +3,7 @@ using BuildingBlocks.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.User.Requests;
+using UserService.Application.DTOs.User.Responses;
 using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
 using UserService.Application.Usecases.Users.Commands.UpdateUser;
@@ -23,7 +24,7 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     public UserController(ISender sender, IMapper mapper)
     {
         _sender = sender;
-        _mapper = mapper;
+        _mapper = mapper;       
     }
     
     
@@ -36,9 +37,9 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpPut("update-user")]
-    public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest updateUserRequest)
+    public async Task<IActionResult> UpdateUser([FromBody] UserInfoDto updateUserInfoRequest)
     {
-        var result = await _sender.Send(new UpdateUserCommand(updateUserRequest));
+        var result = await _sender.Send(new UpdateUserCommand(updateUserInfoRequest));
         var response = new ResponseDto(result, Message: "Update Successful");
         return Ok(response);
     }
@@ -55,7 +56,6 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest getUsersRequest)
     {
         var result = await _sender.Send(new GetUsersQuerry(getUsersRequest));
-        var response = new ResponseDto(result, Message: "Get Successful");
-        return Ok(response);
+        return Ok(result);
     }
 }
