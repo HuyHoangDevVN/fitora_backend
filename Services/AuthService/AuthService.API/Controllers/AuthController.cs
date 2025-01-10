@@ -40,7 +40,7 @@ public class AuthController : Controller
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
         var loginResult = _mapper.Map<AuthLoginResult>(result);
-        var response = new ResponseDto(loginResult, Message: "Login Successful");
+        var response = new ResponseDto(loginResult.ResponseDto, Message: "Login Successful");
         return Ok(response);
     }
 

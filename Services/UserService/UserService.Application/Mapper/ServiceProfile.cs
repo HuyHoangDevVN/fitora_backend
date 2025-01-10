@@ -17,5 +17,11 @@ public class ServiceProfile : Profile
         CreateMap<UserInfoDto, UserInfo>().ReverseMap();
 
         #endregion
+
+        #region Friendship
+
+        
+
+        #endregion
     }
 }
