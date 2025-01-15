@@ -1861,7 +1861,8 @@
           "MediatR": "12.2.0",
           "Microsoft.EntityFrameworkCore": "8.0.6",
           "Microsoft.Extensions.Caching.StackExchangeRedis": "8.0.1",
-          "Microsoft.FeatureManagement.AspNetCore": "3.2.0"
+          "Microsoft.FeatureManagement.AspNetCore": "3.2.0",
+          "System.IdentityModel.Tokens.Jwt": "7.1.2"
         },
         "compile": {
           "bin/placeholder/BuildingBlocks.dll": {}

@@ -74,6 +74,10 @@
             "Microsoft.FeatureManagement.AspNetCore": {
               "target": "Package",
               "version": "[3.2.0, )"
+            },
+            "System.IdentityModel.Tokens.Jwt": {
+              "target": "Package",
+              "version": "[7.1.2, )"
             }
           },
           "imports": [

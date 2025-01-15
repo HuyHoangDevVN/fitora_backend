@@ -1,6 +1,9 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination;
+using BuildingBlocks.Security;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.Friendship.Requests;
 using UserService.Application.Usecases.Friendship.Command.AccpectFriendRequest;
@@ -14,15 +17,18 @@ namespace UserService.API.Controller;
 
 [Route("api/friendship")]
 [ApiController]
+[Authorize]
 public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
 {
     private readonly ISender _sender;
     private readonly IMapper _mapper;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
-    public FriendShipController(ISender sender, IMapper mapper)
+    public FriendShipController(ISender sender, IMapper mapper, IAuthorizeExtension authorizeExtension)
     {
         _sender = sender;
         _mapper = mapper;
+        _authorizeExtension = authorizeExtension;
     }
 
     [HttpPost("add-friend")]
@@ -33,28 +39,63 @@ public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpGet("get-sent-friend-requests")]
-    public async Task<IActionResult> GetSentFriendRequests([FromQuery] GetSentFriendRequest request)
+    public async Task<IActionResult> GetSentFriendRequests([FromQuery] PaginationRequest request)
     {
-        var result = await _sender.Send(new GetSentFriendRequestQuerry(request));
-        return Ok(result);
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+
+        var sended = new GetSentFriendRequest(userGuid, request.PageIndex, request.PageSize);
+
+        try
+        {
+            var result = await _sender.Send(new GetSentFriendRequestQuerry(sended));
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+     
     }
 
     [HttpGet("get-received-friend-requests")]
-    public async Task<IActionResult> GetReceivedFriendRequests([FromQuery] GetReceivedFriendRequest request)
+    public async Task<IActionResult> GetReceivedFriendRequests([FromQuery] PaginationRequest request)
     {
-        var result = await _sender.Send(new GetReceivedFriendRequestQuerry(request));
-        return Ok(result);
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+
+        var sended = new GetReceivedFriendRequest(userGuid, request.PageIndex, request.PageSize);
+
+        try
+        {
+            var result = await _sender.Send(new GetReceivedFriendRequestQuerry(sended));
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
     }
 
     [HttpGet("get-friends")]
-    public async Task<IActionResult> GetFriends([FromQuery] GetFriendsRequest request)
+    public async Task<IActionResult> GetFriends([FromQuery] PaginationRequest request)
     {
-        var result = await _sender.Send(new GetFriendsQuerry(request));
+        
+    var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+
+    var sended = new GetFriendsRequest(userGuid, request.PageIndex, request.PageSize);
+
+    try
+    {
+        var result = await _sender.Send(new GetFriendsQuerry(sended));
         return Ok(result);
+    }
+    catch (Exception ex)
+    {
+    return StatusCode(500, $"Internal server error: {ex.Message}");
+    }
     }
     
     [HttpPut("accept-friend-request")]
-    public async Task<IActionResult> AccpectFriendRequest(Guid id)
+    public async Task<IActionResult> AcceptFriendRequest(Guid id)
     {
         var result = await _sender.Send(new AcceptFriendRequestCommand(id));
         return Ok(result);

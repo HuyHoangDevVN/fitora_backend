@@ -1,9 +1,12 @@
 using System.Reflection;
 using System.Text;
+using BuildingBlocks.Abstractions;
 using BuildingBlocks.Behaviors;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using FluentValidation;
 using MediatR;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +26,10 @@ public static class DependencyInjection
     public static IServiceCollection AddApplicationServices(this IServiceCollection services,
         IConfiguration configuration)
     {
+        services.AddHttpContextAccessor();
+        var jwtToken = new JwtConfiguration();
+        configuration.GetSection("JwtOptions").Bind(jwtToken);
+        
         services.AddMediatR(config =>
         {
             config.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
@@ -38,6 +45,8 @@ public static class DependencyInjection
         services.AddScoped<IMessageHandler<UserRegisteredMessageDto>, UserRegisteredMessageHandler>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
+        
         services.AddHostedService<RabbitMqConsumerHostedService>();
 
         services.AddStackExchangeRedisCache(options =>
@@ -47,18 +56,18 @@ public static class DependencyInjection
         services.AddFeatureManagement();
         services.AddHttpContextAccessor();
         services.AddAutoMapper(typeof(ServiceProfile));
+        services.AddApplicationAuthentication(configuration);
         return services;
     }
 
-    public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
+    private static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
         IConfiguration configuration)
     {
-        var jwtOptions = configuration.GetSection("ApiSettings:JwtOptions");
+        var jwtOptions = configuration.GetSection("JwtOptions");
         var secret = jwtOptions["Secret"]!;
         var audience = jwtOptions["Audience"]!;
         var issuer = jwtOptions["Issuer"]!;
         
-
         var key = Encoding.UTF8.GetBytes(secret);
 
         services.AddAuthentication(x =>
@@ -92,6 +101,7 @@ public static class DependencyInjection
             ClockSkew = TimeSpan.Zero,
         };
         services.AddSingleton(tokenValidationParameters);
+        services.AddAuthorization();
         return services;
     }
     

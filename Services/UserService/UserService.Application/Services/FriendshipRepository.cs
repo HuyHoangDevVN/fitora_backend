@@ -87,9 +87,9 @@ public class FriendshipRepository : IFriendshipRepository
         };
 
         return await _friendRequestRepo.GetPageWithIncludesAsync(
-            paginationRequest: request,
+            paginationRequest: new PaginationRequest(request.PageIndex, request.PageSize),
             selector: fr => MapToFriendRequestDto(fr),
-            conditions: fr => fr.SenderId == request.Id,
+            conditions: fr => fr.SenderId == request.Id && fr.Status == StatusFriendRequest.Pending,
             includes: includes,
             cancellationToken: CancellationToken.None
         );
@@ -107,9 +107,9 @@ public class FriendshipRepository : IFriendshipRepository
         };
 
         return await _friendRequestRepo.GetPageWithIncludesAsync(
-            paginationRequest: request,
+            paginationRequest: new PaginationRequest(request.PageIndex, request.PageSize),
             selector: fr => MapToFriendRequestDto(fr),
-            conditions: fr => fr.ReceiverId == request.Id,
+            conditions: fr => fr.ReceiverId == request.Id && fr.Status == StatusFriendRequest.Pending,
             includes: includes,
             cancellationToken: CancellationToken.None
         );
@@ -126,7 +126,7 @@ public class FriendshipRepository : IFriendshipRepository
         };
 
         return await _friendshipRepo.GetPageWithIncludesAsync(
-            paginationRequest: request,
+            paginationRequest: new PaginationRequest(request.PageIndex, request.PageSize),
             selector: fs => MapToFriendDto(fs, request.Id),
             conditions: fs => fs.User1Id == request.Id || fs.User2Id == request.Id,
             includes: includes,

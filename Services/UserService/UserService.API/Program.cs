@@ -1,9 +1,5 @@
+using Microsoft.OpenApi.Models;
 using UserService.Application;
-using UserService.Application.DTOs.User.Requests;
-using UserService.Application.Messaging;
-using UserService.Application.Messaging.MessageHandlers.IHandlers;
-using UserService.Application.Services;
-using UserService.Application.Services.IServices;
 using UserService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,9 +18,39 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddSwaggerGen(opt =>
+{
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header,
+        Description = "Please enter token",
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        BearerFormat = "JWT",
+        Scheme = "Bearer"
+    });
+
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type=ReferenceType.SecurityScheme,
+                    Id="Bearer"
+                }
+            },
+            new string[]{}
+        }
+    });
+});
+
 
 builder.Services
     .AddApplicationServices(builder.Configuration)
+    
     .AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
