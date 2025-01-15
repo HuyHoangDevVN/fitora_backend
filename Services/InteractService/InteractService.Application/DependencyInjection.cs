@@ -1,7 +1,9 @@
 using System.Reflection;
 using System.Text;
 using BuildingBlocks.Behaviors;
+using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.Mapper;
+using InteractService.Application.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,28 +24,12 @@ public static class DependencyInjection
             config.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
 
-
-        // services.AddValidatorsFromAssemblyContaining<AuthLoginCommandValidator>();
-        
-        // services.Configure<JwtOptionsSetting>(options =>
-        // {
-        //     options.Secret = configuration["ApiSettings:JwtOptions:Secret"]!;
-        //     options.Audience = configuration["ApiSettings:JwtOptions:Audience"]!;
-        //     options.Issuer = configuration["ApiSettings:JwtOptions:Issuer"]!;
-        // });
-
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration.GetConnectionString("Redis");
         });
         services.AddFeatureManagement();
         services.AddHttpContextAccessor();
-        // services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
-        // services.AddScoped<IAuthRepository, AuthRepository>();
-        // services.AddScoped<IUserRepository, UserRepository>();
-        // services.AddScoped<IKeyRepository<Guid>, KeyRepository>();
-        // services.AddScoped<IRoleRepository, RoleRepository>();
-        //services.Decorate<IAuthRepository, TokenManagementRepository>();
         services.AddAutoMapper(typeof(ServiceProfile));
         return services;
     }
@@ -56,7 +42,7 @@ public static class DependencyInjection
         var audience = jwtOptions["Audience"]!;
         var issuer = jwtOptions["Issuer"]!;
         
-// config authentication jwt
+        // config authentication jwt
         var key = Encoding.UTF8.GetBytes(secret);
 
         services.AddAuthentication(x =>

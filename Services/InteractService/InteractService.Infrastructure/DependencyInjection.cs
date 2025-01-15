@@ -1,5 +1,8 @@
+using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.Data;
+using InteractService.Application.Services.IServices;
 using InteractService.Infrastructure.Data;
+using InteractService.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -17,6 +20,9 @@ public static class DependencyInjection
         // Add service to the container
         // services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
         //services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        
+        services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
+        services.AddScoped<IPostRepository, PostRepository>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
