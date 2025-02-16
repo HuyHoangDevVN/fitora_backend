@@ -5,12 +5,14 @@ using AuthService.Application.Auths.Queries.GetUsers;
 using AutoMapper;
 using BuildingBlocks.Pagination;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Route("api/user")]
+[Authorize]
 [ApiController]
+[Route("api/user")]
 public class UserController : Controller
 {
     private readonly IMapper _mapper;
@@ -50,4 +52,11 @@ public class UserController : Controller
 
         return Ok(response);
     }
+
+    [HttpGet("test-auth")]
+    public async Task<IActionResult> TestAuth()
+    {
+        return Ok(new GetUserResponse(Message: "Testing auth", IsSuccess: true, MetaData: null));
+    }
+    
 }

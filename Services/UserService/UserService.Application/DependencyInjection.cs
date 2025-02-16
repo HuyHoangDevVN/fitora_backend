@@ -56,7 +56,6 @@ public static class DependencyInjection
         services.AddFeatureManagement();
         services.AddHttpContextAccessor();
         services.AddAutoMapper(typeof(ServiceProfile));
-        services.AddApplicationAuthentication(configuration);
         return services;
     }
 

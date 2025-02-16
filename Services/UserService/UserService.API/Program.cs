@@ -1,36 +1,86 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using UserService.Application;
 using UserService.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
-builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Cấu hình CORS cho phép gửi cookies
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("*") 
+        policy.WithOrigins("http://localhost:5173")  // Đảm bảo là địa chỉ frontend của bạn
             .AllowAnyHeader()
-            .AllowAnyMethod(); 
+            .AllowAnyMethod()
+            .AllowCredentials();  // Quan trọng để gửi cookies
     });
 });
 
+// Cấu hình JWT Bearer Authentication
+builder.Services.AddAuthentication(opt =>
+{
+    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+
+        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
+        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
+        IssuerSigningKey =
+            new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!))
+    };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = ctx =>
+        {
+            // Kiểm tra và lấy token từ cookie
+            ctx.Request.Cookies.TryGetValue("accessToken", out var accessToken);
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                ctx.Token = accessToken;  // Đặt token vào request
+            }
+            return Task.CompletedTask;
+        }
+    };
+});
+
+// Cấu hình Swagger với bảo mật JWT
 builder.Services.AddSwaggerGen(opt =>
 {
-    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
-    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    opt.SwaggerDoc("v1", new OpenApiInfo
     {
-        In = ParameterLocation.Header,
-        Description = "Please enter token",
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        BearerFormat = "JWT",
-        Scheme = "Bearer"
+        Title = "MyAPI",
+        Version = "v1",
+        Description = "API documentation for MyAPI with JWT authentication."
     });
 
+    // Thêm cấu hình bảo mật với JWT Bearer
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter your JWT token in the following format: Bearer {your token}"
+    });
+
+    // Áp dụng cấu hình bảo mật cho toàn bộ API
     opt.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -38,20 +88,31 @@ builder.Services.AddSwaggerGen(opt =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type=ReferenceType.SecurityScheme,
-                    Id="Bearer"
-                }
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header
             },
-            new string[]{}
+            new string[] {}  // Không yêu cầu phạm vi cụ thể
         }
     });
 });
 
-
+// Đăng ký các dịch vụ ứng dụng
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    
     .AddInfrastructureServices(builder.Configuration);
+
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.SameSite = SameSiteMode.None;  
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  
+    options.Cookie.HttpOnly = true;  
+});
+
 
 var app = builder.Build();
 
@@ -66,7 +127,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseCors("AllowSpecificOrigin");
 
-
 app.MapControllers();
-
 app.Run();

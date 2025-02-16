@@ -29,13 +29,6 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssemblyContaining<AuthLoginCommandValidator>();
 
-        services.Configure<JwtOptionsSetting>(options =>
-        {
-            options.Secret = configuration["ApiSettings:JwtOptions:Secret"]!;
-            options.Audience = configuration["ApiSettings:JwtOptions:Audience"]!;
-            options.Issuer = configuration["ApiSettings:JwtOptions:Issuer"]!;
-        });
-        
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMQ"));
         services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.AddScoped(typeof(IRabbitMqConsumer<>), typeof(RabbitMqConsumer<>));
