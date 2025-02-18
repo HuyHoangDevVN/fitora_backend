@@ -74,7 +74,7 @@ public class FollowController : Microsoft.AspNetCore.Mvc.Controller
     
         try
         {
-            var result = await _sender.Send(new GetFolloweesQuerry(sended));
+            var result = await _sender.Send(new GetFolloweesQuery(sended));
             return Ok(result);
         }
         catch (Exception ex)
