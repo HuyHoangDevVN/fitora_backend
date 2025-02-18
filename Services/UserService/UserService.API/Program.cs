@@ -22,42 +22,41 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Cấu hình JWT Bearer Authentication
-builder.Services.AddAuthentication(opt =>
-{
-    opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    opt.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+// Configure JWT Bearer Authentication
+builder.Services.AddAuthentication(options =>
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
-        IssuerSigningKey =
-            new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!))
-    };
-
-    options.Events = new JwtBearerEvents
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
     {
-        OnMessageReceived = ctx =>
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            // Kiểm tra và lấy token từ cookie
-            ctx.Request.Cookies.TryGetValue("accessToken", out var accessToken);
-            if (!string.IsNullOrEmpty(accessToken))
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
+            ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // Lấy token từ cookie 
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                ctx.Token = accessToken;  // Đặt token vào request
+                if (context.Request.Cookies.ContainsKey("accessToken"))
+                {
+                    context.Token = context.Request.Cookies["accessToken"];
+                }
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
-        }
-    };
-});
+        };
+    });
 
 // Cấu hình Swagger với bảo mật JWT
 builder.Services.AddSwaggerGen(opt =>
@@ -100,7 +99,7 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
-// Đăng ký các dịch vụ ứng dụng
+
 builder.Services
     .AddApplicationServices(builder.Configuration)
     .AddInfrastructureServices(builder.Configuration);
@@ -113,6 +112,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;  
 });
 
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -123,9 +123,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowSpecificOrigin");
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowSpecificOrigin");
-
 app.MapControllers();
+
 app.Run();

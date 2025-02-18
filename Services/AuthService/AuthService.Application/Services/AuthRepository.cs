@@ -24,7 +24,7 @@ public class AuthRepository(
         if (keys?.Count() > 0)
         {
             var keyLast = keys.Last();
-            if (keyLast.IsUsed == true || keyLast.IsRevoked == true || keyLast.Expire > DateTime.Now)
+            if (keyLast.IsUsed == true || keyLast.IsRevoked == true || keyLast.Expire < DateTime.Now)
             {
                 return false;
             }
@@ -112,9 +112,9 @@ public class AuthRepository(
         }
 
         var userDto = mapper.Map<UserDto>(checkExitUser);
-
-        checkExitUser.AccessFailedCount = 0;
-        await userManager.UpdateAsync(checkExitUser);
+        
+        // checkExitUser.AccessFailedCount = 0;
+        // await userManager.UpdateAsync(checkExitUser);
         return new LoginResponseDto(
             userDto, new LoginTokenResponseDto(accessToken, refreshToken));
     }
@@ -307,7 +307,7 @@ public class AuthRepository(
         context.Response.Cookies.Append("accessToken", result.ResponseDto.Token.AccessToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.Now.AddMinutes(5),
+                Expires = DateTimeOffset.UtcNow.AddDays(5),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,
@@ -316,7 +316,7 @@ public class AuthRepository(
         context.Response.Cookies.Append("refreshToken", result.ResponseDto.Token.RefreshToken,
             new CookieOptions
             {
-                Expires = DateTimeOffset.Now.AddDays(7),
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
                 HttpOnly = true,
                 IsEssential = true,
                 Secure = true,

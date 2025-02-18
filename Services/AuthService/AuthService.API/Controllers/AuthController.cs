@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AuthService.API.Endpoints.Auths;
 using AuthService.Application.Auths.Commands.AuthChangePassword;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
@@ -47,9 +48,17 @@ public class AuthController : Controller
     {
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
-        _authoRepo.SetTokenInsideCookie(result, HttpContext);
         var response = new ResponseDto(result, Message: "Login Successful");
+        _authoRepo.SetTokenInsideCookie(result, HttpContext);
         return Ok(response);
+    }
+    
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("accessToken");
+        Response.Cookies.Delete("refreshToken");
+        return Ok(new ResponseDto(Message: "Đăng xuất thành công !"));
     }
 
     [HttpPost("change-password")]
@@ -90,4 +99,18 @@ public class AuthController : Controller
         var response = new ResponseDto(deleteAccountResult, Message: "Delete Account Successful");
         return Ok(response);
     }
+    
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        var cookieToken = Request.Cookies["accessToken"];
+
+        if (string.IsNullOrEmpty(cookieToken))
+        {
+            return Ok(new ResponseDto(null,IsSuccess: false, "User is not logged in"));
+        }
+
+        return Ok(new ResponseDto(cookieToken, IsSuccess: true,"User is logged in"));
+    }
+
 }

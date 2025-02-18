@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Authorize]
+// [Authorize]
 [ApiController]
 [Route("api/user")]
 public class UserController : Controller
