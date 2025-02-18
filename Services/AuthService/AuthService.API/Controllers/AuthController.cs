@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AuthService.API.Endpoints.Auths;
 using AuthService.Application.Auths.Commands.AuthChangePassword;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
@@ -6,10 +7,13 @@ using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.Auths.Commands.AuthRegister;
 using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.DTOs.Auth.Requests;
+using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.DTOs.Key.Responses;
+using AuthService.Application.Services.IServices;
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
@@ -20,12 +24,15 @@ public class AuthController : Controller
 {
     private readonly ISender _sender;
     private readonly IMapper _mapper;
+    private readonly IAuthRepository _authoRepo;
 
-    public AuthController(ISender sender, IMapper mapper)
+    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService)
     {
         _sender = sender;
         _mapper = mapper;
+        _authoRepo = authorizationService;
     }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequestDto req)
     {
@@ -41,16 +48,17 @@ public class AuthController : Controller
     {
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
-        var loginResult = _mapper.Map<AuthLoginResult>(result);
-        Response.Cookies.Append("refresh_token", result.ResponseDto.Token.RefreshToken, new CookieOptions
-        {
-            HttpOnly = true, 
-            Secure = true,   
-            SameSite = SameSiteMode.Strict, 
-            Expires = DateTime.UtcNow.AddDays(7) 
-        });
-        var response = new ResponseDto(loginResult.ResponseDto, Message: "Login Successful");
+        var response = new ResponseDto(result, Message: "Login Successful");
+        _authoRepo.SetTokenInsideCookie(result, HttpContext);
         return Ok(response);
+    }
+    
+    [HttpPost("logout")]
+    public IActionResult Logout()
+    {
+        Response.Cookies.Delete("accessToken");
+        Response.Cookies.Delete("refreshToken");
+        return Ok(new ResponseDto(Message: "Đăng xuất thành công !"));
     }
 
     [HttpPost("change-password")]
@@ -72,19 +80,12 @@ public class AuthController : Controller
         var response = new ResponseDto(lockAccountResult, Message: "Lock Account Successful");
         return Ok(response);
     }
-    
+
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken(RefreshTokenByUserResponseDto req)
+    public async Task<IActionResult> RefreshToken(RefreshTokenByUserRequestDto req)
     {
         var command = _mapper.Map<RefreshTokenCommand>(req);
         var result = await _sender.Send(command);
-        Response.Cookies.Append("refresh_token", result.RefreshToken, new CookieOptions
-        {
-            HttpOnly = true,   
-            Secure = true,     
-            SameSite = SameSiteMode.Strict, 
-            Expires = DateTime.UtcNow.AddDays(7)  // Thời gian hết hạn
-        });
         var response = new ResponseDto(result, Message: "Refresh Token Successful");
         return Ok(response);
     }
@@ -98,4 +99,18 @@ public class AuthController : Controller
         var response = new ResponseDto(deleteAccountResult, Message: "Delete Account Successful");
         return Ok(response);
     }
+    
+    [HttpGet("me")]
+    public IActionResult GetCurrentUser()
+    {
+        var cookieToken = Request.Cookies["accessToken"];
+
+        if (string.IsNullOrEmpty(cookieToken))
+        {
+            return Ok(new ResponseDto(null,IsSuccess: false, "User is not logged in"));
+        }
+
+        return Ok(new ResponseDto(cookieToken, IsSuccess: true,"User is logged in"));
+    }
+
 }

@@ -1,5 +1,6 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.User.Requests;
@@ -17,17 +18,19 @@ namespace UserService.API.Controller;
 [ApiController]
 public class UserController : Microsoft.AspNetCore.Mvc.Controller
 {
-    
     private readonly ISender _sender;
     private readonly IMapper _mapper;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
-    public UserController(ISender sender, IMapper mapper)
+
+    public UserController(ISender sender, IMapper mapper, IAuthorizeExtension authorizeExtension)
     {
         _sender = sender;
-        _mapper = mapper;       
+        _mapper = mapper;
+        _authorizeExtension = authorizeExtension;
     }
-    
-    
+
+
     [HttpPost("create-user")]
     public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest createUserRequest)
     {
@@ -47,15 +50,27 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     [HttpGet("get-user")]
     public async Task<IActionResult> GetUser([FromQuery] GetUserRequest getUserRequest)
     {
-        var result = await _sender.Send(new GetUserQuerry(getUserRequest));
+        var result = await _sender.Send(new GetUserQuery(getUserRequest));
         var response = new ResponseDto(result, Message: "Get Successful");
         return Ok(response);
     }
 
+    [HttpGet("profile")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var user = _authorizeExtension.GetUserFromClaimToken();
+        var result =
+            await _sender.Send(
+                new GetUserQuery(new GetUserRequest(Id: user.Id, Username: user.UserName, Email: user.FullName)));
+        var response = new ResponseDto(result, Message: "Get Successful");
+        return Ok(response);
+    }
+
+
     [HttpGet("get-users")]
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest getUsersRequest)
     {
-        var result = await _sender.Send(new GetUsersQuerry(getUsersRequest));
+        var result = await _sender.Send(new GetUsersQuery(getUsersRequest));
         return Ok(result);
     }
 }

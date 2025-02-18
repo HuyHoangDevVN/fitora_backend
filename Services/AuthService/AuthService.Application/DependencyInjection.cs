@@ -29,13 +29,6 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssemblyContaining<AuthLoginCommandValidator>();
 
-        services.Configure<JwtOptionsSetting>(options =>
-        {
-            options.Secret = configuration["ApiSettings:JwtOptions:Secret"]!;
-            options.Audience = configuration["ApiSettings:JwtOptions:Audience"]!;
-            options.Issuer = configuration["ApiSettings:JwtOptions:Issuer"]!;
-        });
-        
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMQ"));
         services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.AddScoped(typeof(IRabbitMqConsumer<>), typeof(RabbitMqConsumer<>));
@@ -59,6 +52,7 @@ public static class DependencyInjection
     public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
         IConfiguration configuration)
     {
+        
         var jwtOptions = configuration.GetSection("ApiSettings:JwtOptions");
         var secret = jwtOptions["Secret"]!;
         var audience = jwtOptions["Audience"]!;
@@ -66,7 +60,7 @@ public static class DependencyInjection
 
 // config authentication jwt
         var key = Encoding.UTF8.GetBytes(secret);
-
+        services.Configure<JwtOptionsSetting>(configuration.GetSection("ApiSettings:JwtOptions"));
         services.AddAuthentication(x =>
         {
             x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;

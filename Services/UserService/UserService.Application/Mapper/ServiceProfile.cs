@@ -1,4 +1,5 @@
 using AutoMapper;
+using UserService.Application.DTOs.Follow.Requests;
 using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
 
@@ -21,6 +22,12 @@ public class ServiceProfile : Profile
         #region Friendship
 
         
+
+        #endregion
+        
+        #region Follow
+
+        CreateMap<Follow, FollowRequest>().ReverseMap();
 
         #endregion
     }

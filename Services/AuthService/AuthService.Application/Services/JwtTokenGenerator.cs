@@ -10,7 +10,6 @@ public class JwtTokenGenerator(IOptions<JwtOptionsSetting> options) : IJwtTokenG
 {
     private readonly JwtOptionsSetting _jwt = options.Value;
 
-
     public string GeneratorToken(ApplicationUser user, IEnumerable<string>? roles)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
@@ -20,7 +19,9 @@ public class JwtTokenGenerator(IOptions<JwtOptionsSetting> options) : IJwtTokenG
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.UserName!),
-            new Claim("FullName", user.FullName)
+            new Claim("FullName", user.FullName),
+            new Claim(JwtRegisteredClaimNames.Aud, _jwt.Audience),
+            new Claim(JwtRegisteredClaimNames.Iss,_jwt.Issuer)
         };
         
         if (roles is not null)
@@ -32,7 +33,7 @@ public class JwtTokenGenerator(IOptions<JwtOptionsSetting> options) : IJwtTokenG
         {
             Audience = _jwt.Audience,
             Issuer = _jwt.Issuer,
-            Expires = DateTime.UtcNow.AddHours(7),
+            Expires = DateTime.UtcNow.AddDays(1),
             Subject = new ClaimsIdentity(claims),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
         };

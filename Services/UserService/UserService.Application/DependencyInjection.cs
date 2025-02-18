@@ -46,6 +46,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
+        services.AddScoped<IFollowRepository, FollowRepository>();
         
         services.AddHostedService<RabbitMqConsumerHostedService>();
 
@@ -56,54 +57,6 @@ public static class DependencyInjection
         services.AddFeatureManagement();
         services.AddHttpContextAccessor();
         services.AddAutoMapper(typeof(ServiceProfile));
-        services.AddApplicationAuthentication(configuration);
         return services;
     }
-
-    private static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
-        IConfiguration configuration)
-    {
-        var jwtOptions = configuration.GetSection("JwtOptions");
-        var secret = jwtOptions["Secret"]!;
-        var audience = jwtOptions["Audience"]!;
-        var issuer = jwtOptions["Issuer"]!;
-        
-        var key = Encoding.UTF8.GetBytes(secret);
-
-        services.AddAuthentication(x =>
-        {
-            x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(x =>
-        {
-            x.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidAudience = audience,
-                ValidIssuer = issuer,
-                ClockSkew = TimeSpan.Zero
-            };
-        });
-
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidAudience = audience,
-            ValidIssuer = issuer,
-            RequireExpirationTime = true,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
-        };
-        services.AddSingleton(tokenValidationParameters);
-        services.AddAuthorization();
-        return services;
-    }
-    
-    
 }

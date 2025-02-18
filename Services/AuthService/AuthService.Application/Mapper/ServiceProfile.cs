@@ -57,6 +57,7 @@ public class ServiceProfile : Profile
         CreateMap<RefreshTokenCommand, RefreshTokenByUserResponseDto>();
         CreateMap<RefreshTokenByUserResponseDto, RefreshTokenCommand>();
         // Refresh Token Response
+        CreateMap<RefreshTokenByUserRequestDto, RefreshTokenCommand>();
         CreateMap<RefreshTokenResult, RefreshTokenByUserResponseDto>();
         CreateMap<RefreshTokenByUserResponseDto, RefreshTokenResult>();
         #endregion

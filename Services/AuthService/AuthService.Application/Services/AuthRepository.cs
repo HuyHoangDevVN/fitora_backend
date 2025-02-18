@@ -1,4 +1,5 @@
 using Auth.Domain.Enums;
+using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using Microsoft.AspNetCore.Http;
@@ -7,36 +8,39 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace AuthService.Application.Services;
 
-public class AuthRepository
-(UserManager<ApplicationUser> userManager,
+public class AuthRepository(
+    UserManager<ApplicationUser> userManager,
     RoleManager<IdentityRole> roleManager,
     IDistributedCache cache,
     IJwtTokenGenerator jwtTokenGenerator,
     IMapper mapper,
     IKeyRepository<Guid> keyRepository,
-    IHttpContextAccessor accessor, IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
-: IAuthRepository
+    IHttpContextAccessor accessor,
+    IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
+    : IAuthRepository
 {
     private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)
     {
-
         if (keys?.Count() > 0)
         {
             var keyLast = keys.Last();
-            if (keyLast.IsUsed == true || keyLast.IsRevoked == true || keyLast.Expire > DateTime.Now)
+            if (keyLast.IsUsed == true || keyLast.IsRevoked == true || keyLast.Expire < DateTime.Now)
             {
                 return false;
             }
+
             return true;
         }
+
         return false;
     }
+
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto)
     {
         // find user
         var checkExitUser = await userManager.FindByEmailAsync(dto.Email);
-        
-        if(checkExitUser is null)
+
+        if (checkExitUser is null)
         {
             throw new NotFoundException($"Account with email: {dto.Email} is not exits");
         }
@@ -53,10 +57,10 @@ public class AuthRepository
                 checkExitUser.LockoutEnd = DateTimeOffset.Now.AddMinutes(5);
             }
 
-            await userManager.UpdateAsync(checkExitUser); 
+            await userManager.UpdateAsync(checkExitUser);
             throw new BadRequestException("Password in not correct");
         }
-        
+
         // check is confirm Email
         // bool isConfirmEmail = await userManager.IsEmailConfirmedAsync(checkExitUser);
         // if (!isConfirmEmail)
@@ -75,7 +79,7 @@ public class AuthRepository
         {
             throw new BadRequestException($"Account.....");
         }
-        
+
         // get-all roles of user
         var roles = await userManager.GetRolesAsync(checkExitUser);
         string accessToken = "";
@@ -83,7 +87,8 @@ public class AuthRepository
         if (string.IsNullOrEmpty(cacheToken))
         {
             accessToken = jwtTokenGenerator.GeneratorToken(checkExitUser, roles);
-            await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken, new DistributedCacheEntryOptions{AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7)});
+            await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken,
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
         }
         else
         {
@@ -97,18 +102,19 @@ public class AuthRepository
             refreshToken = jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
             await keyRepository.CreateKeyAsync(new CreateKeyRequestDto
             (
-                Token :refreshToken,
-                UserId : checkExitUser.Id
+                Token: refreshToken,
+                UserId: checkExitUser.Id
             ));
         }
         else
         {
             refreshToken = keys.Last().Token;
         }
-        var userDto = mapper.Map<UserDto>(checkExitUser);
 
-        checkExitUser.AccessFailedCount = 0;
-        await userManager.UpdateAsync(checkExitUser);
+        var userDto = mapper.Map<UserDto>(checkExitUser);
+        
+        // checkExitUser.AccessFailedCount = 0;
+        // await userManager.UpdateAsync(checkExitUser);
         return new LoginResponseDto(
             userDto, new LoginTokenResponseDto(accessToken, refreshToken));
     }
@@ -157,8 +163,8 @@ public class AuthRepository
                 new UserDto(user.Id.ToString(), user.UserName, user.FullName),
                 new LoginTokenResponseDto(accessToken, refreshToken)
             );
-            
-            
+
+
             // Publish message to UserService after successful registration
             var userRegisteredMessage = new UserRegisteredMessageDto
             {
@@ -217,7 +223,7 @@ public class AuthRepository
             {
                 return true;
             }
-            
+
             foreach (var error in isChangePassword.Errors)
             {
                 Console.WriteLine(error.Description);
@@ -245,10 +251,12 @@ public class AuthRepository
                 {
                     throw new BadRequestException("Token Is Null");
                 }
+
                 UserDto userToken = jwtTokenGenerator.DecodeToken(accessToken!);
                 if (string.IsNullOrEmpty(userToken.Id)) throw new BadRequestException("Invalid User");
                 if (!string.Equals(uid.ToString(), userToken.Id)) throw new BadRequestException("Invalid UserId");
-                var userFound = await userManager.FindByIdAsync(userToken.Id) ?? throw new NotFoundException("User NotFound");
+                var userFound = await userManager.FindByIdAsync(userToken.Id) ??
+                                throw new NotFoundException("User NotFound");
                 userFound.Status = (int)UserStatus.Locked;
                 userFound.LockoutEnabled = true;
                 userFound.LockoutEnd = DateTimeOffset.Now.AddDays(dto.Expire);
@@ -257,6 +265,7 @@ public class AuthRepository
                 {
                     return false;
                 }
+
                 return true;
             }
 
@@ -286,11 +295,32 @@ public class AuthRepository
             }
 
             return true;
-
         }
         catch (Exception e)
         {
             throw new BadRequestException(e.Message);
         }
+    }
+
+    public void SetTokenInsideCookie(AuthLoginResult result, HttpContext context)
+    {
+        context.Response.Cookies.Append("accessToken", result.ResponseDto.Token.AccessToken,
+            new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(5),
+                HttpOnly = true,
+                IsEssential = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
+        context.Response.Cookies.Append("refreshToken", result.ResponseDto.Token.RefreshToken,
+            new CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddDays(7),
+                HttpOnly = true,
+                IsEssential = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            });
     }
 }

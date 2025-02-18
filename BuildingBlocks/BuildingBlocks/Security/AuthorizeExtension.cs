@@ -21,6 +21,9 @@ public class AuthorizeExtension : IAuthorizeExtension
         this._httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
     }
 
+    /// <summary>
+    /// Lấy user từ token lưu trong cookie
+    /// </summary>
     public UserLoginResponseBase GetUserFromClaimToken()
     {
         var user = _httpContextAccessor.HttpContext?.User;
@@ -39,8 +42,12 @@ public class AuthorizeExtension : IAuthorizeExtension
         );
     }
 
-    public bool ValidateToken(string token)
+    /// <summary>
+    /// Kiểm tra token có hợp lệ không (lấy từ cookie)
+    /// </summary>
+    public bool ValidateToken()
     {
+        var token = GetToken(); // Lấy token từ cookie
         var tokenHandler = new JwtSecurityTokenHandler();
         var key = Encoding.UTF8.GetBytes(this._jwtConfiguration.Secret);
 
@@ -66,12 +73,12 @@ public class AuthorizeExtension : IAuthorizeExtension
         }
     }
 
-    public UserLoginResponseBase DecodeToken(string token)
+    /// <summary>
+    /// Giải mã token lấy từ cookie
+    /// </summary>
+    public UserLoginResponseBase DecodeToken()
     {
-        if (string.IsNullOrEmpty(token))
-        {
-            throw new ArgumentException("Invalid Token");
-        }
+        var token = GetToken(); // Lấy token từ cookie
 
         var tokenHandler = new JwtSecurityTokenHandler();
         if (!tokenHandler.CanReadToken(token))
@@ -80,7 +87,7 @@ public class AuthorizeExtension : IAuthorizeExtension
         }
 
         var key = Encoding.UTF8.GetBytes(_jwtConfiguration.Secret);
-        var singingKey = new SymmetricSecurityKey(key);
+        var signingKey = new SymmetricSecurityKey(key);
         var validationParameters = new TokenValidationParameters
         {
             ValidateAudience = true,
@@ -89,28 +96,31 @@ public class AuthorizeExtension : IAuthorizeExtension
             ValidateIssuerSigningKey = true,
             ValidIssuer = _jwtConfiguration.Issuer,
             ValidAudience = _jwtConfiguration.Audience,
-            IssuerSigningKey = singingKey
+            IssuerSigningKey = signingKey
         };
-        SecurityToken validatedToken;
-        var principal = tokenHandler.ValidateToken(token, validationParameters, out validatedToken);
-        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)!.Value;
 
+        var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)!.Value;
 
         return new UserLoginResponseBase(
             Id: Guid.Parse(userId),
-            UserName: principal?.FindFirst("nameid")!.Value ?? "",
+            UserName: principal?.FindFirst(ClaimTypes.Name)!.Value ?? "",
             FullName: principal?.FindFirst("FullName")!.Value ?? ""
         );
     }
 
+    /// <summary>
+    /// Lấy token từ HttpOnly Cookie
+    /// </summary>
     public string GetToken()
     {
-        var token = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"].ToString();
-        if (string.IsNullOrEmpty(token) || !token.StartsWith("Bearer "))
+        var token = _httpContextAccessor.HttpContext?.Request.Cookies["accessToken"];
+        
+        if (string.IsNullOrEmpty(token))
         {
             throw new BadRequestException("Invalid or missing Authorization token.");
         }
 
-        return token.Substring("Bearer ".Length).Trim();
+        return token;
     }
 }

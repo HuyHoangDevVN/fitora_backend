@@ -5,8 +5,8 @@ namespace BuildingBlocks.Security;
 public interface IAuthorizeExtension
 {
     UserLoginResponseBase GetUserFromClaimToken();
-    bool ValidateToken(string token);
-    UserLoginResponseBase DecodeToken(string token);
+    bool ValidateToken();
+    UserLoginResponseBase DecodeToken();
       
     string GetToken();
 }

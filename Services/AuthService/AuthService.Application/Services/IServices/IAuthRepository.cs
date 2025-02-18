@@ -1,5 +1,7 @@
+using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Auth.Responses;
+using Microsoft.AspNetCore.Http;
 
 namespace AuthService.Application.Services.IServices;
 
@@ -10,4 +12,5 @@ public interface IAuthRepository
     Task<bool> ChangePasswordAsync(ChangePasswordRequestDto dto);
     Task<bool> LockUserAsync(LockUserRequestDto dto);
     Task<bool> DeleteUserAsync(DeleteUserRequestDto dto);
+    void SetTokenInsideCookie(AuthLoginResult result, HttpContext context);
 }
