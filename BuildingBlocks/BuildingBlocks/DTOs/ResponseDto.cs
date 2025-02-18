@@ -1,6 +1,6 @@
 namespace BuildingBlocks.DTOs;
 
 public record ResponseDto(
-    object? MetaData  = null,
+    object? Data  = null,
     bool IsSuccess = true,
     string Message = "");

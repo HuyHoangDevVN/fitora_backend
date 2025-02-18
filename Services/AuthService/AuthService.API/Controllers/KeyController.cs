@@ -31,13 +31,6 @@ public class KeyController : Controller
         return Ok(response);
     }
 
-    [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken(RefreshTokenByUserResponseDto req)
-    {
-        var command = _mapper.Map<RefreshTokenCommand>(req);
-        var result = await _sender.Send(command);
-        var response = new ResponseDto(result, Message: "Refresh Token Successful");
-        return Ok(response);
-    }
+    
     
 }

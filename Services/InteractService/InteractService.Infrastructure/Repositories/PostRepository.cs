@@ -1,6 +1,7 @@
 using AutoMapper;
 using BuildingBlocks.Exceptions;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.Services.IServices;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -12,11 +13,13 @@ public class PostRepository : IPostRepository
 {
     private readonly IRepositoryBase<Post> _postRepo;
     private readonly IMapper _mapper;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
-    public PostRepository(IRepositoryBase<Post> postRepo, IMapper mapper)
+    public PostRepository(IRepositoryBase<Post> postRepo, IMapper mapper, IAuthorizeExtension authorizeExtension)
     {
         _postRepo = postRepo;
         _mapper = mapper;
+        _authorizeExtension = authorizeExtension;
     }
     
     public async Task<bool> CreateAsync(Post post)

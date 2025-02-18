@@ -4,7 +4,9 @@ using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
 using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.Auths.Commands.AuthRegister;
+using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.DTOs.Auth.Requests;
+using AuthService.Application.DTOs.Key.Responses;
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using MediatR;
@@ -40,7 +42,14 @@ public class AuthController : Controller
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
         var loginResult = _mapper.Map<AuthLoginResult>(result);
-        var response = new ResponseDto(loginResult, Message: "Login Successful");
+        Response.Cookies.Append("refresh_token", result.ResponseDto.Token.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true, 
+            Secure = true,   
+            SameSite = SameSiteMode.Strict, 
+            Expires = DateTime.UtcNow.AddDays(7) 
+        });
+        var response = new ResponseDto(loginResult.ResponseDto, Message: "Login Successful");
         return Ok(response);
     }
 
@@ -61,6 +70,22 @@ public class AuthController : Controller
         var result = await _sender.Send(requestModel);
         var lockAccountResult = _mapper.Map<AuthLockAccountResult>(result);
         var response = new ResponseDto(lockAccountResult, Message: "Lock Account Successful");
+        return Ok(response);
+    }
+    
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken(RefreshTokenByUserResponseDto req)
+    {
+        var command = _mapper.Map<RefreshTokenCommand>(req);
+        var result = await _sender.Send(command);
+        Response.Cookies.Append("refresh_token", result.RefreshToken, new CookieOptions
+        {
+            HttpOnly = true,   
+            Secure = true,     
+            SameSite = SameSiteMode.Strict, 
+            Expires = DateTime.UtcNow.AddDays(7)  // Thời gian hết hạn
+        });
+        var response = new ResponseDto(result, Message: "Refresh Token Successful");
         return Ok(response);
     }
 

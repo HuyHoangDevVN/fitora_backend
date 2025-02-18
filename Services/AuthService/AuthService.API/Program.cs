@@ -13,6 +13,17 @@ builder.Services
     .AddApplicationServices(builder.Configuration)
     .AddInfrastructureServices(builder.Configuration);
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowSpecificOrigin", policy =>
+    {
+        policy.WithOrigins("*") 
+            .AllowAnyHeader()
+            .AllowAnyMethod(); 
+    });
+});
+
+
 builder.Services.AddAuthentication();
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -55,6 +66,8 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthentication(); 
 app.UseAuthorization(); 
+app.UseCors("AllowSpecificOrigin");
+
 
 app.MapControllers();
 app.Run();
