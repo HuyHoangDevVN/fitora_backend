@@ -5,12 +5,10 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.User.Requests;
 using UserService.Application.DTOs.User.Responses;
-using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
 using UserService.Application.Usecases.Users.Commands.UpdateUser;
 using UserService.Application.Usecases.Users.Queries.GetUser;
 using UserService.Application.Usecases.Users.Queries.GetUsers;
-using UserService.Domain.Models;
 
 namespace UserService.API.Controller;
 
