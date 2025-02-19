@@ -52,7 +52,7 @@ public class AuthController : Controller
         _authoRepo.SetTokenInsideCookie(result, HttpContext);
         return Ok(response);
     }
-    
+
     [HttpPost("logout")]
     public IActionResult Logout()
     {
@@ -82,12 +82,18 @@ public class AuthController : Controller
     }
 
     [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken(RefreshTokenByUserRequestDto req)
+    public async Task<IActionResult> RefreshToken()
     {
-        var command = _mapper.Map<RefreshTokenCommand>(req);
-        var result = await _sender.Send(command);
-        var response = new ResponseDto(result, Message: "Refresh Token Successful");
-        return Ok(response);
+        var cookieToken = Request.Cookies["refreshToken"];
+        if (cookieToken != null)
+        {
+            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto(cookieToken));
+            var result = await _sender.Send(command);
+            var response = new ResponseDto(result, Message: "Refresh Token Successful");
+            return Ok(response);
+        }
+
+        return Ok(new ResponseDto(Message: "Refresh Token Failed", IsSuccess: false));
     }
 
     [HttpDelete("delete-account")]
@@ -99,7 +105,7 @@ public class AuthController : Controller
         var response = new ResponseDto(deleteAccountResult, Message: "Delete Account Successful");
         return Ok(response);
     }
-    
+
     [HttpGet("me")]
     public IActionResult GetCurrentUser()
     {
@@ -107,10 +113,9 @@ public class AuthController : Controller
 
         if (string.IsNullOrEmpty(cookieToken))
         {
-            return Ok(new ResponseDto(null,IsSuccess: false, "User is not logged in"));
+            return Ok(new ResponseDto(null, IsSuccess: false, "User is not logged in"));
         }
 
-        return Ok(new ResponseDto(cookieToken, IsSuccess: true,"User is logged in"));
+        return Ok(new ResponseDto(cookieToken, IsSuccess: true, "User is logged in"));
     }
-
 }

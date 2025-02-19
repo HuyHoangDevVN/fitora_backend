@@ -17,48 +17,49 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("*")
+        policy.WithOrigins("http://localhost:5173")
+            .AllowCredentials()
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowAnyOrigin();
+            .AllowAnyMethod();
     });
 });
 
 // Configure JWT Bearer Authentication
 builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
-        IssuerSigningKey =
-            new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-        ClockSkew = TimeSpan.Zero
-    };
-
-    // Lấy token từ cookie 
-    options.Events = new JwtBearerEvents
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
+    .AddJwtBearer(options =>
     {
-        OnMessageReceived = context =>
+        options.TokenValidationParameters = new TokenValidationParameters
         {
-            if (context.Request.Cookies.ContainsKey("accessToken"))
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
+            ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
+            IssuerSigningKey =
+                new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // Lấy token từ cookie 
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
             {
-                context.Token = context.Request.Cookies["accessToken"];
+                if (context.Request.Cookies.ContainsKey("accessToken"))
+                {
+                    context.Token = context.Request.Cookies["accessToken"];
+                }
+
+                return Task.CompletedTask;
             }
-            return Task.CompletedTask;
-        }
-    };
-});
+        };
+    });
 
 builder.Services.Configure<JwtOptionsSetting>(
     builder.Configuration.GetSection("ApiSettings:JwtOptions")

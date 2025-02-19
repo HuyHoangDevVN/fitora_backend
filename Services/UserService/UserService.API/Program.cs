@@ -16,12 +16,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")  // Đảm bảo là địa chỉ frontend của bạn
+        policy.WithOrigins("http://localhost:5173")
+            .AllowCredentials()
             .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();  // Quan trọng để gửi cookies
+            .AllowAnyMethod();
     });
 });
+
 
 // Configure JWT Bearer Authentication
 builder.Services.AddAuthentication(options =>

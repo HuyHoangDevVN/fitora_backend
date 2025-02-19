@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InteractService.Application")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cf25eaeea60621c1f09aa7f2aaf3944ee32555e6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+195499cfdb0c3134c76aee082251b6f6d515ebb5")]
 [assembly: System.Reflection.AssemblyProductAttribute("InteractService.Application")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InteractService.Application")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

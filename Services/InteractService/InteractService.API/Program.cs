@@ -7,6 +7,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Thêm Controller, Swagger và Endpoints
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -17,47 +19,46 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
         policy.WithOrigins("http://localhost:5173")  // Đảm bảo là địa chỉ frontend của bạn
-            .AllowAnyHeader()
-            .AllowAnyMethod()
-            .AllowCredentials();  // Quan trọng để gửi cookies
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();  // Quan trọng để gửi cookies
     });
 });
 
 // Configure JWT Bearer Authentication
 builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
-            ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
-            IssuerSigningKey =
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-            ClockSkew = TimeSpan.Zero
-        };
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
+        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
+        ClockSkew = TimeSpan.Zero
+    };
 
-        // Lấy token từ cookie 
-        options.Events = new JwtBearerEvents
+    // Lấy token từ cookie 
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
         {
-            OnMessageReceived = context =>
+            if (context.Request.Cookies.ContainsKey("accessToken"))
             {
-                if (context.Request.Cookies.ContainsKey("accessToken"))
-                {
-                    context.Token = context.Request.Cookies["accessToken"];
-                }
-                return Task.CompletedTask;
+                context.Token = context.Request.Cookies["accessToken"];
             }
-        };
-    });
+            return Task.CompletedTask;
+        }
+    };
+});
 
 // Cấu hình Swagger với bảo mật JWT
 builder.Services.AddSwaggerGen(opt =>
@@ -98,14 +99,16 @@ builder.Services.AddSwaggerGen(opt =>
             new string[] {}  // Không yêu cầu phạm vi cụ thể
         }
     });
+    // Thêm FileUploadOperationFilter để hỗ trợ kiểm tra upload file trên Swagger
+    opt.OperationFilter<FileUploadOperationFilter>();
 });
 
-
+// Thêm các services ứng dụng và hạ tầng
 builder.Services
     .AddApplicationServices(builder.Configuration)
     .AddInfrastructureServices(builder.Configuration);
 
-
+// Cấu hình Application Cookie
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.SameSite = SameSiteMode.None;  
@@ -115,20 +118,33 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddAuthorization();
 
+// Thêm Health Checks (tuỳ chọn)
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
+// Nếu môi trường phát triển thì hiển thị Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+// Phục vụ file tĩnh từ wwwroot (ví dụ cho upload file)
+app.UseStaticFiles();
+
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
+
+// Middleware tùy chỉnh (ví dụ HybridAuthMiddleware)
 app.UseMiddleware<HybridAuthMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
+
+// Map Health Check endpoint
+app.MapHealthChecks("/health");
 
 app.Run();

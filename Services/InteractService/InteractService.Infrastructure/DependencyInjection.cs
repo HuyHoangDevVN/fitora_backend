@@ -1,4 +1,5 @@
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using InteractService.Application.Data;
 using InteractService.Application.Services.IServices;
 using InteractService.Infrastructure.Data;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
         services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
