@@ -1,4 +1,5 @@
 using System.Text;
+using AuthService.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -124,6 +125,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
+app.UseMiddleware<HybridAuthMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

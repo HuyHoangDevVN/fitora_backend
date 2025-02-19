@@ -6,7 +6,7 @@ public class AcceptFriendRequestHandler (IFriendshipRepository friendshipRepo, I
 {
     public async Task<ResponseDto> Handle(AcceptFriendRequestCommand request, CancellationToken cancellationToken)
     {
-        var isSuccess = await friendshipRepo.AcceptFriendRequestAsync(request.Id);
+        var isSuccess = await friendshipRepo.AcceptFriendRequestAsync(request.request);
         return new ResponseDto(IsSuccess: isSuccess, Message: isSuccess ? "Accpect Success" : "Accpect Failed");
     }
 }

@@ -5,12 +5,10 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.User.Requests;
 using UserService.Application.DTOs.User.Responses;
-using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
 using UserService.Application.Usecases.Users.Commands.UpdateUser;
 using UserService.Application.Usecases.Users.Queries.GetUser;
 using UserService.Application.Usecases.Users.Queries.GetUsers;
-using UserService.Domain.Models;
 
 namespace UserService.API.Controller;
 
@@ -50,6 +48,11 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     [HttpGet("get-user")]
     public async Task<IActionResult> GetUser([FromQuery] GetUserRequest getUserRequest)
     {
+        var user = _authorizeExtension.GetUserFromClaimToken();
+        if (getUserRequest.Id == Guid.Empty)
+        {
+            getUserRequest = getUserRequest with { Id = user.Id };
+        }
         var result = await _sender.Send(new GetUserQuery(getUserRequest));
         var response = new ResponseDto(result, Message: "Get Successful");
         return Ok(response);
@@ -61,7 +64,8 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
         var user = _authorizeExtension.GetUserFromClaimToken();
         var result =
             await _sender.Send(
-                new GetUserQuery(new GetUserRequest(Id: user.Id, Username: user.UserName, Email: user.FullName)));
+                new GetUserQuery(new GetUserRequest(Id: user.Id, GetId: null, Username: user.UserName,
+                    Email: user.FullName)));
         var response = new ResponseDto(result, Message: "Get Successful");
         return Ok(response);
     }

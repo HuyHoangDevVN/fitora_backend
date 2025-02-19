@@ -252,4 +252,9 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             .Join(innerQuery, outerKeySelector, innerKeySelector, resultSelector)
             .ToListAsync();
     }
+
+    public Task<int> CountAsync(Expression<Func<TEntity, bool>>? conditions = null, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

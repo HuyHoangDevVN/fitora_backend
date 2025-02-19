@@ -4,7 +4,7 @@ public class DeleteFriendRequestHandler (IFriendshipRepository friendshipRepo, I
 {
     public async Task<bool> Handle(DeleteFriendRequestCommand request, CancellationToken cancellationToken)
     {
-        var isSuccess = await friendshipRepo.DeleteFriendRequestAsync(request.Id);
+        var isSuccess = await friendshipRepo.DeleteFriendRequestAsync(request.Request);
         return isSuccess;
     }
 }

@@ -35,26 +35,29 @@ public class FollowController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpPost("follow")]
-    public async Task<IActionResult> Follow([FromBody] FollowRequest request)
+    public async Task<IActionResult> Follow([FromBody] Guid id)
     {
-        var result = await _sender.Send(new FollowCommand(request));
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new FollowCommand(new FollowRequest(userGuid, id)
+        ));
         return Ok(result);
     }
-    
+
     [HttpPost("unfollow")]
-    public async Task<IActionResult> Unfollow([FromBody] FollowRequest request)
+    public async Task<IActionResult> Unfollow([FromBody] Guid id)
     {
-        var result = await _sender.Send(new UnfollowCommand(request));
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new UnfollowCommand(new FollowRequest(userGuid, id)));
         return Ok(result);
     }
-    
+
     [HttpGet("get-followers")]
     public async Task<IActionResult> GetFollowers([FromQuery] PaginationRequest request)
     {
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
-    
+
         var sended = new GetFollowersRequest(userGuid, request.PageIndex, request.PageSize);
-    
+
         try
         {
             var result = await _sender.Send(new GetFollowersQuery(sended));
@@ -64,14 +67,15 @@ public class FollowController : Microsoft.AspNetCore.Mvc.Controller
         {
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
-    }  
+    }
+
     [HttpGet("get-followees")]
     public async Task<IActionResult> GetFollowees([FromQuery] PaginationRequest request)
     {
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
-    
+
         var sended = new GetFollowersRequest(userGuid, request.PageIndex, request.PageSize);
-    
+
         try
         {
             var result = await _sender.Send(new GetFolloweesQuery(sended));

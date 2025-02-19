@@ -50,13 +50,16 @@ public interface IRepositoryBase<TEntity> where TEntity : class
     Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
-        Expression<Func<TEntity, TJoin, TResult>> resultSelector)  where TJoin : class;
+        Expression<Func<TEntity, TJoin, TResult>> resultSelector) where TJoin : class;
 
     Task<List<TResult>> SearchJoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
         Expression<Func<TEntity, TJoin, TResult>> resultSelector,
-        Expression<Func<TEntity, bool>>? outerSearchPredicate, 
-        Expression<Func<TJoin, bool>>? innerSearchPredicate) 
+        Expression<Func<TEntity, bool>>? outerSearchPredicate,
+        Expression<Func<TJoin, bool>>? innerSearchPredicate)
         where TJoin : class;
+
+    Task<int> CountAsync(
+        Expression<Func<TEntity, bool>>? conditions = null, CancellationToken cancellationToken = default!);
 }
