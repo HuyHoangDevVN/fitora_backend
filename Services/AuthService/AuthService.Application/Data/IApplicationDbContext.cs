@@ -1,5 +1,5 @@
-﻿
-namespace AuthService.Application.Data;
+﻿namespace AuthService.Application.Data;
+
 public interface IApplicationDbContext
 {
     DbSet<Key> Keys { get; }
