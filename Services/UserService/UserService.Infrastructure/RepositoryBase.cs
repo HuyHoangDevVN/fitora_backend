@@ -252,4 +252,16 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             .ToListAsync();
     }
 
+    public async Task<int> CountAsync(Expression<Func<TEntity, bool>>? conditions = null,
+        CancellationToken cancellationToken = default!)
+    {
+        IQueryable<TEntity> query = _dbSet;
+
+        if (conditions != null)
+        {
+            query = query.Where(conditions);
+        }
+
+        return await query.CountAsync(cancellationToken);
+    }
 }

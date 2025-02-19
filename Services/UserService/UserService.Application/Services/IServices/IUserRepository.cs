@@ -1,3 +1,6 @@
+using UserService.Application.DTOs.Friendship.Requests;
+using UserService.Application.DTOs.Friendship.Responses;
+
 namespace UserService.Application.Services.IServices;
 
 public interface IUserRepository
@@ -6,4 +9,6 @@ public interface IUserRepository
     Task<bool> UpdateUserAsync(UserInfoDto request);
     Task<User?> GetUser(GetUserRequest request);
     Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request);
+    Task<RelationshipDto> GetRelationshipAsync(CreateFriendRequest request);
+
 }

@@ -18,7 +18,7 @@ public class FollowRepository : IFollowRepository
         _mapper = mapper;
     }
 
-    
+
     private static FollowerDto MapToFollowDto(Follow fl, bool isFollowing)
     {
         var follower = isFollowing ? fl.Followed : fl.Follower;
@@ -33,6 +33,7 @@ public class FollowRepository : IFollowRepository
             ProfilePictureUrl = follower?.UserInfo?.ProfilePictureUrl ?? string.Empty,
         };
     }
+
     public async Task<ResponseDto> FollowAsync(FollowRequest request)
     {
         ValidateFollowRequest(request);
@@ -47,7 +48,7 @@ public class FollowRepository : IFollowRepository
 
         var isSuccess = await _followRepo.SaveChangesAsync() > 0;
         return new ResponseDto(
-            Data: null, 
+            Data: null,
             IsSuccess: isSuccess,
             Message: isSuccess ? "Theo dõi thành công!" : "Theo dõi thất bại."
         );
@@ -105,9 +106,22 @@ public class FollowRepository : IFollowRepository
         return isSuccess;
     }
 
+    public async Task<NumberOfFollowDto> GetNumberFollower(Guid Id)
+    {
+        var follower = await _followRepo.CountAsync(f => f.FollowerId == Id);
+        var followed = await _followRepo.CountAsync(f => f.FollowedId == Id);
+    
+        return new NumberOfFollowDto
+        {
+            NumberOfFollowers = follower,
+            NumberOfFollowed = followed
+        };
+    }
+
+
+
     private async Task UnfollowUserAsync(Guid followedId, Guid followerId)
     {
         await _followRepo.DeleteAsync(f => f.FollowedId == followedId && f.FollowerId == followerId);
     }
-
 }

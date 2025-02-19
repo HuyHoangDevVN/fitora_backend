@@ -1,5 +1,7 @@
 using System.Linq.Expressions;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using UserService.Application.DTOs.Friendship.Requests;
+using UserService.Application.DTOs.Friendship.Responses;
 using UserService.Application.Usecases.Users.Queries.GetUser;
 using UserService.Domain.Enums;
 using UserInfo = UserService.Domain.Models.UserInfo;
@@ -10,13 +12,21 @@ public class UserRepository : IUserRepository
 {
     private readonly IRepositoryBase<User> _userRepository;
     private readonly IRepositoryBase<UserInfo> _userInfoRepository;
+    private readonly IRepositoryBase<FriendShip> _friendshipRepository;
+    private readonly IRepositoryBase<Follow> _followRepository;
+    private readonly IRepositoryBase<FriendRequest> _friendRequestRepository;
     private readonly IMapper _mapper;
 
     public UserRepository(IRepositoryBase<User> userRepository, IRepositoryBase<UserInfo> userInfoRepository,
+        IRepositoryBase<FriendShip> friendshipRepository, IRepositoryBase<Follow> followRepository,
+        IRepositoryBase<FriendRequest> friendRequestRepository,
         IMapper mapper)
     {
         _userRepository = userRepository;
         _userInfoRepository = userInfoRepository;
+        _friendshipRepository = friendshipRepository;
+        _followRepository = followRepository;
+        _friendRequestRepository = friendRequestRepository;
         _mapper = mapper;
     }
 
@@ -49,7 +59,7 @@ public class UserRepository : IUserRepository
     {
         var filters = new Dictionary<Func<GetUserRequest, bool>, Expression<Func<User, bool>>>
         {
-            { r => r.Id != Guid.Empty, u => u.Id == request.Id },
+            { r => r.Id != Guid.Empty, u => request.GetId == null ? u.Id == request.Id : u.Id == request.GetId },
             {
                 r => !string.IsNullOrWhiteSpace(r.Email),
                 u => request.Email != null && u.Email.ToLower() == request.Email.ToLower()
@@ -114,5 +124,25 @@ public class UserRepository : IUserRepository
         var pagedUsers = users.Skip((request.PageIndex - 1) * request.PageSize).Take(request.PageSize).ToList();
 
         return new PaginatedResult<UserWithInfoDto>(request.PageIndex, request.PageSize, count, pagedUsers);
+    }
+
+    public async Task<RelationshipDto> GetRelationshipAsync(CreateFriendRequest request)
+    {
+        var isFriend = await _friendshipRepository.GetAsync(fs =>
+            (fs.User1Id == request.senderId && fs.User2Id == request.receiverId) ||
+            (fs.User2Id == request.senderId && fs.User1Id == request.receiverId)) != null;
+
+        var isFollowing = await _followRepository.GetAsync(f =>
+            f.FollowerId == request.senderId && f.FollowedId == request.receiverId) != null;
+
+        var isFriendRequest = !isFriend && await _friendRequestRepository.GetAsync(fr =>
+            fr.SenderId == request.senderId && fr.ReceiverId == request.receiverId) != null;
+
+        return new RelationshipDto
+        {
+            IsFollowing = isFollowing,
+            IsFriend = isFriend,
+            IsFriendRequest = isFriendRequest
+        };
     }
 }
