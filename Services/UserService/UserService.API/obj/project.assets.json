@@ -5251,45 +5251,38 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\minhd\\.nuget\\packages\\": {},
-    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
+    "C:\\Users\\nguye\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
+      "projectUniqueName": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
       "projectName": "UserService.API",
-      "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
-      "packagesPath": "C:\\Users\\minhd\\.nuget\\packages\\",
-      "outputPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.API\\obj\\",
+      "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\UserService.API.csproj",
+      "packagesPath": "C:\\Users\\nguye\\.nuget\\packages\\",
+      "outputPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.API\\obj\\",
       "projectStyle": "PackageReference",
-      "fallbackFolders": [
-        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
-      ],
       "configFilePaths": [
-        "C:\\Users\\minhd\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "C:\\Users\\nguye\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net8.0": {
           "targetAlias": "net8.0",
           "projectReferences": {
-            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj": {
-              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj"
+            "D:\\Workspace\\DATN\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj": {
+              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\BuildingBlocks\\BuildingBlocks\\BuildingBlocks.csproj"
             },
-            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj": {
-              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj"
+            "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj": {
+              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Application\\UserService.Application.csproj"
             },
-            "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj": {
-              "projectPath": "D:\\Workspace\\GraduationProject\\FitoraProject\\Backend\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj"
+            "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj": {
+              "projectPath": "D:\\Workspace\\DATN\\fitora_backend\\Services\\UserService\\UserService.Infrastructure\\UserService.Infrastructure.csproj"
             }
           }
         }
@@ -5303,8 +5296,7 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      },
-      "SdkAnalysisLevel": "9.0.100"
+      }
     },
     "frameworks": {
       "net8.0": {
@@ -5348,7 +5340,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.101/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.404/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
