@@ -28,7 +28,7 @@ public class AuditableEntityInterceptor : SaveChangesInterceptor
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.CreatedBy = "Dino";
+                entry.Entity.CreatedBy = Guid.Parse("bd0c25cc-51fb-4c67-8695-e9d4475586da");
                 entry.Entity.CreatedAt = DateTime.UtcNow;
             }
 

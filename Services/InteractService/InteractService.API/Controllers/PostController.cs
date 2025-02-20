@@ -1,5 +1,6 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination;
 using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.DTOs.Post.Responses;
@@ -8,6 +9,7 @@ using InteractService.Application.Usecases.Posts.Commands.DeletePost;
 using InteractService.Application.Usecases.Posts.Commands.UpdatePost;
 using InteractService.Application.Usecases.Posts.Queries.GetAllPost;
 using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
+using InteractService.Application.Usecases.Posts.Queries.GetPersonal;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,6 +42,7 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
         {
             return BadRequest(ModelState);
         }
+
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
         if (userGuid == Guid.Empty)
         {
@@ -54,19 +57,19 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
         return Ok(response);
     }
 
-    [HttpGet("get-all")]
-    public async Task<IActionResult> GetAll()
-    {
-        var posts = await _mediator.Send(new GetAllPostQuery());
-        if (posts is null)
-        {
-            return NoContent();
-        }
-
-        var results = posts.Select(post => _mapper.Map<PostResponseDto>(post));
-        var response = new ResponseDto(results, Message: "Get All Successful");
-        return Ok(response);
-    }
+    // [HttpGet("get-all")]
+    // public async Task<IActionResult> GetAll()
+    // {
+    //     var posts = await _mediator.Send(new GetAllPostQuery());
+    //     if (posts is null)
+    //     {
+    //         return NoContent();
+    //     }
+    //
+    //     var results = posts.Select(post => _mapper.Map<PostResponseDto>(post));
+    //     var response = new ResponseDto(results, Message: "Get All Successful");
+    //     return Ok(response);
+    // }
 
     [HttpGet("get-by-id/{id}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
@@ -106,4 +109,24 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
         var response = new ResponseDto(Message: "Delete Successful");
         return Ok(response);
     }
+
+    [HttpGet("newfeed")]
+    public async Task<IActionResult> GetNewFeed()
+    {
+        return Ok();
+    }
+
+    [HttpGet("personal")]
+    public async Task<IActionResult> GetPersonal([FromQuery] GetPostRequest request)
+    {
+        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+
+        var post = await _mediator.Send(
+            new GetPersonalQuery(new GetPostRequest(userGuid, request.Cursor, request.Limit))
+        );
+
+        var response = new ResponseDto(post, IsSuccess: true,"Get Successful");
+        return Ok(response);
+    }
+
 }

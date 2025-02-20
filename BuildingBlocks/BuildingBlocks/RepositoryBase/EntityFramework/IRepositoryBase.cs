@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Cursor;
 
 namespace BuildingBlocks.RepositoryBase.EntityFramework;
 
@@ -38,6 +39,20 @@ public interface IRepositoryBase<TEntity> where TEntity : class
         Expression<Func<TEntity, bool>>? conditions = null,
         List<Expression<Func<TEntity, object>>>? includes = null,
         CancellationToken cancellationToken = default);
+
+    Task<PaginatedCursorResult<TEntity>> GetPageCursorAsync(
+        PaginationCursorRequest paginationRequest,
+        CancellationToken cancellationToken = default,
+        Expression<Func<TEntity, bool>>? conditions = null,
+        Expression<Func<TEntity, long>>? cursorSelector = null);
+
+    Task<PaginatedCursorResult<TResult>> GetPageCursorWithIncludesAsync<TResult>(
+        PaginationCursorRequest paginationRequest,
+        Expression<Func<TEntity, TResult>> selector,
+        Expression<Func<TEntity, bool>>? conditions = null,
+        List<Expression<Func<TEntity, object>>>? includes = null,
+        CancellationToken cancellationToken = default);
+
 
     Task<TEntity> GetByFieldWithIncludesAsync(
         string fieldName,

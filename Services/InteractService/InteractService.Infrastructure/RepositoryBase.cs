@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -186,6 +187,92 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         );
     }
 
+    
+    public async Task<PaginatedCursorResult<TEntity>> GetPageCursorAsync(
+        PaginationCursorRequest paginationRequest,
+        CancellationToken cancellationToken = default,
+        Expression<Func<TEntity, bool>>? conditions = null,
+        Expression<Func<TEntity, long>>? cursorSelector = null) // Thêm cursorSelector để xác định tiêu chí phân trang
+    {
+        if (paginationRequest == null)
+        {
+            throw new ArgumentNullException(nameof(paginationRequest), "Pagination request cannot be null.");
+        }
+
+        int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
+        long? cursor = paginationRequest.Cursor;
+
+        IQueryable<TEntity> query = _dbSet!.AsNoTracking();
+        if (conditions != null)
+        {
+            query = query.Where(conditions);
+        }
+
+        if (cursor.HasValue && cursorSelector != null)
+        {
+            query = query.Where(entity => cursorSelector.Compile().Invoke(entity) < cursor.Value);
+        }
+
+        var totalCount = await query.LongCountAsync(cancellationToken);
+
+        var entities = await query
+            .OrderByDescending(cursorSelector) // Phân trang kiểu cursor
+            .Take(limit + 1) // Lấy thêm 1 phần tử để kiểm tra nextCursor
+            .ToListAsync(cancellationToken);
+
+        long? nextCursor = entities.Count > limit ? cursorSelector.Compile().Invoke(entities[^1]) : null;
+
+        return new PaginatedCursorResult<TEntity>(cursor, limit, totalCount, entities.Take(limit).ToList(), nextCursor);
+    }
+
+    public async Task<PaginatedCursorResult<TResult>> GetPageCursorWithIncludesAsync<TResult>(
+        PaginationCursorRequest paginationRequest,
+        Expression<Func<TEntity, TResult>> selector,
+        Expression<Func<TEntity, bool>>? conditions = null,
+        List<Expression<Func<TEntity, object>>>? includes = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (paginationRequest == null)
+        {
+            throw new ArgumentNullException(nameof(paginationRequest), "Pagination request cannot be null.");
+        }
+
+        int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
+        long? cursor = paginationRequest.Cursor;
+
+        IQueryable<TEntity> query = _dbSet!.AsNoTracking();
+
+        if (includes != null)
+        {
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+        }
+
+        if (conditions != null)
+        {
+            query = query.Where(conditions);
+        }
+
+        if (cursor.HasValue)
+        {
+            query = query.Where(entity => EF.Property<long>(entity, "Id") < cursor.Value);
+        }
+
+        var totalCount = await query.LongCountAsync(cancellationToken);
+
+        var entities = await query
+            .OrderByDescending(entity => EF.Property<long>(entity, "Id")) // Cursor dựa vào ID
+            .Take(limit + 1)
+            .Select(selector)
+            .ToListAsync(cancellationToken);
+
+        long? nextCursor = entities.Count > limit ? EF.Property<long>(entities[^1], "Id") : null;
+        return new PaginatedCursorResult<TResult>(cursor, limit, totalCount, entities.Take(limit).ToList(), nextCursor);
+    }
+
+
     public async Task<TEntity> GetByFieldWithIncludesAsync(
         string fieldName,
         object value,
@@ -253,7 +340,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             .ToListAsync();
     }
 
-    public Task<int> CountAsync(Expression<Func<TEntity, bool>>? conditions = null, CancellationToken cancellationToken = default)
+    public Task<int> CountAsync(Expression<Func<TEntity, bool>>? conditions = null,
+        CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

@@ -106,7 +106,7 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<Guid>("ReceiverId")
+                    b.Property<Guid?>("ReceiverId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("SenderId")
@@ -145,7 +145,7 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<Guid>("User1Id")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("User2Id")
+                    b.Property<Guid?>("User2Id")
                         .HasColumnType("char(36)");
 
                     b.HasKey("Id");
@@ -335,6 +335,9 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("PhoneNumber")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("ProfileBackgroundPictureUrl")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("ProfilePictureUrl")
                         .HasColumnType("longtext");
 
@@ -391,9 +394,7 @@ namespace UserService.Infrastructure.Data.Migrations
                 {
                     b.HasOne("UserService.Domain.Models.User", "Receiver")
                         .WithMany()
-                        .HasForeignKey("ReceiverId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ReceiverId");
 
                     b.HasOne("UserService.Domain.Models.User", "Sender")
                         .WithMany()
@@ -416,9 +417,7 @@ namespace UserService.Infrastructure.Data.Migrations
 
                     b.HasOne("UserService.Domain.Models.User", "User2")
                         .WithMany()
-                        .HasForeignKey("User2Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("User2Id");
 
                     b.Navigation("User1");
 

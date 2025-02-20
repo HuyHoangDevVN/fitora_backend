@@ -16,5 +16,6 @@ public class UserInfo : Entity<Guid>
     public string? Address { get; set; } = String.Empty;
     public string? PhoneNumber { get; set; } = String.Empty;
     public string? ProfilePictureUrl { get; set; } = String.Empty;
+    public string? ProfileBackgroundPictureUrl { get; set; } = String.Empty;
     public string? Bio { get; set; } = String.Empty;
 }

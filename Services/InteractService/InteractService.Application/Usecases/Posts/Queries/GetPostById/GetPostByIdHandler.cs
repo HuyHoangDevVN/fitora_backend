@@ -1,4 +1,6 @@
-namespace InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
+using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
+
+namespace InteractService.Application.Usecases.Posts.Queries.GetPostById;
 
 public class GetPostByIdHandler : IQueryHandler<GetPostByIdQuery, PostResponseDto>
 {
