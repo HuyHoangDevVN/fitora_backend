@@ -9,6 +9,7 @@ using InteractService.Application.Usecases.Posts.Commands.DeletePost;
 using InteractService.Application.Usecases.Posts.Commands.UpdatePost;
 using InteractService.Application.Usecases.Posts.Queries.GetAllPost;
 using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
+using InteractService.Application.Usecases.Posts.Queries.GetNewfeed;
 using InteractService.Application.Usecases.Posts.Queries.GetPersonal;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -111,9 +112,16 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpGet("newfeed")]
-    public async Task<IActionResult> GetNewFeed()
+    public async Task<IActionResult> GetNewFeed([FromQuery] GetPostRequest request)
     {
-        return Ok();
+        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+
+        var post = await _mediator.Send(
+            new GetNewfeedQuery(new GetPostRequest(userGuid, request.Cursor, request.Limit))
+        );
+
+        var response = new ResponseDto(post, IsSuccess: true,"Get Successful");
+        return Ok(response);
     }
 
     [HttpGet("personal")]

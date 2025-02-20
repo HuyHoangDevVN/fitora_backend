@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using UserService.Application.DTOs.Friendship.Requests;
 using UserService.Application.DTOs.Friendship.Responses;

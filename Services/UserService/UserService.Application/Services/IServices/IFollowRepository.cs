@@ -1,4 +1,5 @@
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination.Base;
 using UserService.Application.DTOs.Follow.Requests;
 using UserService.Application.DTOs.Follow.Responses;
 using UserService.Application.DTOs.Friendship.Requests;

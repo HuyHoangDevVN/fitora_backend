@@ -12,4 +12,6 @@ public class Post : Entity<Guid>, ISoftDelete
     public string MediaUrl { get; set; } = string.Empty;
     public PrivacyPost Privacy { get; set; } = PrivacyPost.Public;
     public bool IsDeleted { get; set; } = false;
+    public int VotesCount { get; set; } = 0;
+    public int CommentsCount { get; set; } = 0;
 }

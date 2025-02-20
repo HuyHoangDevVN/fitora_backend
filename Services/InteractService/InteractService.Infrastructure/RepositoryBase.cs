@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Infrastructure.Data;
@@ -192,7 +193,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         PaginationCursorRequest paginationRequest,
         CancellationToken cancellationToken = default,
         Expression<Func<TEntity, bool>>? conditions = null,
-        Expression<Func<TEntity, long>>? cursorSelector = null) // Thêm cursorSelector để xác định tiêu chí phân trang
+        Expression<Func<TEntity, long>>? cursorSelector = null)
     {
         if (paginationRequest == null)
         {
@@ -200,29 +201,44 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         }
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
-        long? cursor = paginationRequest.Cursor;
+    
+        // Chuyển cursor từ string sang long?
+        long? numericCursor = null;
+        if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
+        {
+            numericCursor = parsed;
+        }
 
-        IQueryable<TEntity> query = _dbSet!.AsNoTracking();
+        IQueryable<TEntity> query = _dbSet.AsNoTracking();
         if (conditions != null)
         {
             query = query.Where(conditions);
         }
 
-        if (cursor.HasValue && cursorSelector != null)
+        if (numericCursor.HasValue && cursorSelector != null)
         {
-            query = query.Where(entity => cursorSelector.Compile().Invoke(entity) < cursor.Value);
+            // Lọc theo giá trị cursor (ví dụ: CreatedAt dưới dạng Unix timestamp)
+            query = query.Where(entity => cursorSelector.Compile().Invoke(entity) < numericCursor.Value);
         }
 
         var totalCount = await query.LongCountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(cursorSelector) // Phân trang kiểu cursor
-            .Take(limit + 1) // Lấy thêm 1 phần tử để kiểm tra nextCursor
+            .OrderByDescending(cursorSelector) // Sắp xếp theo trường mà cursorSelector trả về
+            .Take(limit + 1) // Lấy thêm 1 phần tử để kiểm tra xem có trang tiếp theo không
             .ToListAsync(cancellationToken);
 
-        long? nextCursor = entities.Count > limit ? cursorSelector.Compile().Invoke(entities[^1]) : null;
+        long? nextNumericCursor = entities.Count > limit ? cursorSelector.Compile().Invoke(entities[^1]) : null;
+        // Chuyển nextNumericCursor sang string (nếu có)
+        string? nextCursor = nextNumericCursor.HasValue ? nextNumericCursor.Value.ToString() : null;
 
-        return new PaginatedCursorResult<TEntity>(cursor, limit, totalCount, entities.Take(limit).ToList(), nextCursor);
+        return new PaginatedCursorResult<TEntity>(
+            paginationRequest.Cursor, // Cursor hiện tại (chuỗi)
+            limit,
+            totalCount,
+            entities.Take(limit).ToList(),
+            nextCursor
+        );
     }
 
     public async Task<PaginatedCursorResult<TResult>> GetPageCursorWithIncludesAsync<TResult>(
@@ -238,9 +254,15 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         }
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
-        long? cursor = paginationRequest.Cursor;
+    
+        // Giả sử ở đây PaginationCursorRequest.Cursor là string, chuyển sang long?
+        long? numericCursor = null;
+        if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
+        {
+            numericCursor = parsed;
+        }
 
-        IQueryable<TEntity> query = _dbSet!.AsNoTracking();
+        IQueryable<TEntity> query = _dbSet.AsNoTracking();
 
         if (includes != null)
         {
@@ -255,23 +277,31 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             query = query.Where(conditions);
         }
 
-        if (cursor.HasValue)
+        if (numericCursor.HasValue)
         {
-            query = query.Where(entity => EF.Property<long>(entity, "Id") < cursor.Value);
+            // Ở đây giả sử sử dụng trường "Id" làm tiêu chí cursor
+            query = query.Where(entity => EF.Property<long>(entity, "Id") < numericCursor.Value);
         }
 
         var totalCount = await query.LongCountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(entity => EF.Property<long>(entity, "Id")) // Cursor dựa vào ID
+            .OrderByDescending(entity => EF.Property<long>(entity, "Id"))
             .Take(limit + 1)
             .Select(selector)
             .ToListAsync(cancellationToken);
 
-        long? nextCursor = entities.Count > limit ? EF.Property<long>(entities[^1], "Id") : null;
-        return new PaginatedCursorResult<TResult>(cursor, limit, totalCount, entities.Take(limit).ToList(), nextCursor);
-    }
+        long? nextNumericCursor = entities.Count > limit ? EF.Property<long>(entities[^1], "Id") : null;
+        string? nextCursor = nextNumericCursor.HasValue ? nextNumericCursor.Value.ToString() : null;
 
+        return new PaginatedCursorResult<TResult>(
+            paginationRequest.Cursor,
+            limit,
+            totalCount,
+            entities.Take(limit).ToList(),
+            nextCursor
+        );
+    }
 
     public async Task<TEntity> GetByFieldWithIncludesAsync(
         string fieldName,

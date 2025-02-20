@@ -10,7 +10,7 @@ public interface IPostRepository
     Task<Post> GetByIdAsync(Guid id);
     Task<bool> UpdateAsync(Post post);
     Task<bool> DeleteAsync(Guid id);
-    Task<IEnumerable<Post>> GetNewfeed();
-    Task<PaginatedCursorResult<Post>> GetPersonal(GetPostRequest request);
+    Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request);
+    Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request);
     
 }

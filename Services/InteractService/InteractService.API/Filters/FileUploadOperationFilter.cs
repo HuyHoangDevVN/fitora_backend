@@ -7,7 +7,6 @@ public class FileUploadOperationFilter : IOperationFilter
 {
     public void Apply(OpenApiOperation operation, OperationFilterContext context)
     {
-        // Kiểm tra xem phương thức có parameter nào kiểu IFormFile hoặc IFormFile[] không.
         var fileParams = context.MethodInfo.GetParameters()
             .Where(p => p.ParameterType == typeof(Microsoft.AspNetCore.Http.IFormFile) || 
                         p.ParameterType == typeof(Microsoft.AspNetCore.Http.IFormFile[]));
@@ -15,10 +14,8 @@ public class FileUploadOperationFilter : IOperationFilter
         if (!fileParams.Any())
             return;
 
-        // Xóa các parameter hiện có nếu cần (tuỳ vào cách bạn thiết kế API)
         operation.Parameters.Clear();
 
-        // Cấu hình RequestBody để hỗ trợ multipart/form-data với file upload
         operation.RequestBody = new OpenApiRequestBody
         {
             Content = new Dictionary<string, OpenApiMediaType>

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 
 namespace BuildingBlocks.RepositoryBase.EntityFramework;

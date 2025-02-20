@@ -11,5 +11,8 @@ public class PostResponseDto : EntityAuditBase<Guid>
     public Guid? GroupId { get; set; } = null;
     public string Content { get; set; }
     public string MediaUrl { get; set; }
+    public int VotesCount { get; set; } = 0;
+    public int CommentsCount { get; set; } = 0;
+    public double? Score { get; set; }
     public PrivacyPost Privacy { get; set; } = PrivacyPost.Public;
 }

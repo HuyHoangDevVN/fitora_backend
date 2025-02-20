@@ -2,6 +2,7 @@
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.DTOs.Key.Responses;
+using BuildingBlocks.Pagination.Base;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 

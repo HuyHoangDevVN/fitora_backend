@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using UserService.Application.DTOs.Follow.Requests;
 using UserService.Application.DTOs.Follow.Responses;
@@ -101,27 +102,21 @@ public class FollowRepository : IFollowRepository
             return false;
         }
 
-        await UnfollowUserAsync(request.FollowedId, request.FollowerId);
+        await _followRepo.DeleteAsync(f => f.FollowedId == request.FollowedId && f.FollowerId == request.FollowerId);
         var isSuccess = await _followRepo.SaveChangesAsync() > 0;
         return isSuccess;
     }
 
     public async Task<NumberOfFollowDto> GetNumberFollower(Guid Id)
     {
-        var follower = await _followRepo.CountAsync(f => f.FollowerId == Id);
-        var followed = await _followRepo.CountAsync(f => f.FollowedId == Id);
-    
+        var numberOfFollowers = await _followRepo.CountAsync(f => f.FollowedId == Id);
+        var numberOfFollowed = await _followRepo.CountAsync(f => f.FollowerId == Id);
+
         return new NumberOfFollowDto
         {
-            NumberOfFollowers = follower,
-            NumberOfFollowed = followed
+            NumberOfFollowers = numberOfFollowers,
+            NumberOfFollowed = numberOfFollowed
         };
     }
 
-
-
-    private async Task UnfollowUserAsync(Guid followedId, Guid followerId)
-    {
-        await _followRepo.DeleteAsync(f => f.FollowedId == followedId && f.FollowerId == followerId);
-    }
 }

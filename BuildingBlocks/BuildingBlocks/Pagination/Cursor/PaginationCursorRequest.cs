@@ -1,3 +1,3 @@
-namespace BuildingBlocks.Pagination;
+namespace BuildingBlocks.Pagination.Cursor;
 
-public record PaginationCursorRequest(long? Cursor, int Limit = 10);
+public record PaginationCursorRequest(string? Cursor, int Limit = 10);

@@ -9,13 +9,11 @@ public class GetPersonalHandler(IPostRepository postRepo, IMapper mapper)
         CancellationToken cancellationToken)
     {
         var posts = await postRepo.GetPersonal(query.Request);
-        var data = mapper.Map<List<PostResponseDto>>(posts.Data); // Dùng List<T> thay vì IEnumerable<T>
-        
         return new PaginatedCursorResult<PostResponseDto>(
             cursor: query.Request.Cursor,
             limit: query.Request.Limit,
             count: posts.Count,
-            data: data,
+            data: posts.Data,
             nextCursor: posts.NextCursor
         );
     }

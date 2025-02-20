@@ -1,5 +1,6 @@
 ﻿
 using AuthService.Application.DTOs.Key;
+using BuildingBlocks.Pagination.Base;
 
 namespace AuthService.Application.Auths.Queries.GetKeys;
 

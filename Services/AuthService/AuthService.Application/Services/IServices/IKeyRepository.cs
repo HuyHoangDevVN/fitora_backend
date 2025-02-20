@@ -3,6 +3,7 @@
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.DTOs.Key.Responses;
+using BuildingBlocks.Pagination.Base;
 
 namespace AuthService.Application.Services.IServices;
 

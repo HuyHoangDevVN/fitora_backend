@@ -1,3 +1,5 @@
+using BuildingBlocks.Pagination.Cursor;
+
 namespace InteractService.Application.Usecases.Posts.Queries.GetNewfeed;
 
-public record GetNewfeedQuery(Guid Id) : IQuery<IEnumerable<PostResponseDto>>;
+public record GetNewfeedQuery(GetPostRequest Request) : IQuery<PaginatedCursorResult<PostResponseDto>>;

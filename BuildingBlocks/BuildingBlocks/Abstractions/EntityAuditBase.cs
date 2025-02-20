@@ -4,7 +4,7 @@ namespace BuildingBlocks.Abstractions;
 
 public class EntityAuditBase<T> : EntityBase<T>, IEntityAuditBase<T>
 {
-    public DateTimeOffset CreatedDate { get; set; }
-    public DateTimeOffset? UpdatedDate { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; }
 }

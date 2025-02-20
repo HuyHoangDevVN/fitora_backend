@@ -1,3 +1,4 @@
+using BuildingBlocks.Pagination.Base;
 using UserService.Application.DTOs.Friendship.Requests;
 using UserService.Application.DTOs.Friendship.Responses;
 

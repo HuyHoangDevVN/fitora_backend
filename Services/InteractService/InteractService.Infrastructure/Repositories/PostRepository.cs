@@ -71,42 +71,155 @@ public class PostRepository : IPostRepository
         }
     }
 
-    public Task<IEnumerable<Post>> GetNewfeed()
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
     {
-        throw new NotImplementedException();
-    }
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSet;
 
-    public async Task<PaginatedCursorResult<Post>> GetPersonal(GetPostRequest request)
-    {
-        var query = _dbSet.Where(p => p.UserId == request.Id);
-
-        // Nếu có cursor, chỉ lấy bài viết có CreatedAt < cursor
-        if (request.Cursor.HasValue)
+        // Nếu có composite cursor, parse chuỗi để lấy lastScore và lastCreatedAt.
+        double? lastScore = null;
+        DateTime? lastCreatedAt = null;
+        if (!string.IsNullOrEmpty(request.Cursor))
         {
-            var cursorDateTime = DateTimeOffset.FromUnixTimeSeconds(request.Cursor.Value).UtcDateTime;
-            query = query.Where(p => p.CreatedAt < cursorDateTime);
+            var parts = request.Cursor.Split('|');
+            if (parts.Length == 2 &&
+                double.TryParse(parts[0], out var parsedScore) &&
+                long.TryParse(parts[1], out var ticks))
+            {
+                lastScore = parsedScore;
+                lastCreatedAt = new DateTime(ticks, DateTimeKind.Utc);
+            }
         }
 
-        // Lấy danh sách với số lượng giới hạn + 1 để kiểm tra trang tiếp theo
-        var items = await query
-            .OrderByDescending(p => p.CreatedAt) // Thay vì cursorSelector, ta dùng trực tiếp trường CreatedAt
+        // Áp dụng điều kiện lọc dựa trên composite cursor nếu có
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            query = query.Where(p =>
+                ((p.VotesCount * 2 + p.CommentsCount) / ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) <
+                lastScore.Value
+                ||
+                (
+                    ((p.VotesCount * 2 + p.CommentsCount) /
+                     ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) == lastScore.Value
+                    && p.CreatedAt < lastCreatedAt.Value
+                )
+            );
+        }
+
+        // Tính Score cho mỗi bài viết và sắp xếp theo Score giảm dần, sau đó theo CreatedAt giảm dần
+        var postsWithScore = await query
+            .Select(p => new
+            {
+                Post = p,
+                Score = (p.VotesCount * 2 + p.CommentsCount) /
+                        ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
             .Take(request.Limit + 1)
             .ToListAsync();
 
-        // Xác định nextCursor nếu có nhiều hơn request.Limit bài viết
-        long? nextCursor = items.Count > request.Limit
-            ? new DateTimeOffset((DateTime)items.Last().CreatedAt!).ToUnixTimeSeconds()
-            : null;
+        // Xác định nextCursor nếu số lượng trả về vượt quá limit
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            // Ép kiểu CreatedAt thành DateTime để gọi thuộc tính Ticks
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        // Map dữ liệu sang PostResponseDto
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.Post.VotesCount,
+            CommentsCount = x.Post.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            UserId = x.Post.UserId,
+            IsDeleted = x.Post.IsDeleted
+        }).ToList();
+
+        // Đếm tổng số bài viết thỏa điều kiện (theo query đã được lọc)
+        var totalCount = await query.CountAsync();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
+    }
+
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
+    {
+        // Lấy bài viết của user theo Id
+        IQueryable<Post> query = _dbSet.Where(p => p.UserId == request.Id);
+
+        // Nếu có composite cursor, parse để lấy lastCreatedAt
+        DateTime? lastCreatedAt = null;
+        if (!string.IsNullOrEmpty(request.Cursor))
+        {
+            var parts = request.Cursor.Split('|');
+            if (parts.Length == 2 && long.TryParse(parts[1], out var ticks))
+            {
+                lastCreatedAt = new DateTime(ticks, DateTimeKind.Utc);
+            }
+        }
+
+        // Nếu có cursor, chỉ lấy bài viết có CreatedAt < lastCreatedAt (tức bài viết cũ hơn)
+        if (lastCreatedAt.HasValue)
+        {
+            query = query.Where(p => p.CreatedAt < lastCreatedAt.Value);
+        }
+
+        // Sắp xếp theo CreatedAt giảm dần và lấy thêm 1 phần tử để kiểm tra trang tiếp theo
+        var items = await query
+            .OrderByDescending(p => p.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        // Xác định nextCursor nếu số lượng trả về vượt quá limit
+        string nextCursor = null;
+        if (items.Count > request.Limit)
+        {
+            var lastItem = items[request.Limit];
+            // Tạo composite cursor: Score = 0 vì không tính điểm, và CreatedAt.Ticks
+            nextCursor = $"0|{((DateTime)lastItem.CreatedAt).Ticks}";
+            items = items.Take(request.Limit).ToList();
+        }
 
         // Đếm tổng số bài viết của user
         var totalCount = await _dbSet.CountAsync(p => p.UserId == request.Id);
 
-        return new PaginatedCursorResult<Post>(
-            cursor: request.Cursor,
-            limit: request.Limit,
-            count: totalCount,
-            data: items.Take(request.Limit).ToList(),
-            nextCursor: nextCursor
+        // Map dữ liệu sang PostResponseDto, gán Score = 0
+        var postDtos = items.Select(p => new PostResponseDto
+        {
+            Id = p.Id,
+            Content = p.Content,
+            CreatedAt = (DateTimeOffset)p.CreatedAt,
+            VotesCount = p.VotesCount,
+            CommentsCount = p.CommentsCount,
+            Score = 0,
+            MediaUrl = p.MediaUrl,
+            Privacy = p.Privacy,
+            GroupId = p.GroupId,
+            UserId = p.UserId,
+            IsDeleted = p.IsDeleted
+        }).ToList();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
         );
     }
 }
