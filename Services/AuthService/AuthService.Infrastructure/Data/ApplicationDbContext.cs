@@ -30,6 +30,5 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
         builder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-       
     }
 }

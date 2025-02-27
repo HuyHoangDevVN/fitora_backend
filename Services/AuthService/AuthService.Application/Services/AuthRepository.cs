@@ -37,16 +37,13 @@ public class AuthRepository(
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto)
     {
-        // find user
         var checkExitUser = await userManager.FindByEmailAsync(dto.Email);
-
         if (checkExitUser is null)
         {
-            throw new NotFoundException($"Account with email: {dto.Email} is not exits");
+            return new LoginResponseDto(false, null, null, $"Tài khoản với email: {dto.Email} không tồn tại");
         }
 
         var keys = await keyRepository.GetKeysByUserIdAsync(checkExitUser.Id);
-        // check password is incorrect
         var isPasswordValid = await userManager.CheckPasswordAsync(checkExitUser, dto.Password);
         if (!isPasswordValid)
         {
@@ -58,83 +55,59 @@ public class AuthRepository(
             }
 
             await userManager.UpdateAsync(checkExitUser);
-            throw new BadRequestException("Password in not correct");
+            return new LoginResponseDto(false, null, null, "Mật khẩu không chính xác");
         }
-
-        // check is confirm Email
-        // bool isConfirmEmail = await userManager.IsEmailConfirmedAsync(checkExitUser);
-        // if (!isConfirmEmail)
-        // {
-        //     throw new BadRequestException($"Account with email {checkExitUser.Email} is not confirm");
-        // }
 
         bool isLocked = await userManager.IsLockedOutAsync(checkExitUser);
         if (isLocked)
         {
-            throw new BadRequestException($"Account with email {checkExitUser.Email} is locked");
+            return new LoginResponseDto(false, null, null, $"Tài khoản với email {checkExitUser.Email} đã bị khóa");
         }
 
         int userStatus = checkExitUser.Status;
         if (userStatus == 3)
         {
-            throw new BadRequestException($"Account.....");
+            return new LoginResponseDto(false, null, null, "Tài khoản bị hạn chế");
         }
 
-        // get-all roles of user
         var roles = await userManager.GetRolesAsync(checkExitUser);
-        string accessToken = "";
-        var cacheToken = await cache.GetStringAsync($"token-{checkExitUser.Id}");
-        if (string.IsNullOrEmpty(cacheToken))
-        {
-            accessToken = jwtTokenGenerator.GeneratorToken(checkExitUser, roles);
-            await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken,
-                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
-        }
-        else
-        {
-            accessToken = cacheToken;
-        }
+        string accessToken = await cache.GetStringAsync($"token-{checkExitUser.Id}") ??
+                             jwtTokenGenerator.GeneratorToken(checkExitUser, roles);
+
+        await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
 
         bool isCheckKey = CheckKeyExpire(keys);
-        string refreshToken = "";
+        string refreshToken =
+            isCheckKey ? keys.Last().Token : jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
+
         if (!isCheckKey)
         {
-            refreshToken = jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
-            await keyRepository.CreateKeyAsync(new CreateKeyRequestDto
-            (
-                Token: refreshToken,
-                UserId: checkExitUser.Id
-            ));
-        }
-        else
-        {
-            refreshToken = keys.Last().Token;
+            await keyRepository.CreateKeyAsync(new CreateKeyRequestDto(refreshToken, checkExitUser.Id));
         }
 
         var userDto = mapper.Map<UserDto>(checkExitUser);
-        
-        // checkExitUser.AccessFailedCount = 0;
-        // await userManager.UpdateAsync(checkExitUser);
-        return new LoginResponseDto(
-            userDto, new LoginTokenResponseDto(accessToken, refreshToken));
+        var token = new LoginTokenResponseDto(accessToken, refreshToken);
+
+        return new LoginResponseDto(true, userDto, token, "Đăng nhập thành công!");
     }
 
     public async Task<LoginResponseDto> RegisterAsync(RegisterRequestDto dto)
     {
         if (dto == null)
         {
-            throw new ArgumentNullException(nameof(dto), "Request data cannot be null.");
+            return new LoginResponseDto(false, null, null, "Dữ liệu yêu cầu không được để trống.");
         }
 
         if (string.IsNullOrEmpty(dto.Email) || string.IsNullOrEmpty(dto.Password))
         {
-            throw new BadRequestException("Email and Password are required.");
+            return new LoginResponseDto(false, null, null, "Email và mật khẩu là bắt buộc.");
         }
 
         var checkExitUser = await userManager.FindByEmailAsync(dto.Email);
         if (checkExitUser is not null)
         {
-            throw new BadRequestException($"Account with email {dto.Email} already exists.");
+            return new LoginResponseDto(false, null, null, $"Tài khoản với email {dto.Email} đã tồn tại.");
         }
 
         var user = new ApplicationUser
@@ -151,21 +124,19 @@ public class AuthRepository(
             var result = await userManager.CreateAsync(user, dto.Password);
             if (!result.Succeeded)
             {
-                var error = result.Errors.FirstOrDefault()?.Description ?? "Failed to create user.";
-                throw new BadRequestException(error);
+                var error = result.Errors.FirstOrDefault()?.Description ?? "Không thể tạo tài khoản.";
+                return new LoginResponseDto(false, null, null, error);
             }
 
             var roles = await userManager.GetRolesAsync(user);
             var accessToken = jwtTokenGenerator.GeneratorToken(user, roles);
             var refreshToken = jwtTokenGenerator.GeneratorRefreshToken(user.Id.ToString());
 
-            var response = new LoginResponseDto(
+            var response = new LoginResponseDto(true,
                 new UserDto(user.Id.ToString(), user.UserName, user.FullName),
-                new LoginTokenResponseDto(accessToken, refreshToken)
+                new LoginTokenResponseDto(accessToken, refreshToken), "Đăng ký thành công!"
             );
 
-
-            // Publish message to UserService after successful registration
             var userRegisteredMessage = new UserRegisteredMessageDto
             {
                 UserId = user.Id.ToString(),
@@ -173,17 +144,15 @@ public class AuthRepository(
                 FullName = user.FullName
             };
 
-            // Assuming you have injected IRabbitMQPublisher<UserRegisteredMessageDto>
             await rabbitMQPublisher.PublishMessageAsync(userRegisteredMessage, "user_registration_queue");
 
             return response;
         }
         catch (Exception exception)
         {
-            throw new BadRequestException($"An error occurred: {exception.Message}");
+            return new LoginResponseDto(false, null, null, $"Đã xảy ra lỗi: {exception.Message}");
         }
     }
-
 
     public async Task<bool> ChangePasswordAsync(ChangePasswordRequestDto dto)
     {
@@ -302,9 +271,9 @@ public class AuthRepository(
         }
     }
 
-    public void SetTokenInsideCookie(AuthLoginResult result, HttpContext context)
+    public void SetTokenInsideCookie(LoginTokenResponseDto result, HttpContext context)
     {
-        context.Response.Cookies.Append("accessToken", result.ResponseDto.Token.AccessToken,
+        context.Response.Cookies.Append("accessToken", result.AccessToken,
             new CookieOptions
             {
                 Expires = DateTimeOffset.UtcNow.AddDays(5),
@@ -313,7 +282,7 @@ public class AuthRepository(
                 Secure = true,
                 SameSite = SameSiteMode.None
             });
-        context.Response.Cookies.Append("refreshToken", result.ResponseDto.Token.RefreshToken,
+        context.Response.Cookies.Append("refreshToken", result.RefreshToken,
             new CookieOptions
             {
                 Expires = DateTimeOffset.UtcNow.AddDays(7),

@@ -1,6 +1,6 @@
 ﻿namespace AuthService.Application.DTOs.Users.Requests;
 
-public record EditInForUserRequestDto(string UserId,
+public record EditInfoUserRequest(string UserId,
     string FullName,
     string PhoneNumber,
     string Avatar);

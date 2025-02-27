@@ -323,3 +323,5 @@ D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\Use
 D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\UserService\UserService.API\obj\Debug\net8.0\UserService.API.pdb
 D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\UserService\UserService.API\obj\Debug\net8.0\UserService.API.genruntimeconfig.cache
 D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\UserService\UserService.API\obj\Debug\net8.0\ref\UserService.API.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\Polly.dll
+D:\Workspace\DATN\fitora_backend\Services\UserService\UserService.API\bin\Debug\net8.0\Polly.Core.dll

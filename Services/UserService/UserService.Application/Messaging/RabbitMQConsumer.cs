@@ -4,24 +4,20 @@ using Newtonsoft.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using UserService.Domain.Abstractions;
-using Microsoft.Extensions.DependencyInjection;
-using UserService.Application.Messaging.MessageHandlers.IHandlers;
 
 namespace UserService.Application.Messaging
 {
-    public class RabbitMqConsumer<T> : IRabbitMqConsumer<T>
+    public sealed class RabbitMqConsumer<T> : IRabbitMqConsumer<T>, IAsyncDisposable
     {
         private readonly RabbitMqSettings _settings;
         private readonly IConnection _connection;
         private readonly IModel _channel;
         private readonly CancellationTokenSource _cancellationTokenSource;
-        private Task _consumerTask;
-        private readonly IServiceProvider _serviceProvider;
+        private Task? _consumerTask;
 
-        public RabbitMqConsumer(IOptions<RabbitMqSettings> settings, IServiceProvider serviceProvider)
+        public RabbitMqConsumer(IOptions<RabbitMqSettings> settings)
         {
-            _settings = settings.Value;
-            _serviceProvider = serviceProvider;
+            _settings = settings.Value ?? throw new ArgumentNullException(nameof(settings));
 
             var factory = new ConnectionFactory
             {
@@ -35,14 +31,18 @@ namespace UserService.Application.Messaging
 
             _channel.ExchangeDeclare(exchange: _settings.ExchangeName, type: ExchangeType.Direct);
             _channel.QueueDeclare(queue: _settings.QueueName, durable: true, exclusive: false, autoDelete: false);
-            _channel.QueueBind(queue: _settings.QueueName, exchange: _settings.ExchangeName,
-                routingKey: _settings.RoutingKey);
+            _channel.QueueBind(queue: _settings.QueueName, exchange: _settings.ExchangeName, routingKey: _settings.RoutingKey);
 
             _cancellationTokenSource = new CancellationTokenSource();
         }
 
         public async Task StartConsumingAsync(string queueName, Func<T, Task> messageHandler)
         {
+            if (string.IsNullOrWhiteSpace(queueName))
+                throw new ArgumentException("Queue name cannot be null or empty.", nameof(queueName));
+            if (messageHandler == null)
+                throw new ArgumentNullException(nameof(messageHandler));
+
             var consumer = new EventingBasicConsumer(_channel);
 
             consumer.Received += async (model, ea) =>
@@ -53,10 +53,9 @@ namespace UserService.Application.Messaging
                 try
                 {
                     var message = JsonConvert.DeserializeObject<T>(messageJson);
-
                     if (message != null)
                     {
-                        await messageHandler(message); // Gọi hàm xử lý message được truyền vào
+                        await messageHandler(message);
                         _channel.BasicAck(deliveryTag: ea.DeliveryTag, multiple: false);
                     }
                     else
@@ -72,44 +71,36 @@ namespace UserService.Application.Messaging
             };
 
             _channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
-
             _consumerTask = Task.Delay(Timeout.Infinite, _cancellationTokenSource.Token);
             await _consumerTask;
         }
 
-
         public async Task StopConsumingAsync()
         {
             _cancellationTokenSource.Cancel();
+
             if (_consumerTask != null)
             {
-                await _consumerTask;
+                try
+                {
+                    await _consumerTask;
+                }
+                catch (OperationCanceledException)
+                {
+                    // Expected when cancellation occurs, safe to ignore
+                }
             }
 
-            if (_channel != null)
-            {
-                await Task.Run(() => _channel.Close());
-            }
-
-            if (_connection != null)
-            {
-                await Task.Run(() => _connection.Close());
-            }
+            _channel?.Close();
+            _connection?.Close();
         }
 
-        public async ValueTask DisposeAsync()
+        public ValueTask DisposeAsync()
         {
-            if (_channel != null)
-            {
-                await Task.Run(() => _channel.Close());
-            }
-
-            if (_connection != null)
-            {
-                await Task.Run(() => _connection.Close());
-            }
-
+            _channel?.Close();
+            _connection?.Close();
             _cancellationTokenSource.Dispose();
+            return default;
         }
     }
 }

@@ -22,7 +22,7 @@ public class UserRepository(UserManager<ApplicationUser> userManager,RoleManager
         }
     }
 
-    public async Task<GetUserResponseDto> EditInForUserAsync(EditInForUserRequestDto dto, CancellationToken cancellationToken)
+    public async Task<GetUserResponseDto> EditInForUserAsync(EditInfoUserRequest dto, CancellationToken cancellationToken)
     {
         try
         {

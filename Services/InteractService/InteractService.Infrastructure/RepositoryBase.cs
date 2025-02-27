@@ -47,7 +47,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
     public async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        //return await GetAllCompiledQuery(_context);
+        
         return await _context.Set<TEntity>().ToListAsync(cancellationToken);
     }
 
@@ -202,7 +202,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
     
-        // Chuyển cursor từ string sang long?
+        
         long? numericCursor = null;
         if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
         {
@@ -217,23 +217,23 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         if (numericCursor.HasValue && cursorSelector != null)
         {
-            // Lọc theo giá trị cursor (ví dụ: CreatedAt dưới dạng Unix timestamp)
+            
             query = query.Where(entity => cursorSelector.Compile().Invoke(entity) < numericCursor.Value);
         }
 
         var totalCount = await query.LongCountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(cursorSelector) // Sắp xếp theo trường mà cursorSelector trả về
-            .Take(limit + 1) // Lấy thêm 1 phần tử để kiểm tra xem có trang tiếp theo không
+            .OrderByDescending(cursorSelector) 
+            .Take(limit + 1) 
             .ToListAsync(cancellationToken);
 
         long? nextNumericCursor = entities.Count > limit ? cursorSelector.Compile().Invoke(entities[^1]) : null;
-        // Chuyển nextNumericCursor sang string (nếu có)
+        
         string? nextCursor = nextNumericCursor.HasValue ? nextNumericCursor.Value.ToString() : null;
 
         return new PaginatedCursorResult<TEntity>(
-            paginationRequest.Cursor, // Cursor hiện tại (chuỗi)
+            paginationRequest.Cursor, 
             limit,
             totalCount,
             entities.Take(limit).ToList(),
@@ -255,7 +255,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
     
-        // Giả sử ở đây PaginationCursorRequest.Cursor là string, chuyển sang long?
+        
         long? numericCursor = null;
         if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
         {
@@ -279,7 +279,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         if (numericCursor.HasValue)
         {
-            // Ở đây giả sử sử dụng trường "Id" làm tiêu chí cursor
+            
             query = query.Where(entity => EF.Property<long>(entity, "Id") < numericCursor.Value);
         }
 
@@ -328,22 +328,22 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
     }
 
 
-    // Generic join method
+    
     public async Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
         Expression<Func<TEntity, TJoin, TResult>> resultSelector) where TJoin : class
     {
         return await _dbSet.Join(
-                _context.Set<TJoin>(), // Inner set
-                outerKeySelector, // Outer key selector
-                innerKeySelector, // Inner key selector
-                resultSelector // Result selector
+                _context.Set<TJoin>(), 
+                outerKeySelector, 
+                innerKeySelector, 
+                resultSelector 
             )
             .ToListAsync();
     }
 
-    // Generic join with search
+    
     public async Task<List<TResult>> SearchJoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,

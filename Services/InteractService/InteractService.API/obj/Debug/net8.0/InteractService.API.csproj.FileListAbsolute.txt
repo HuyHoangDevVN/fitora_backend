@@ -320,3 +320,7 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\ob
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\InteractService.API.genruntimeconfig.cache
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\obj\Debug\net8.0\ref\InteractService.API.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\InteractService.API.staticwebassets.runtime.json
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Newtonsoft.Json.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Polly.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Polly.Core.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\RabbitMQ.Client.dll

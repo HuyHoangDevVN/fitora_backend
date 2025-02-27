@@ -15,4 +15,5 @@ public class PostResponseDto : EntityAuditBase<Guid>
     public int CommentsCount { get; set; } = 0;
     public double? Score { get; set; }
     public PrivacyPost Privacy { get; set; } = PrivacyPost.Public;
+    public UserWithInfoDto? User { get; set; }
 }

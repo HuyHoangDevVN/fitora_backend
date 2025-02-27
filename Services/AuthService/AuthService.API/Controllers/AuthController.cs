@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using AuthService.API.Endpoints.Auths;
 using AuthService.Application.Auths.Commands.AuthChangePassword;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
@@ -8,12 +6,10 @@ using AuthService.Application.Auths.Commands.AuthRegister;
 using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Key.Requests;
-using AuthService.Application.DTOs.Key.Responses;
 using AuthService.Application.Services.IServices;
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
@@ -48,9 +44,8 @@ public class AuthController : Controller
     {
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
-        var response = new ResponseDto(result, Message: "Login Successful");
-        _authoRepo.SetTokenInsideCookie(result, HttpContext);
-        return Ok(response);
+        // _authoRepo.SetTokenInsideCookie(result.Data., HttpContext);
+        return Ok(result);
     }
 
     [HttpPost("logout")]
@@ -97,7 +92,7 @@ public class AuthController : Controller
     }
 
     [HttpDelete("delete-account")]
-    public async Task<IActionResult> DeleteAccount(DeleteAccountRequest req)
+    public async Task<IActionResult> DeleteAccount(DeleteUserRequestDto req)
     {
         var requestModel = _mapper.Map<AuthDeleteAccountCommand>(req);
         var result = await _sender.Send(requestModel);

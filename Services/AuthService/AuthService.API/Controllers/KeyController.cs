@@ -1,9 +1,6 @@
-using AuthService.API.Endpoints.Keys;
-using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.Auths.Queries.GetKeys;
 using AuthService.Application.DTOs.Key.Responses;
 using AutoMapper;
-using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
