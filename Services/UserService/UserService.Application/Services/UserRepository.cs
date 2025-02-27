@@ -92,11 +92,11 @@ public class UserRepository : IUserRepository
     public async Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request)
     {
         Expression<Func<User, bool>>? searchPredicate = null;
-        if (!string.IsNullOrEmpty(request.Email) || !string.IsNullOrEmpty(request.UserName))
+        if (!string.IsNullOrEmpty(request.Email) || !string.IsNullOrEmpty(request.Username))
         {
             searchPredicate = u =>
                 (string.IsNullOrEmpty(request.Email) || u.Email.Contains(request.Email.ToLower())) &&
-                (string.IsNullOrEmpty(request.UserName) || u.Username.Contains(request.UserName.ToLower()));
+                (string.IsNullOrEmpty(request.Username) || u.Username.Contains(request.Username.ToLower()));
         }
 
         var users = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
@@ -125,6 +125,33 @@ public class UserRepository : IUserRepository
         var pagedUsers = users.Skip((request.PageIndex - 1) * request.PageSize).Take(request.PageSize).ToList();
 
         return new PaginatedResult<UserWithInfoDto>(request.PageIndex, request.PageSize, count, pagedUsers);
+    }
+
+    public async Task<List<UserWithInfoDto>> GetUsersByIdsAsync(List<Guid> userIds)
+    {
+        var usersWithInfo = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
+            outerKeySelector: u => u.Id,
+            innerKeySelector: ui => ui.UserId,
+            resultSelector: (u, ui) => new UserWithInfoDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Username = u.Username,
+                FirstName = ui.FirstName,
+                LastName = ui.LastName,
+                Gender = ui.Gender,
+                BirthDate = ui.BirthDate ?? default(DateTime),
+                PhoneNumber = ui.PhoneNumber,
+                Address = ui.Address,
+                ProfilePictureUrl = ui.ProfilePictureUrl,
+                Bio = ui.Bio,
+            },
+            outerSearchPredicate: u => userIds.Contains(u.Id),
+            innerSearchPredicate: null
+        );
+
+        var userList = usersWithInfo.ToList();
+        return userList;
     }
 
     public async Task<RelationshipDto> GetRelationshipAsync(CreateFriendRequest request)

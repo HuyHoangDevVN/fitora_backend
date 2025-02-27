@@ -1,0 +1,80 @@
+syntax = "proto3";
+option csharp_namespace = "UserService.Infrastructure.Grpc";
+package user;
+
+service UserService {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc GetUsers (GetUsersRequest) returns (GetUsersResponse);
+  rpc GetUserInfoBatch (GetUserInfoBatchRequest) returns (GetUserInfoBatchResponse);
+}
+
+message GetUserRequest {
+  bytes id = 1;
+  bytes get_id = 2;
+  string email = 3;
+  string username = 4;
+}
+
+message GetUserResponse {
+  string user_id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string gender = 6;
+  string birth_date = 7;
+  string phone_number = 8;
+  string address = 9;
+  string profile_picture_url = 10;
+  string bio = 11;
+}
+
+message GetUsersRequest {
+  int32 page_index = 1;
+  int32 page_size = 2;
+  string email = 3;
+  string username = 4;
+}
+
+message GetUsersResponse {
+  int32 page_index = 1;
+  int32 page_size = 2;
+  int32 total_count = 3; // Nếu cần long, đổi thành int64
+  repeated UserWithInfoDto data = 4;
+}
+
+message UserWithInfoDto {
+  bytes id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string gender = 6;
+  string birth_date = 7;
+  string phone_number = 8;
+  string address = 9;
+  string profile_picture_url = 10;
+  string bio = 11;
+}
+
+message GetUserInfoBatchRequest {
+  repeated string user_ids = 1;
+}
+
+message GetUserInfoBatchResponse {
+  repeated GetUserInfoResponse users = 1;
+}
+
+message GetUserInfoResponse {
+  bytes id = 1;
+  string email = 2;
+  string username = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string gender = 6;
+  string birth_date = 7;
+  string phone_number = 8;
+  string address = 9;
+  string profile_picture_url = 10;
+  string bio = 11;
+}

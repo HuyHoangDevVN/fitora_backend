@@ -383,6 +383,19 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.27.1, )"
+            },
+            "Grpc.AspNetCore": {
+              "target": "Package",
+              "version": "[2.63.0, )"
+            },
+            "Grpc.Tools": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.64.0, )"
+            },
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.8, )"

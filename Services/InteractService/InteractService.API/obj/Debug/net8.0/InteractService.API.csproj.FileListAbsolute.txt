@@ -324,3 +324,6 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bi
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Polly.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Polly.Core.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\RabbitMQ.Client.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Grpc.Core.Api.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Grpc.Net.Client.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Grpc.Net.Common.dll

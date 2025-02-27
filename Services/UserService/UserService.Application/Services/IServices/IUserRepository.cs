@@ -12,4 +12,5 @@ public interface IUserRepository
     Task<PaginatedResult<UserWithInfoDto>> GetUsers(GetUsersRequest request);
     Task<RelationshipDto> GetRelationshipAsync(CreateFriendRequest request);
 
+    Task<List<UserWithInfoDto>> GetUsersByIdsAsync(List<Guid> userIds);
 }

@@ -115,6 +115,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddGrpc();
 
 var app = builder.Build();
 
@@ -124,6 +125,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.MapGrpcService<UserGrpcService>();
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();

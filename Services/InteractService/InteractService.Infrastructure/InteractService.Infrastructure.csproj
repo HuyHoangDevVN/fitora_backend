@@ -29,4 +29,11 @@
     <Folder Include="Data\Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.Client" Version="2.63.0" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.1" />
+    <PackageReference Include="Grpc.Tools" Version="2.64.0" PrivateAssets="All" />
+    <Protobuf Include="..\..\..\Services\UserService\UserService.Infrastructure\Protos\user.proto" GrpcServices="Client" />
+  </ItemGroup>
+
 </Project>
