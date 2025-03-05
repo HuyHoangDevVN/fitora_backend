@@ -44,7 +44,7 @@ public class AuthController : Controller
     {
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
-        // _authoRepo.SetTokenInsideCookie(result.Data., HttpContext);
+        if (result.Token != null) _authoRepo.SetTokenInsideCookie(result.Token, HttpContext);
         return Ok(result);
     }
 

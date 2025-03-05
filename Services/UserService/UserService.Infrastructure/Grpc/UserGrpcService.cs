@@ -1,14 +1,15 @@
 using Google.Protobuf;
 using Grpc.Core;
 using UserService.Application.Services;
+using UserService.Application.Services.IServices;
 using UserService.Infrastructure.Grpc;
 using GetUserRequest = UserService.Infrastructure.Grpc.GetUserRequest;
 
 public class UserGrpcService : UserService.Infrastructure.Grpc.UserService.UserServiceBase
 {
-   private readonly UserRepository _userRepository;
+   private readonly IUserRepository _userRepository;
 
-    public UserGrpcService(UserRepository userRepository)
+    public UserGrpcService(IUserRepository userRepository)
     {
         _userRepository = userRepository;
     }

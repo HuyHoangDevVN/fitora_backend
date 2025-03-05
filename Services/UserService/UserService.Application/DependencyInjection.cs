@@ -43,7 +43,7 @@ public static class DependencyInjection
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         services.AddSingleton<IRabbitMqConsumer<UserRegisteredMessageDto>, RabbitMqConsumer<UserRegisteredMessageDto>>();
         services.AddScoped<IMessageHandler<UserRegisteredMessageDto>, UserRegisteredMessageHandler>();
-        services.AddScoped<IUserRepository, UserRepository>();
+        // services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IFollowRepository, FollowRepository>();

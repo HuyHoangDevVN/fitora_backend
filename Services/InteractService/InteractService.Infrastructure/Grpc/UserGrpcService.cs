@@ -1,3 +1,4 @@
+using Google.Protobuf;
 using InteractService.Domain.Enums;
 using UserService.Infrastructure.Grpc;
 
@@ -10,6 +11,22 @@ public class UserGrpcClient
         _client = client;
     }
 
+    public static Guid ConvertByteStringToGuid(ByteString byteString)
+    {
+        byte[] bytes = byteString.ToByteArray();
+        if (bytes.Length == 16)
+        {
+            return new Guid(bytes);
+        }
+
+        if (Guid.TryParse(byteString.ToStringUtf8(), out Guid guid))
+        {
+            return guid;
+        }
+        return Guid.Empty;
+    }
+
+
     public async Task<List<UserInfo>> GetUserInfoBatchAsync(List<string> userIds)
     {
         var request = new GetUserInfoBatchRequest
@@ -18,19 +35,22 @@ public class UserGrpcClient
         };
 
         var response = await _client.GetUserInfoBatchAsync(request);
-        return response.Users.Select(u => new UserInfo
-        {
-            Id = new Guid(u.Id.ToString()),
-            Email = u.Email,
-            Username = u.Username,
-            FirstName = u.FirstName ?? string.Empty,
-            LastName = u.LastName ?? string.Empty,
-            Gender = Gender.TryParse(u.Gender, out Gender gender) ? gender : Gender.Unknown,
-            BirthDate = Convert.ToDateTime(u.BirthDate),
-            PhoneNumber = u.PhoneNumber ?? string.Empty,
-            Address = u.Address ?? string.Empty,
-            ProfilePictureUrl = u.ProfilePictureUrl ?? string.Empty,
-            Bio = u.Bio ?? string.Empty
+        return response.Users.Select(u => {
+    
+            return new UserInfo
+            {
+                Id = ConvertByteStringToGuid(u.Id),
+                Email = u.Email,
+                Username = u.Username,
+                FirstName = u.FirstName ?? string.Empty,
+                LastName = u.LastName ?? string.Empty,
+                Gender = Gender.TryParse(u.Gender, out Gender gender) ? gender : Gender.Unknown,
+                BirthDate = Convert.ToDateTime(u.BirthDate),
+                PhoneNumber = u.PhoneNumber ?? string.Empty,
+                Address = u.Address ?? string.Empty,
+                ProfilePictureUrl = u.ProfilePictureUrl ?? string.Empty,
+                Bio = u.Bio ?? string.Empty
+            };
         }).ToList();
     }
 }

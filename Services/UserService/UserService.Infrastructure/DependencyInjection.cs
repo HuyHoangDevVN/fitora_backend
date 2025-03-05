@@ -16,9 +16,6 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("Database");
         if(configuration is null) { throw new ArgumentNullException(nameof(configuration)); }
-        // Add service to the container
-        // services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
-        //services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
