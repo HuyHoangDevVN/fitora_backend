@@ -3,6 +3,7 @@ using Grpc.Net.Client;
 using InteractService.API.Middleware;
 using InteractService.Application;
 using InteractService.Infrastructure;
+using InteractService.Infrastructure.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;

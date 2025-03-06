@@ -39,7 +39,7 @@ message GetUsersRequest {
 message GetUsersResponse {
   int32 page_index = 1;
   int32 page_size = 2;
-  int32 total_count = 3; // Nếu cần long, đổi thành int64
+  int32 total_count = 3; 
   repeated UserWithInfoDto data = 4;
 }
 
@@ -58,7 +58,8 @@ message UserWithInfoDto {
 }
 
 message GetUserInfoBatchRequest {
-  repeated string user_ids = 1;
+  bytes id = 1;
+  repeated string user_ids = 2;
 }
 
 message GetUserInfoBatchResponse {
@@ -67,14 +68,16 @@ message GetUserInfoBatchResponse {
 
 message GetUserInfoResponse {
   bytes id = 1;
-  string email = 2;
-  string username = 3;
-  string first_name = 4;
-  string last_name = 5;
-  string gender = 6;
-  string birth_date = 7;
-  string phone_number = 8;
-  string address = 9;
-  string profile_picture_url = 10;
-  string bio = 11;
+  bool is_friend = 2;
+  bool is_following = 3;
+  string email = 4;
+  string username = 5;
+  string first_name = 6;
+  string last_name = 7;
+  string gender = 8;
+  string birth_date = 9;
+  string phone_number = 10;
+  string address = 11;
+  string profile_picture_url = 12;
+  string bio = 13;
 }

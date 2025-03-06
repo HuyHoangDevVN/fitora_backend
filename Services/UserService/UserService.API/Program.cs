@@ -7,6 +7,7 @@ using UserService.Application;
 using UserService.Application.Services;
 using UserService.Application.Services.IServices;
 using UserService.Infrastructure;
+using UserService.Infrastructure.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
 

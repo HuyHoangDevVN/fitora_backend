@@ -2,6 +2,8 @@ using Google.Protobuf;
 using InteractService.Domain.Enums;
 using UserService.Infrastructure.Grpc;
 
+namespace InteractService.Infrastructure.Grpc;
+
 public class UserGrpcClient
 {
     private readonly UserService.Infrastructure.Grpc.UserService.UserServiceClient _client;
@@ -27,10 +29,12 @@ public class UserGrpcClient
     }
 
 
-    public async Task<List<UserInfo>> GetUserInfoBatchAsync(List<string> userIds)
+    public async Task<List<UserInfo>> GetUserInfoBatchAsync(Guid? id, List<string> userIds)
     {
+        
         var request = new GetUserInfoBatchRequest
         {
+            Id = id.HasValue ? ByteString.CopyFrom(id.Value.ToByteArray()) : ByteString.Empty,
             UserIds = { userIds }
         };
 
@@ -40,6 +44,8 @@ public class UserGrpcClient
             return new UserInfo
             {
                 Id = ConvertByteStringToGuid(u.Id),
+                IsFriend = u.IsFriend,
+                IsFollowing = u.IsFollowing,
                 Email = u.Email,
                 Username = u.Username,
                 FirstName = u.FirstName ?? string.Empty,
@@ -58,6 +64,8 @@ public class UserGrpcClient
 public class UserInfo
 {
     public Guid Id { get; set; }
+    public bool? IsFriend { get; set; }
+    public bool? IsFollowing { get; set; }
     public string Email { get; set; }
     public string Username { get; set; }
     public string? FirstName { get; set; }

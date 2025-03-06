@@ -5,6 +5,8 @@ namespace UserService.Application.DTOs.User.Responses;
 public class UserWithInfoDto
 {
     public Guid Id { get; set; }
+    public bool? IsFriend { get; set; }
+    public bool? IsFollowing { get; set; }
     public string Email { get; set; }
     public string Username { get; set; }
     public string? FirstName { get; set; }

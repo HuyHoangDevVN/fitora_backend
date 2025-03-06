@@ -1,13 +1,10 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
-using BuildingBlocks.Pagination;
 using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Post.Requests;
-using InteractService.Application.DTOs.Post.Responses;
 using InteractService.Application.Usecases.Posts.Commands.CreatePost;
 using InteractService.Application.Usecases.Posts.Commands.DeletePost;
 using InteractService.Application.Usecases.Posts.Commands.UpdatePost;
-using InteractService.Application.Usecases.Posts.Queries.GetAllPost;
 using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
 using InteractService.Application.Usecases.Posts.Queries.GetNewfeed;
 using InteractService.Application.Usecases.Posts.Queries.GetPersonal;
@@ -20,18 +17,14 @@ public record CreatePostFromBody(string Content, string MediaUrl, int Privacy, G
 
 [Route("api/post")]
 [ApiController]
-public class PostController : Microsoft.AspNetCore.Mvc.Controller
+public class PostController : Controller
 {
-    private readonly ISender _sender;
-    private readonly IMapper _mapper;
     private readonly IMediator _mediator;
     private readonly IAuthorizeExtension _authorizeExtension;
 
 
-    public PostController(ISender sender, IMapper mapper, IMediator mediator, IAuthorizeExtension authorizeExtension)
+    public PostController(IMediator mediator, IAuthorizeExtension authorizeExtension)
     {
-        _sender = sender;
-        _mapper = mapper;
         _mediator = mediator;
         _authorizeExtension = authorizeExtension;
     }
@@ -57,20 +50,6 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
         var response = new ResponseDto(post, Message: "Create Successful");
         return Ok(response);
     }
-
-    // [HttpGet("get-all")]
-    // public async Task<IActionResult> GetAll()
-    // {
-    //     var posts = await _mediator.Send(new GetAllPostQuery());
-    //     if (posts is null)
-    //     {
-    //         return NoContent();
-    //     }
-    //
-    //     var results = posts.Select(post => _mapper.Map<PostResponseDto>(post));
-    //     var response = new ResponseDto(results, Message: "Get All Successful");
-    //     return Ok(response);
-    // }
 
     [HttpGet("get-by-id/{id}")]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
@@ -120,7 +99,7 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
             new GetNewfeedQuery(new GetPostRequest(userGuid, request.Cursor, request.Limit))
         );
 
-        var response = new ResponseDto(post, IsSuccess: true,"Get Successful");
+        var response = new ResponseDto(post, IsSuccess: true, "Get Successful");
         return Ok(response);
     }
 
@@ -133,8 +112,7 @@ public class PostController : Microsoft.AspNetCore.Mvc.Controller
             new GetPersonalQuery(new GetPostRequest(userGuid, request.Cursor, request.Limit))
         );
 
-        var response = new ResponseDto(post, IsSuccess: true,"Get Successful");
+        var response = new ResponseDto(post, IsSuccess: true, "Get Successful");
         return Ok(response);
     }
-
 }
