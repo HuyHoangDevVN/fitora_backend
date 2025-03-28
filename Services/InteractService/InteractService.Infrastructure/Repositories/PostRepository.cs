@@ -1,10 +1,7 @@
 using System.Linq.Expressions;
-using AutoMapper;
 using BuildingBlocks.Exceptions;
-using BuildingBlocks.Pagination;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
-using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.DTOs.Post.Responses;
 using InteractService.Application.Services.IServices;
@@ -12,7 +9,6 @@ using InteractService.Domain.Enums;
 using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Grpc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace InteractService.Infrastructure.Repositories;
@@ -403,8 +399,8 @@ public class PostRepository : IPostRepository
                     Id = Guid.TryParse(id, out var guid) ? guid : Guid.Empty,
                     Username = userData.FirstOrDefault(x => x.Name == "username").Value!,
                     Email = userData.FirstOrDefault(x => x.Name == "email").Value!,
-                    IsFriend = (bool?)userData.FirstOrDefault(x => x.Name == "is_friend").Value,
-                    IsFollowing = (bool?)userData.FirstOrDefault(x => x.Name == "is_following").Value,
+                    IsFriend = ParseBoolFromRedis(userData.FirstOrDefault(x => x.Name == "is_friend").Value),
+                    IsFollowing = ParseBoolFromRedis(userData.FirstOrDefault(x => x.Name == "is_following").Value),
                     FirstName = userData.FirstOrDefault(x => x.Name == "first_name").Value,
                     LastName = userData.FirstOrDefault(x => x.Name == "last_name").Value,
                     ProfilePictureUrl = userData.FirstOrDefault(x => x.Name == "profile_picture_url").Value,
@@ -464,7 +460,11 @@ public class PostRepository : IPostRepository
                 });
             }
         }
-
         return userInfos;
+    }
+    
+    private bool? ParseBoolFromRedis(RedisValue value)
+    {
+        return bool.TryParse(value.ToString(), out bool parsed) ? parsed : (bool?)null;
     }
 }

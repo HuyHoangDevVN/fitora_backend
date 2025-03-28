@@ -13,6 +13,8 @@ public class Post : Entity<Guid>, ISoftDelete
     public PrivacyPost Privacy { get; set; } = PrivacyPost.Public;
     public bool IsDeleted { get; set; } = false;
     public int VotesCount { get; set; } = 0;
-    public ICollection<UserVoted> UserVoteds { get; set; }
+    public ICollection<UserVoted> UserVoteds { get; set; } = new List<UserVoted>();
+    public Guid? CategoryId { get; set; }
+    public Category? Category { get; set; }
     public int CommentsCount { get; set; } = 0;
 }
