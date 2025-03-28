@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using AutoMapper;
 using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination;
@@ -19,21 +20,21 @@ namespace InteractService.Infrastructure.Repositories;
 public class PostRepository : IPostRepository
 {
     private readonly IRepositoryBase<Post> _postRepo;
-    private readonly IMapper _mapper;
-    private readonly IAuthorizeExtension _authorizeExtension;
+    private readonly IRepositoryBase<UserVoted> _userVotedRepo;
     private readonly DbSet<Post> _dbSet;
+    private readonly DbSet<UserVoted> _dbSetUserVoteds;
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
 
-    public PostRepository(IRepositoryBase<Post> postRepo, IMapper mapper, IAuthorizeExtension authorizeExtension,
+    public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
         ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
     {
         _postRepo = postRepo;
-        _mapper = mapper;
-        _authorizeExtension = authorizeExtension;
         _dbSet = dbContext.Set<Post>();
+        _dbSetUserVoteds = dbContext.Set<UserVoted>();
         _redis = redis.GetDatabase();
         _userClient = userClient;
+        _userVotedRepo = userVotedRepo;
     }
 
     public async Task<bool> CreateAsync(Post post)
@@ -55,6 +56,45 @@ public class PostRepository : IPostRepository
         return await _postRepo.SaveChangesAsync() > 0;
     }
 
+    public async Task<bool> VoteAsync(VotePostRequest request)
+    {
+        var post = await _postRepo.GetAsync(p => p.Id == request.PostId);
+        if (post == null)
+        {
+            throw new Exception("Post not found");
+        }
+
+        var existingVote = await _userVotedRepo.GetAsync(uv => uv.UserId == request.UserId && uv.PostId == request.PostId);
+
+        if (request.VoteType == VoteType.UnVote)
+        {
+            // Nếu là UnVote và có bản ghi vote, xóa bản ghi
+            if (existingVote != null)
+            {
+                await _userVotedRepo.DeleteAsync(uv => uv.Id == existingVote.Id);
+            }
+        }
+        else
+        {
+            if (existingVote != null)
+            {
+                // Cập nhật VoteType
+                existingVote.VoteType = request.VoteType;
+                await _userVotedRepo.UpdateAsync(uv => uv.Id == existingVote.Id, existingVote);
+            }
+            else
+            {
+                await _userVotedRepo.AddAsync(new UserVoted
+                {
+                    UserId = request.UserId,
+                    PostId = request.PostId,
+                    VoteType = request.VoteType
+                });
+            }
+        }
+
+        return await _userVotedRepo.SaveChangesAsync() > 0;
+    }
     public async Task<bool> DeleteAsync(Guid id)
     {
         try
@@ -68,60 +108,62 @@ public class PostRepository : IPostRepository
         }
     }
 
-    public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
         var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSet;
+        IQueryable<Post> query = _dbSet.Where(p => p.UserId == request.Id);
 
-        double? lastScore = null;
-        DateTime? lastCreatedAt = null;
-        if (!string.IsNullOrEmpty(request.Cursor))
-        {
-            var parts = request.Cursor.Split('|');
-            if (parts.Length == 2 &&
-                double.TryParse(parts[0], out var parsedScore) &&
-                long.TryParse(parts[1], out var ticks))
-            {
-                lastScore = parsedScore;
-                lastCreatedAt = new DateTime(ticks, DateTimeKind.Utc);
-            }
-        }
+        // Parse composite cursor nếu có
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
 
         if (lastScore.HasValue && lastCreatedAt.HasValue)
         {
-            query = query.Where(p =>
-                ((p.VotesCount * 2 + p.CommentsCount) / ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) <
-                lastScore.Value
-                ||
-                (
-                    ((p.VotesCount * 2 + p.CommentsCount) /
-                     ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) == lastScore.Value
-                    && p.CreatedAt < lastCreatedAt.Value
-                )
-            );
+            Expression<Func<Post, bool>> filter = p =>
+                GetPostScore(p, now) < lastScore.Value ||
+                (GetPostScore(p, now) == lastScore.Value && p.CreatedAt < lastCreatedAt.Value);
+            query = query.Where(filter);
         }
 
-        // Tính Score và sắp xếp
+        // Tính VotesCount và Score tương tự GetNewfeed
         var postsWithScore = await query
             .Select(p => new
             {
                 Post = p,
-                Score = (p.VotesCount * 2 + p.CommentsCount) /
-                        ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                Score = (_dbSetUserVoteds
+                             .Where(uv => uv.PostId == p.Id)
+                             .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                 uv.VoteType == VoteType.DownVote ? -1 : 0) * 2
+                         + p.CommentsCount)
+                        / (EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
             })
             .OrderByDescending(x => x.Score)
             .ThenByDescending(x => x.Post.CreatedAt)
             .Take(request.Limit + 1)
             .ToListAsync();
 
-        string nextCursor = null!;
+        // Xử lý con trỏ (cursor) cho trang tiếp theo
+        string nextCursor = null;
         if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt!).Ticks}";
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
+        // Lấy danh sách PostId
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+
+        // Lấy vote của người dùng cho các bài viết này
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        var totalCount = await query.CountAsync();
+
+        // Lấy thông tin người dùng
         var userIds = postsWithScore.Select(x => x.Post.UserId.ToString("D")).Distinct().ToList();
         var userInfos = new Dictionary<string, UserWithInfoDto>();
 
@@ -193,26 +235,115 @@ public class PostRepository : IPostRepository
                     new HashEntry("profile_picture_url", userDto.ProfilePictureUrl ?? string.Empty),
                     new HashEntry("address", userDto.Address ?? string.Empty),
                     new HashEntry("gender", userDto.Gender.ToString()),
-                    new HashEntry("birth_date",
-                        userDto.BirthDate.ToString("yyyy-MM-dd")),
+                    new HashEntry("birth_date", userDto.BirthDate.ToString("yyyy-MM-dd")),
                     new HashEntry("phone_number", userDto.PhoneNumber ?? string.Empty)
                 });
             }
         }
 
+        // Map dữ liệu sang PostResponseDto
         var postDtos = postsWithScore.Select(x => new PostResponseDto
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
             CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
-            VotesCount = x.Post.VotesCount,
+            VotesCount = x.VotesCount, // Sử dụng VotesCount đã tính động
             CommentsCount = x.Post.CommentsCount,
             Score = x.Score,
             MediaUrl = x.Post.MediaUrl,
             Privacy = x.Post.Privacy,
             GroupId = x.Post.GroupId,
             IsDeleted = x.Post.IsDeleted,
-            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D"))
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType =
+                userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null // Gán trạng thái vote
+        }).ToList();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
+    }
+
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
+    {
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSet;
+
+        // Tách cursor thành lastScore và lastCreatedAt
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
+
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            Expression<Func<Post, bool>> filter = p =>
+                GetPostScore(p, now) < lastScore.Value ||
+                (GetPostScore(p, now) == lastScore.Value && p.CreatedAt < lastCreatedAt.Value);
+            query = query.Where(filter);
+        }
+
+        // Tính điểm và sắp xếp
+        var postsWithScore = await query
+            .Select(p => new
+            {
+                Post = p,
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                Score = (_dbSetUserVoteds
+                             .Where(uv => uv.PostId == p.Id)
+                             .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                 uv.VoteType == VoteType.DownVote ? -1 : 0) * 2
+                         + p.CommentsCount)
+                        / (EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        // Xử lý con trỏ (cursor) cho trang tiếp theo
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        // Lấy danh sách PostId
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+
+        // Lấy vote của người dùng cho các bài viết này
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        // Lấy danh sách UserId và thông tin người dùng
+        var userIds = postsWithScore
+            .Select(x => x.Post.UserId.ToString("D"))
+            .Distinct()
+            .ToList();
+
+        var userInfos = await GetUserInfos(userIds, request.Id);
+
+        // Chuyển đổi sang DTO
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.VotesCount,
+            CommentsCount = x.Post.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            IsDeleted = x.Post.IsDeleted,
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType = userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null
         }).ToList();
 
         var totalCount = await query.CountAsync();
@@ -226,67 +357,41 @@ public class PostRepository : IPostRepository
         );
     }
 
-    public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
+    // Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
+    private (double? lastScore, DateTime? lastCreatedAt) ParseCursor(string cursor)
     {
-        var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSet.Where(p => p.UserId == request.Id);
+        if (string.IsNullOrEmpty(cursor))
+            return (null, null);
 
-        // Parse composite cursor nếu có
-        double? lastScore = null;
-        DateTime? lastCreatedAt = null;
-        if (!string.IsNullOrEmpty(request.Cursor))
+        var parts = cursor.Split('|');
+        if (parts.Length != 2 ||
+            !double.TryParse(parts[0], out var parsedScore) ||
+            !long.TryParse(parts[1], out var ticks))
         {
-            var parts = request.Cursor.Split('|');
-            if (parts.Length == 2 &&
-                double.TryParse(parts[0], out var parsedScore) &&
-                long.TryParse(parts[1], out var ticks))
-            {
-                lastScore = parsedScore;
-                lastCreatedAt = new DateTime(ticks, DateTimeKind.Utc);
-            }
+            return (null, null);
         }
 
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
-        {
-            query = query.Where(p =>
-                ((p.VotesCount * 2 + p.CommentsCount) / ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) <
-                lastScore.Value
-                ||
-                (
-                    ((p.VotesCount * 2 + p.CommentsCount) /
-                     ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)) == lastScore.Value
-                    && p.CreatedAt < lastCreatedAt.Value
-                )
-            );
-        }
+        return (parsedScore, new DateTime(ticks, DateTimeKind.Utc));
+    }
 
-        // Tính Score và sắp xếp
-        var postsWithScore = await query
-            .Select(p => new
-            {
-                Post = p,
-                Score = (p.VotesCount * 2 + p.CommentsCount) /
-                        ((EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0) + 2)
-            })
-            .OrderByDescending(x => x.Score)
-            .ThenByDescending(x => x.Post.CreatedAt)
-            .Take(request.Limit + 1)
-            .ToListAsync();
+    // Hàm tính điểm của bài viết dựa trên số vote, số comment và khoảng thời gian
+    private double? GetPostScore(Post post, DateTime now)
+    {
+        // Tính tổng vote: upVote tính +1, downVote tính -1
+        var voteSum = _dbSetUserVoteds
+            .Where(uv => uv.PostId == post.Id)
+            .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0);
 
-        string nextCursor = null;
-        if (postsWithScore.Count > request.Limit)
-        {
-            var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
-            postsWithScore = postsWithScore.Take(request.Limit).ToList();
-        }
+        // Điểm tính: (voteSum * 2 + số comment) / (số giờ kể từ tạo + 2)
+        var timeFactor = EF.Functions.DateDiffMinute(post.CreatedAt, now) / 60.0 + 2;
+        return (voteSum * 2 + post.CommentsCount) / timeFactor;
+    }
 
-        var totalCount = await query.CountAsync();
-
-        var userIds = postsWithScore.Select(x => x.Post.UserId.ToString("D")).Distinct().ToList();
+    // Hàm lấy thông tin người dùng từ Redis, fallback sang gRPC nếu cần
+    private async Task<Dictionary<string, UserWithInfoDto>> GetUserInfos(List<string> userIds, Guid requestUserId)
+    {
         var userInfos = new Dictionary<string, UserWithInfoDto>();
 
-        // Lấy thông tin người dùng từ Redis
         foreach (var id in userIds)
         {
             var redisKey = $"user_info:{id}";
@@ -317,11 +422,11 @@ public class PostRepository : IPostRepository
             }
         }
 
-        // Fallback sang gRPC nếu cache miss
+        // Nếu thiếu thông tin, fallback sang gRPC
         var missingIds = userIds.Except(userInfos.Keys).ToList();
         if (missingIds.Any())
         {
-            var grpcUsers = await _userClient.GetUserInfoBatchAsync(request.Id, missingIds);
+            var grpcUsers = await _userClient.GetUserInfoBatchAsync(requestUserId, missingIds);
             foreach (var user in grpcUsers)
             {
                 var key = user.Id.ToString("D");
@@ -338,51 +443,28 @@ public class PostRepository : IPostRepository
                     Bio = user.Bio,
                     Gender = user.Gender,
                     BirthDate = user.BirthDate,
-                    PhoneNumber = user.PhoneNumber,
+                    PhoneNumber = user.PhoneNumber
                 };
                 userInfos[key] = userDto;
 
-                // Lưu vào Redis
+                // Lưu vào Redis để cache
                 await _redis.HashSetAsync($"user_info:{key}", new[]
                 {
-                    new HashEntry("username", userDto.Username),
-                    new HashEntry("email", userDto.Email),
-                    new HashEntry("is_friend", userDto.IsFriend),
-                    new HashEntry("is_following", userDto.IsFollowing),
+                    new HashEntry("username", userDto.Username ?? string.Empty),
+                    new HashEntry("email", userDto.Email ?? string.Empty),
+                    new HashEntry("is_friend", userDto.IsFriend.ToString()),
+                    new HashEntry("is_following", userDto.IsFollowing.ToString()),
                     new HashEntry("first_name", userDto.FirstName ?? string.Empty),
                     new HashEntry("last_name", userDto.LastName ?? string.Empty),
                     new HashEntry("profile_picture_url", userDto.ProfilePictureUrl ?? string.Empty),
                     new HashEntry("address", userDto.Address ?? string.Empty),
                     new HashEntry("gender", userDto.Gender.ToString()),
-                    new HashEntry("birth_date",
-                        userDto.BirthDate.ToString("yyyy-MM-dd")),
+                    new HashEntry("birth_date", userDto.BirthDate.ToString("yyyy-MM-dd")),
                     new HashEntry("phone_number", userDto.PhoneNumber ?? string.Empty)
                 });
             }
         }
 
-        // Map dữ liệu sang PostResponseDto
-        var postDtos = postsWithScore.Select(x => new PostResponseDto
-        {
-            Id = x.Post.Id,
-            Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
-            VotesCount = x.Post.VotesCount,
-            CommentsCount = x.Post.CommentsCount,
-            Score = x.Score,
-            MediaUrl = x.Post.MediaUrl,
-            Privacy = x.Post.Privacy,
-            GroupId = x.Post.GroupId,
-            IsDeleted = x.Post.IsDeleted,
-            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D"))
-        }).ToList();
-
-        return new PaginatedCursorResult<PostResponseDto>(
-            request.Cursor,
-            request.Limit,
-            totalCount,
-            postDtos,
-            nextCursor
-        );
+        return userInfos;
     }
 }

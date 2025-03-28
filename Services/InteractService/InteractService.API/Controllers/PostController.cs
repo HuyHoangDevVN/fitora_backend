@@ -5,6 +5,7 @@ using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.Usecases.Posts.Commands.CreatePost;
 using InteractService.Application.Usecases.Posts.Commands.DeletePost;
 using InteractService.Application.Usecases.Posts.Commands.UpdatePost;
+using InteractService.Application.Usecases.Posts.Commands.VotePost;
 using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
 using InteractService.Application.Usecases.Posts.Queries.GetNewfeed;
 using InteractService.Application.Usecases.Posts.Queries.GetPersonal;
@@ -55,10 +56,6 @@ public class PostController : Controller
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
         var post = await _mediator.Send(new GetPostByIdQuery(id));
-        if (post is null)
-        {
-            return NotFound(new { Message = "Post not found" });
-        }
 
         var response = new ResponseDto(post, Message: "Get By Id Successful");
         return Ok(response);
@@ -74,6 +71,21 @@ public class PostController : Controller
 
         var updatedPost = await _mediator.Send(new UpdatePostCommand(id, updatePostRequest));
         var response = new ResponseDto(Message: "Update Successful");
+        return Ok(response);
+    }
+
+    [HttpPut("vote")]
+    public async Task<IActionResult> Vote([FromBody] VotePostRequest request)
+    {
+        var userGuid = request.UserId != Guid.Empty ? request.UserId : _authorizeExtension.GetUserFromClaimToken().Id;
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        await _mediator.Send(new VotePostCommand(new VotePostRequest(userGuid, request.PostId, request.VoteType)));
+        var response = new ResponseDto(Message: "Upvote thành công");
         return Ok(response);
     }
 

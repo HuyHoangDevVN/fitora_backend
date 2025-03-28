@@ -8,6 +8,7 @@ public interface IApplicationDbContext
     DbSet<Tag> Tags { get; }
     DbSet<Share> Shares { get; }
     DbSet<Report> Reports { get; }
+    DbSet<UserVoted> UserVoteds { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
