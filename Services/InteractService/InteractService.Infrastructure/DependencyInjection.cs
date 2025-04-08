@@ -20,6 +20,8 @@ public static class DependencyInjection
         if(configuration is null) { throw new ArgumentNullException(nameof(configuration)); }
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
         services.AddScoped<IPostRepository, PostRepository>();
+        services.AddScoped<ICommentRepository, CommentRepository>();
+        services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>

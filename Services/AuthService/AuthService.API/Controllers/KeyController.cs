@@ -2,6 +2,7 @@ using AuthService.Application.Auths.Queries.GetKeys;
 using AuthService.Application.DTOs.Key.Responses;
 using AutoMapper;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

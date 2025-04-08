@@ -8,6 +8,8 @@ public class PostResponseDto : EntityAuditBase<Guid>
 {
     public Guid Id { get; set; }
     public Guid? GroupId { get; set; } = null;
+    public Guid? CategoryId { get; set; } = null;
+    public string? CategoryName { get; set; } = null;
     public string Content { get; set; }
     public string MediaUrl { get; set; }
     public int VotesCount { get; set; } = 0;

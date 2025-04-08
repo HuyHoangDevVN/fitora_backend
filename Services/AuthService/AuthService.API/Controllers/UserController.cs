@@ -5,6 +5,7 @@ using AuthService.Application.DTOs.Users.Requests;
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 

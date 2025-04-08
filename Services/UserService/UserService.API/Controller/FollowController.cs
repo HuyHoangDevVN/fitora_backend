@@ -1,6 +1,7 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

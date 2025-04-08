@@ -17,6 +17,9 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Share> Shares => Set<Share>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<UserVoted> UserVoteds => Set<UserVoted>();
+    public DbSet<Category> Categories => Set<Category>();
+    public DbSet<FollowCategory> FollowCategories => Set<FollowCategory>();
+    public DbSet<CommentVotes> CommentVotes => Set<CommentVotes>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

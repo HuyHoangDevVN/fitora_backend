@@ -9,6 +9,8 @@ public interface IApplicationDbContext
     DbSet<Share> Shares { get; }
     DbSet<Report> Reports { get; }
     DbSet<UserVoted> UserVoteds { get; }
-    
+    DbSet<Category> Categories { get; }
+    DbSet<FollowCategory> FollowCategories { get; }
+    DbSet<CommentVotes> CommentVotes { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

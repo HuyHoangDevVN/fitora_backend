@@ -118,5 +118,4 @@ public class FollowRepository : IFollowRepository
             NumberOfFollowed = numberOfFollowed
         };
     }
-
 }
