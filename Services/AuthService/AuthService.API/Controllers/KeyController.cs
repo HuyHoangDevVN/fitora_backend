@@ -28,7 +28,4 @@ public class KeyController : Controller
         var response = new GetKeysResponse(MetaData: result.PaginatedResult, Message: "Get Keys Successful");
         return Ok(response);
     }
-
-    
-    
 }

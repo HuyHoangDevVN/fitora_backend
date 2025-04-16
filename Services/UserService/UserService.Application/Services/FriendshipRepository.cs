@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using Microsoft.IdentityModel.Tokens;
 using UserService.Application.DTOs.Friendship.Requests;
 using UserService.Application.DTOs.Friendship.Responses;
 using UserService.Domain.Enums;
@@ -137,13 +138,26 @@ namespace UserService.Application.Services
                 fs => fs.User1,
                 fs => fs.User1.UserInfo
             };
+            
+            if (!string.IsNullOrEmpty(request.KeySearch))
+            {
+                var searchKey = request.KeySearch.ToLower();
+                return await _friendshipRepo.GetPageWithIncludesAsync(
+                    new PaginationRequest(request.PageIndex, request.PageSize),
+                    fs => MapToFriendDto(fs, request.Id),
+                    fs => (fs.User1Id == request.Id && fs.User2.Username.ToLower().Contains(searchKey)) ||
+                                (fs.User2Id == request.Id && fs.User1.Username.ToLower().Contains(searchKey)),
+                    includes,
+                    cancellationToken: CancellationToken.None
+                );
+            }
 
             return await _friendshipRepo.GetPageWithIncludesAsync(
-                paginationRequest: new PaginationRequest(request.PageIndex, request.PageSize),
-                selector: fs => MapToFriendDto(fs, request.Id),
-                conditions: fs => fs.User1Id == request.Id || fs.User2Id == request.Id,
-                includes: includes,
-                cancellationToken: CancellationToken.None
+                new PaginationRequest(request.PageIndex, request.PageSize),
+                fs => MapToFriendDto(fs, request.Id),
+                fs => fs.User1Id == request.Id || fs.User2Id == request.Id,
+                includes,
+                CancellationToken.None
             );
         }
 

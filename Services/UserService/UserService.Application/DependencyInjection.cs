@@ -47,6 +47,9 @@ public static class DependencyInjection
         services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IFollowRepository, FollowRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
+        services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
         
         services.AddHostedService<RabbitMqConsumerHostedService>();
 

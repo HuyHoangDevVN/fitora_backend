@@ -80,7 +80,16 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
     {
         var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ??
                      throw new NotFoundException($"{typeof(TEntity).Name} not found");
-        _dbSet.Remove(entity);
+        _dbSet!.Remove(entity);
+    }
+
+   public async Task DeleteRangeAsync(Expression<Func<TEntity, bool>> func, CancellationToken cancellationToken = default)
+    {
+        var entities = await _dbSet!.Where(func).ToListAsync(cancellationToken);
+        if (entities.Any())
+        {
+            _dbSet!.RemoveRange(entities);
+        }
     }
 
     public async Task AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
@@ -301,14 +310,13 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         );
     }
 
-    public async Task<TEntity> GetByFieldWithIncludesAsync(
-        string fieldName,
-        object value,
+    public async Task<TEntity> GetWithIncludesAsync(
+        Expression<Func<TEntity, bool>> expression,
         List<Expression<Func<TEntity, object>>>? includes = null,
         CancellationToken cancellationToken = default)
     {
         IQueryable<TEntity> query = _dbSet!.AsNoTracking();
-
+   
         if (includes != null)
         {
             foreach (var include in includes)
@@ -316,15 +324,13 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
                 query = query.Include(include);
             }
         }
-
-        var entity = await query.FirstOrDefaultAsync(
-            e => EF.Property<object>(e, fieldName).Equals(value),
-            cancellationToken
-        );
-
-        return entity ?? throw new NotFoundException($"{typeof(TEntity).Name} with {fieldName} '{value}' not found");
+   
+        var entity = await query.FirstOrDefaultAsync(expression, cancellationToken);
+   
+        return entity ??
+               throw new NotFoundException(
+                   $"{typeof(TEntity).Name} not found");
     }
-
 
     // Generic join method
     public async Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(

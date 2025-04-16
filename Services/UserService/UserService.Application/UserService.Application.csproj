@@ -13,7 +13,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="DTOs\GroupJoinRequest\Responses\" />
     <Folder Include="Helpers\" />
+    <Folder Include="Usecases\GroupInvite\Queries\" />
+    <Folder Include="Usecases\GroupMember\Queries\" />
+    <Folder Include="Usecases\Group\Queries\" />
   </ItemGroup>
   
   <PropertyGroup>

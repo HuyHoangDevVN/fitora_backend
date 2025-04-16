@@ -105,10 +105,8 @@ public class UserRepository : IUserRepository
                 (string.IsNullOrEmpty(keySearch)
                  || u.Email.ToLower().Contains(keySearch)
                  || u.Username.ToLower().Contains(keySearch))
-
                 && (string.IsNullOrEmpty(email)
                     || u.Email.ToLower().Contains(email))
-
                 && (string.IsNullOrEmpty(username)
                     || u.Username.ToLower().Contains(username));
         }
@@ -129,7 +127,6 @@ public class UserRepository : IUserRepository
                 Address = ui.Address,
                 ProfilePictureUrl = ui.ProfilePictureUrl,
                 Bio = ui.Bio,
-                
             },
             searchPredicate,
             null
@@ -147,62 +144,63 @@ public class UserRepository : IUserRepository
 
 
     public async Task<List<UserWithInfoDto>> GetUsersByIdsAsync(Guid? id, List<Guid> userIds)
-{
-    // Lấy thông tin người dùng từ cơ sở dữ liệu
-    var usersWithInfo = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
-        outerKeySelector: u => u.Id,
-        innerKeySelector: ui => ui.UserId,
-        resultSelector: (u, ui) => new UserWithInfoDto
-        {
-            Id = u.Id,
-            Email = u.Email,
-            Username = u.Username,
-            FirstName = ui.FirstName,
-            LastName = ui.LastName,
-            Gender = ui.Gender,
-            BirthDate = ui.BirthDate ?? default(DateTime),
-            PhoneNumber = ui.PhoneNumber,
-            Address = ui.Address,
-            ProfilePictureUrl = ui.ProfilePictureUrl,
-            Bio = ui.Bio,
-            IsFollowing = false, // Giá trị mặc định
-            IsFriend = false     // Giá trị mặc định
-        },
-        outerSearchPredicate: u => userIds.Contains(u.Id),
-        innerSearchPredicate: null
-    );
-
-    var userList = usersWithInfo.ToList();
-
-    // Nếu có id người dùng hiện tại, kiểm tra mối quan hệ
-    if (id.HasValue)
     {
-        // Lấy danh sách ID của các người dùng trong kết quả
-        var targetUserIds = userList.Select(u => u.Id).ToList();
-
-        // Lấy danh sách bạn bè của người dùng hiện tại
-        var friendships = await _friendshipRepository.FindAsync(fs =>
-            fs.User2Id != null && ((fs.User1Id == id.Value && targetUserIds.Contains((Guid)fs.User2Id)) ||
-                                   (fs.User2Id == id.Value && targetUserIds.Contains(fs.User1Id)))
+        // Lấy thông tin người dùng từ cơ sở dữ liệu
+        var usersWithInfo = await _userRepository.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
+            outerKeySelector: u => u.Id,
+            innerKeySelector: ui => ui.UserId,
+            resultSelector: (u, ui) => new UserWithInfoDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Username = u.Username,
+                FirstName = ui.FirstName,
+                LastName = ui.LastName,
+                Gender = ui.Gender,
+                BirthDate = ui.BirthDate ?? default(DateTime),
+                PhoneNumber = ui.PhoneNumber,
+                Address = ui.Address,
+                ProfilePictureUrl = ui.ProfilePictureUrl,
+                Bio = ui.Bio,
+                IsFollowing = false, // Giá trị mặc định
+                IsFriend = false // Giá trị mặc định
+            },
+            outerSearchPredicate: u => userIds.Contains(u.Id),
+            innerSearchPredicate: null
         );
-        var friendIds = friendships.Select(fs => fs.User1Id == id.Value ? fs.User2Id : fs.User1Id).ToList();
 
-        // Lấy danh sách người dùng mà người dùng hiện tại đang theo dõi
-        var follows = await _followRepository.FindAsync(f =>
-            f.FollowerId == id.Value && targetUserIds.Contains(f.FollowedId)
-        );
-        var followingIds = follows.Select(f => f.FollowedId).ToList();
+        var userList = usersWithInfo.ToList();
 
-        // Cập nhật giá trị IsFriend và IsFollowing cho từng người dùng
-        foreach (var user in userList)
+        // Nếu có id người dùng hiện tại, kiểm tra mối quan hệ
+        if (id.HasValue)
         {
-            user.IsFriend = friendIds.Contains(user.Id);
-            user.IsFollowing = followingIds.Contains(user.Id);
+            // Lấy danh sách ID của các người dùng trong kết quả
+            var targetUserIds = userList.Select(u => u.Id).ToList();
+
+            // Lấy danh sách bạn bè của người dùng hiện tại
+            var friendships = await _friendshipRepository.FindAsync(fs =>
+                fs.User2Id != null && ((fs.User1Id == id.Value && targetUserIds.Contains((Guid)fs.User2Id)) ||
+                                       (fs.User2Id == id.Value && targetUserIds.Contains(fs.User1Id)))
+            );
+            var friendIds = friendships.Select(fs => fs.User1Id == id.Value ? fs.User2Id : fs.User1Id).ToList();
+
+            // Lấy danh sách người dùng mà người dùng hiện tại đang theo dõi
+            var follows = await _followRepository.FindAsync(f =>
+                f.FollowerId == id.Value && targetUserIds.Contains(f.FollowedId)
+            );
+            var followingIds = follows.Select(f => f.FollowedId).ToList();
+
+            // Cập nhật giá trị IsFriend và IsFollowing cho từng người dùng
+            foreach (var user in userList)
+            {
+                user.IsFriend = friendIds.Contains(user.Id);
+                user.IsFollowing = followingIds.Contains(user.Id);
+            }
         }
+
+        return userList;
     }
 
-    return userList;
-}
     public async Task<RelationshipDto> GetRelationshipAsync(CreateFriendRequest request)
     {
         var isFriend = await _friendshipRepository.GetAsync(fs =>

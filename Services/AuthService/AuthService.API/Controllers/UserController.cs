@@ -52,11 +52,4 @@ public class UserController : Controller
 
         return Ok(response);
     }
-
-    [HttpGet("test-auth")]
-    public async Task<IActionResult> TestAuth()
-    {
-        return Ok(new ResponseDto(Message: "Testing auth", IsSuccess: true, Data: null));
-    }
-    
 }

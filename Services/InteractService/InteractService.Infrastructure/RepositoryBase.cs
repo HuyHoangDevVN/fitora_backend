@@ -47,7 +47,6 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
     public async Task<IEnumerable<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        
         return await _context.Set<TEntity>().ToListAsync(cancellationToken);
     }
 
@@ -81,7 +80,17 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
     {
         var entity = await _dbSet!.FirstOrDefaultAsync(func, cancellationToken) ??
                      throw new NotFoundException($"{typeof(TEntity).Name} not found");
-        _dbSet.Remove(entity);
+        _dbSet!.Remove(entity);
+    }
+
+    public async Task DeleteRangeAsync(Expression<Func<TEntity, bool>> func,
+        CancellationToken cancellationToken = default)
+    {
+        var entities = await _dbSet!.Where(func).ToListAsync(cancellationToken);
+        if (entities.Any())
+        {
+            _dbSet!.RemoveRange(entities);
+        }
     }
 
     public async Task AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default)
@@ -102,6 +111,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
             return await _dbSet!.Where(conditions).Select(selector).ToListAsync(cancellationToken);
         return await _dbSet!.Select(selector).ToListAsync(cancellationToken);
     }
+
 
     public async Task<IEnumerable<SelectDto>> GetSelectAsync<TResult>(Expression<Func<TEntity, TResult>> selector)
     {
@@ -188,7 +198,7 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         );
     }
 
-    
+
     public async Task<PaginatedCursorResult<TEntity>> GetPageCursorAsync(
         PaginationCursorRequest paginationRequest,
         CancellationToken cancellationToken = default,
@@ -201,8 +211,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         }
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
-    
-        
+
+
         long? numericCursor = null;
         if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
         {
@@ -217,23 +227,22 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         if (numericCursor.HasValue && cursorSelector != null)
         {
-            
             query = query.Where(entity => cursorSelector.Compile().Invoke(entity) < numericCursor.Value);
         }
 
         var totalCount = await query.LongCountAsync(cancellationToken);
 
         var entities = await query
-            .OrderByDescending(cursorSelector) 
-            .Take(limit + 1) 
+            .OrderByDescending(cursorSelector)
+            .Take(limit + 1)
             .ToListAsync(cancellationToken);
 
         long? nextNumericCursor = entities.Count > limit ? cursorSelector.Compile().Invoke(entities[^1]) : null;
-        
+
         string? nextCursor = nextNumericCursor.HasValue ? nextNumericCursor.Value.ToString() : null;
 
         return new PaginatedCursorResult<TEntity>(
-            paginationRequest.Cursor, 
+            paginationRequest.Cursor,
             limit,
             totalCount,
             entities.Take(limit).ToList(),
@@ -254,8 +263,8 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         }
 
         int limit = paginationRequest.Limit > 0 ? paginationRequest.Limit : 10;
-    
-        
+
+
         long? numericCursor = null;
         if (!string.IsNullOrEmpty(paginationRequest.Cursor) && long.TryParse(paginationRequest.Cursor, out var parsed))
         {
@@ -279,7 +288,6 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
 
         if (numericCursor.HasValue)
         {
-            
             query = query.Where(entity => EF.Property<long>(entity, "Id") < numericCursor.Value);
         }
 
@@ -303,47 +311,44 @@ public class RepositoryBase<TEntity> : IRepositoryBase<TEntity> where TEntity : 
         );
     }
 
-    public async Task<TEntity> GetByFieldWithIncludesAsync(
-        string fieldName,
-        object value,
-        List<Expression<Func<TEntity, object>>>? includes = null,
-        CancellationToken cancellationToken = default)
-    {
-        IQueryable<TEntity> query = _dbSet!.AsNoTracking();
-
-        if (includes != null)
-        {
-            foreach (var include in includes)
-            {
-                query = query.Include(include);
-            }
-        }
-
-        var entity = await query.FirstOrDefaultAsync(
-            e => EF.Property<object>(e, fieldName).Equals(value),
-            cancellationToken
-        );
-
-        return entity ?? throw new NotFoundException($"{typeof(TEntity).Name} with {fieldName} '{value}' not found");
-    }
+   public async Task<TEntity> GetWithIncludesAsync(
+       Expression<Func<TEntity, bool>> expression,
+       List<Expression<Func<TEntity, object>>>? includes = null,
+       CancellationToken cancellationToken = default)
+   {
+       IQueryable<TEntity> query = _dbSet!.AsNoTracking();
+   
+       if (includes != null)
+       {
+           foreach (var include in includes)
+           {
+               query = query.Include(include);
+           }
+       }
+   
+       var entity = await query.FirstOrDefaultAsync(expression, cancellationToken);
+   
+       return entity ??
+              throw new NotFoundException(
+                  $"{typeof(TEntity).Name} not found");
+   }
 
 
-    
     public async Task<List<TResult>> JoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,
         Expression<Func<TEntity, TJoin, TResult>> resultSelector) where TJoin : class
     {
         return await _dbSet.Join(
-                _context.Set<TJoin>(), 
-                outerKeySelector, 
-                innerKeySelector, 
-                resultSelector 
+                _context.Set<TJoin>(),
+                outerKeySelector,
+                innerKeySelector,
+                resultSelector
             )
             .ToListAsync();
     }
 
-    
+
     public async Task<List<TResult>> SearchJoinAsync<TJoin, TKey, TResult>(
         Expression<Func<TEntity, TKey>> outerKeySelector,
         Expression<Func<TJoin, TKey>> innerKeySelector,

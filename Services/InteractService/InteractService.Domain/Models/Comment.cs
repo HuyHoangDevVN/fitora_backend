@@ -14,7 +14,6 @@ public class Comment : Entity<Guid>, ISoftDelete
     public string MediaUrl { get; set; }
     public int VotesCont { get; set; } = 0;
     public ICollection<CommentVotes> CommentVotes { get; set; } = new List<CommentVotes>();
-
     public int ReplyCount { get; set; } = 0;
     public bool IsDeleted { get; set; }
 }
