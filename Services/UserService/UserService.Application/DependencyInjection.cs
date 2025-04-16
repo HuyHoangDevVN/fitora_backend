@@ -44,13 +44,7 @@ public static class DependencyInjection
         services.AddSingleton<IRabbitMqConsumer<UserRegisteredMessageDto>, RabbitMqConsumer<UserRegisteredMessageDto>>();
         services.AddScoped<IMessageHandler<UserRegisteredMessageDto>, UserRegisteredMessageHandler>();
         // services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
-        services.AddScoped<IFollowRepository, FollowRepository>();
-        services.AddScoped<IGroupRepository, GroupRepository>();
-        services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
-        services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
-        
         services.AddHostedService<RabbitMqConsumerHostedService>();
 
         services.AddStackExchangeRedisCache(options =>

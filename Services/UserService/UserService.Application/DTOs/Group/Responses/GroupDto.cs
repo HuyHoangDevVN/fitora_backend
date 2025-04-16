@@ -12,4 +12,5 @@ public class GroupDto
     public string? CoverImageUrl { get; set; }
     public string? AvatarUrl { get; set; }
     public GroupStatus Status { get; set; } = GroupStatus.Active;
+    public int MemberCount { get; set; } = 0;
 }

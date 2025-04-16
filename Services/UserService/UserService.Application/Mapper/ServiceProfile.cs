@@ -1,4 +1,5 @@
 using AutoMapper;
+using BuildingBlocks.Pagination.Base;
 using UserService.Application.DTOs.Follow.Requests;
 using UserService.Application.DTOs.Group.Requests;
 using UserService.Application.DTOs.Group.Responses;
@@ -40,6 +41,7 @@ public class ServiceProfile : Profile
         #region Group
 
         CreateMap<Group, GroupDto>().ReverseMap();
+        CreateMap<PaginatedResult<Group>, PaginatedResult<GroupDto>>().ReverseMap();
         CreateMap<CreateGroupRequest, Group>().ReverseMap();
         CreateMap<UpdateGroupRequest, Group>().ReverseMap();
 
