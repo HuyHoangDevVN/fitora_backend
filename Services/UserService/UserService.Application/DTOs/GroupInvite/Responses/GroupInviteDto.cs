@@ -4,6 +4,7 @@ namespace UserService.Application.DTOs.GroupInvite.Responses;
 
 public class GroupInviteDto
 {
+    public Guid Id { get; set; } = Guid.Empty!;
     public Guid GroupId { get; set; }
     public string GroupName { get; set; } = null!;
     public string? GroupImageUrl { get; set; }

@@ -31,8 +31,8 @@ public class GroupMemberRepository : IGroupMemberRepository
         if (!await SaveChangesAsync())
             throw new Exception("Tạo thành viên nhóm thất bại");
 
-        
-         var result = await _groupMemberRepo.GetWithIncludesAsync(
+
+        var result = await _groupMemberRepo.GetWithIncludesAsync(
             gm => gm.Id == groupMember.Id,
             new List<Expression<Func<GroupMember, object>>>
             {
@@ -70,8 +70,13 @@ public class GroupMemberRepository : IGroupMemberRepository
         return new ResponseDto(null, success, success ? "Gán quyền thành công" : "Gán quyền thất bại");
     }
 
-    public async Task<bool> DeleteAsync(Guid memberId)
+
+    public async Task<bool> DeleteAsync(Guid memberId, Guid requestedBy)
     {
+        var requester = await _groupMemberRepo.GetAsync(gm => gm.UserId == requestedBy);
+        if (requester?.Role != GroupRole.Admin && requester?.Role != GroupRole.Owner)
+            throw new Exception("Người thực hiện không có quyền xóa thành viên");
+
         await _groupMemberRepo.DeleteAsync(gm => gm.UserId == memberId);
         return await SaveChangesAsync();
     }
@@ -82,12 +87,12 @@ public class GroupMemberRepository : IGroupMemberRepository
         return await SaveChangesAsync();
     }
 
-    public async Task<PaginatedResult<GroupMemberDto>> GetByGroupIdAsync(GetByGroupId request)
+    public async Task<PaginatedResult<GroupMemberDto>> GetByGroupIdAsync(GetByGroupIdRequest request)
     {
         var groupMembers = await _groupMemberRepo.GetPageWithIncludesAsync<GroupMemberDto>(
-            new PaginationRequest(request.pageIndex, request.pageSize),
+            new PaginationRequest(request.PageIndex, request.PageSize),
             gm => MapToGroupMemberDto(gm),
-            gm => gm.GroupId == request.groupId,
+            gm => gm.GroupId == request.GroupId,
             includes: new List<Expression<Func<GroupMember, object>>>
             {
                 gm => gm.Group,
@@ -98,11 +103,30 @@ public class GroupMemberRepository : IGroupMemberRepository
         );
 
         return new PaginatedResult<GroupMemberDto>(
-            request.pageIndex,
-            request.pageSize,
+            request.PageIndex,
+            request.PageSize,
             groupMembers.Count,
             groupMembers.Data
         );
+    }
+
+    public async Task<GroupMemberDto?> GetByIdAsync(Guid id, Guid groupId)
+    {
+        var isMember = await IsMemberAsync(groupId, id);
+        if (!isMember)
+            return null;
+        var groupMember = await _groupMemberRepo.GetWithIncludesAsync(
+            gm => gm.UserId == id && gm.GroupId == groupId,
+            includes: new List<Expression<Func<GroupMember, object>>>
+            {
+                gm => gm.Group,
+                gm => gm.User,
+                gm => gm.User.UserInfo
+            },
+            cancellationToken: CancellationToken.None
+        );
+
+        return MapToGroupMemberDto(groupMember);
     }
 
     public async Task<bool> IsMemberAsync(Guid groupId, Guid userId)

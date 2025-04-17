@@ -214,6 +214,9 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("char(36)");
 
+                    b.Property<bool?>("IsApproved")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 

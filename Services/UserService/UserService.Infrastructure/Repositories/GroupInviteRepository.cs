@@ -13,6 +13,7 @@ namespace UserService.Infrastructure.Repositories;
 public class GroupInviteRepository : IGroupInviteRepository
 {
     private readonly IRepositoryBase<GroupInvite> _groupInviteRepo;
+    private readonly IGroupMemberRepository _groupMemberRepo;
     private readonly IMapper _mapper;
 
     public GroupInviteRepository(IRepositoryBase<GroupInvite> groupInviteRepo, IMapper mapper)
@@ -49,8 +50,23 @@ public class GroupInviteRepository : IGroupInviteRepository
         if (groupInvite == null) return false;
 
         groupInvite.Status = StatusGroupInvite.Accepted;
+
+        var newGroupMember = CreateGroupMember(groupInvite);
+        await _groupMemberRepo.CreateAsync(newGroupMember);
+
         await _groupInviteRepo.UpdateAsync(gi => gi.Id == groupInvite.Id, groupInvite);
-        return true;
+        return await _groupInviteRepo.SaveChangesAsync() > 0;
+    }
+
+    private static GroupMember CreateGroupMember(GroupInvite groupInvite)
+    {
+        return new GroupMember
+        {
+            UserId = groupInvite.ReceiverUserId,
+            GroupId = groupInvite.GroupId,
+            Role = GroupRole.Member,
+            JoinedAt = DateTime.UtcNow
+        };
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -95,8 +111,9 @@ public class GroupInviteRepository : IGroupInviteRepository
             gi => gi.GroupId == request.GroupId
         );
 
-    private static GroupInviteDto MapToGroupInviteDto(GroupInvite gi) => new()
+    private static GroupInviteDto MapToGroupInviteDto(GroupInvite gi) => new() 
     {
+        Id = gi.Id,
         GroupId = gi.GroupId,
         GroupName = gi.Group?.Name ?? "Unknown Group",
         GroupImageUrl = gi.Group?.AvatarUrl,

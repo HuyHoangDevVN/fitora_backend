@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
+        services.AddScoped<IUserApiService, UserApiService>();
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
@@ -30,7 +31,12 @@ public static class DependencyInjection
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
         });
         
-   
+        // Call api
+        services.AddHttpClient("UserService", client =>
+        {
+            client.BaseAddress = new Uri("https://localhost:5003/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
         
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         return services;

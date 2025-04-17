@@ -6,6 +6,7 @@ using UserService.Application.DTOs.Group.Responses;
 using UserService.Application.DTOs.GroupJoinRequest.Requests;
 using UserService.Application.DTOs.GroupMember.Requests;
 using UserService.Application.DTOs.GroupMember.Responses;
+using UserService.Application.DTOs.GroupPost.Requests;
 using UserService.Application.Usecases.Group.Commands.CreateGroup;
 using UserService.Application.Usecases.Users.Commands;
 using UserService.Application.Usecases.Users.Commands.CreateUser;
@@ -59,6 +60,13 @@ public class ServiceProfile : Profile
 
         CreateMap<CreateGroupJoinRequest, GroupJoinRequest>().ReverseMap();
 
+        #endregion
+
+        #region GroupPost
+
+        CreateMap<CreateGroupPostRequest, GroupPost>().ReverseMap();
+        CreateMap<UpdateGroupPostRequest, GroupPost>().ReverseMap();
+        
         #endregion
     }
 }

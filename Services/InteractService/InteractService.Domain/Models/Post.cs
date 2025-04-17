@@ -16,5 +16,6 @@ public class Post : Entity<Guid>, ISoftDelete
     public ICollection<UserVoted> UserVoteds { get; set; } = new List<UserVoted>();
     public Guid? CategoryId { get; set; }
     public Category? Category { get; set; }
+    public bool? IsApproved { get; set; } = false;
     public int CommentsCount { get; set; } = 0;
 }

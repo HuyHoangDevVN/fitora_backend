@@ -13,11 +13,12 @@ public interface IGroupMemberRepository
     
     Task<ResponseDto> AssignRoleAsync(AssignRoleGroupMemberRequest request); 
     
-    Task<bool> DeleteAsync(Guid memberId);
+    Task<bool> DeleteAsync(Guid memberId, Guid requestedBy);
     
     Task<bool> DeleteRangeAsync(List<Guid> memberIds);
 
-    Task<PaginatedResult<GroupMemberDto>> GetByGroupIdAsync(GetByGroupId request); 
+    Task<PaginatedResult<GroupMemberDto>> GetByGroupIdAsync(GetByGroupIdRequest request); 
 
-    Task<bool> IsMemberAsync(Guid groupId, Guid userId); 
+    Task<bool> IsMemberAsync(Guid groupId, Guid userId);
+    Task<GroupMemberDto?> GetByIdAsync(Guid id, Guid groupId);
 }

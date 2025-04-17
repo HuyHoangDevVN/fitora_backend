@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
         services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
         services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IGroupPostRepository, GroupPostRepository>();
+        services.AddScoped<IInteractApiService, InteractApiService>();
 
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         return services;

@@ -87,7 +87,8 @@ public class PostController : Controller
         var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
-            new GetNewfeedQuery(new GetPostRequest(userGuid, request.FeedType,request.CategoryId, request.Cursor, request.Limit))
+            new GetNewfeedQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.Cursor,
+                request.Limit, request.GroupId))
         );
 
         var response = new ResponseDto(post, IsSuccess: true, "Get Successful");
@@ -100,7 +101,8 @@ public class PostController : Controller
         var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
-            new GetPersonalQuery(new GetPostRequest(userGuid, request.FeedType,request.CategoryId, request.Cursor, request.Limit))
+            new GetPersonalQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.Cursor,
+                request.Limit, request.GroupId))
         );
 
         var response = new ResponseDto(post, IsSuccess: true, "Get Successful");

@@ -47,6 +47,13 @@ public static class DependencyInjection
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddHostedService<RabbitMqConsumerHostedService>();
 
+        // Call api
+        services.AddHttpClient("InteractService", client =>
+        {
+            client.BaseAddress = new Uri("https://localhost:5005/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+        
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration.GetConnectionString("Redis");
