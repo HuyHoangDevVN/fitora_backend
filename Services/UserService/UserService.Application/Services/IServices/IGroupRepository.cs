@@ -9,6 +9,7 @@ public interface IGroupRepository
     Task<bool> CreateAsync(Group group);
     Task<bool> UpdateAsync(Group group);
     Task<bool> DeleteAsync(Guid id);
+    Task<PaginatedResult<Group>> GetGroupsAsync(GetGroupsRequest request);
     
     Task<PaginatedResult<Group>> GetManagedGroupsAsync(GetManagedGroupsRequest request);
     Task<PaginatedResult<Group>> GetJoinedGroupsAsync(GetJoinedGroupsRequest request);

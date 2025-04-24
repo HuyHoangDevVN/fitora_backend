@@ -17,8 +17,13 @@ public static class DependencyInjection
         IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("Database");
-        if(configuration is null) { throw new ArgumentNullException(nameof(configuration)); }
+        if (configuration is null)
+        {
+            throw new ArgumentNullException(nameof(configuration));
+        }
+
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
+        services.AddTransient<BearerTokenHandler>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -30,14 +35,14 @@ public static class DependencyInjection
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
         });
-        
+
         // Call api
         services.AddHttpClient("UserService", client =>
         {
             client.BaseAddress = new Uri("https://localhost:5003/");
             client.DefaultRequestHeaders.Add("Accept", "application/json");
-        });
-        
+        }).AddHttpMessageHandler<BearerTokenHandler>();
+
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         return services;
     }

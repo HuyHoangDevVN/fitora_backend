@@ -44,6 +44,16 @@ public class GroupRepository : IGroupRepository
         return await _groupRepo.SaveChangesAsync() > 0;
     }
 
+    public async Task<PaginatedResult<Group>> GetGroupsAsync(GetGroupsRequest request)
+    {
+        var keySearch = request.Keysearch.Trim().ToLower();
+        return await _groupRepo.GetPageAsync(
+            new PaginationRequest(request.PageIndex, request.PageSize),
+            CancellationToken.None,
+            g => g.Name.ToLower().Contains(keySearch) || g.Description.ToLower().Contains(keySearch)
+        );
+    }
+
     public async Task<PaginatedResult<Group>> GetManagedGroupsAsync(GetManagedGroupsRequest request)
     {
         var groupMembers = await _groupMemberRepo.FindAsync(gm => gm.UserId == request.UserId &&

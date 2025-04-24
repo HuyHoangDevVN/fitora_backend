@@ -20,6 +20,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<FollowCategory> FollowCategories => Set<FollowCategory>();
     public DbSet<CommentVotes> CommentVotes => Set<CommentVotes>();
+    public DbSet<UserSaved> UserSaveds => Set<UserSaved>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

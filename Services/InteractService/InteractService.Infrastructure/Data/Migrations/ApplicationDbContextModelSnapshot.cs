@@ -394,6 +394,40 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("InteractService.Domain.Models.UserSaved", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("UserSaveds");
+                });
+
             modelBuilder.Entity("InteractService.Domain.Models.UserVoted", b =>
                 {
                     b.Property<Guid>("Id")
@@ -503,6 +537,17 @@ namespace InteractService.Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("OriginalPost");
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.UserSaved", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Post");
                 });

@@ -11,6 +11,7 @@ using UserService.Application.Usecases.Group.Commands.CreateGroup;
 using UserService.Application.Usecases.Group.Commands.DeleteGroup;
 using UserService.Application.Usecases.Group.Commands.UpdateGroup;
 using UserService.Application.Usecases.Group.Queries.GetGroupById;
+using UserService.Application.Usecases.Group.Queries.GetGroups;
 using UserService.Application.Usecases.Group.Queries.GetJoinedGroups;
 using UserService.Application.Usecases.Group.Queries.GetManagedGroups;
 using UserService.Application.Usecases.GroupInvite.Commands.AcceptGroupInvite;
@@ -103,6 +104,16 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
                 group,
                 groupMember
             }));
+    }
+
+    /// <summary>
+    /// Gets groups.
+    /// </summary>
+    [HttpGet("get-list")]
+    public async Task<IActionResult> GetList([FromQuery] GetGroupsRequest request)
+    {
+        var result = await _sender.Send(new GetGroupsQuery(request));
+        return Ok(new ResponseDto(result));
     }
 
     // ==============================

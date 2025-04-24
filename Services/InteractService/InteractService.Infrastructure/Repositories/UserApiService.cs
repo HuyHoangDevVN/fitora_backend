@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using InteractService.Application.DTOs.CallAPI.Friend.Responses;
 using InteractService.Application.Services.IServices;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -62,4 +63,32 @@ public class UserApiService : IUserApiService
             throw;
         }
     }
+    public async Task<FriendResponse> GetFriend(string keySearch, int pageIndex, int pageSize, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogInformation("Calling GetFriend API with KeySearch: {KeySearch}, PageIndex: {PageIndex}, PageSize: {PageSize}", keySearch, pageIndex, pageSize);
+
+            var url = $"api/friendship/get-friends?KeySearch={Uri.EscapeDataString(keySearch)}&PageIndex={pageIndex}&PageSize={pageSize}";
+
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<FriendResponse>(cancellationToken: cancellationToken);
+                _logger.LogInformation("GetFriend API call succeeded.");
+                return result ?? throw new InvalidOperationException("Responses content is null.");
+            }
+
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("GetFriend API failed with status {StatusCode}: {ErrorContent}", response.StatusCode, errorContent);
+            throw new HttpRequestException($"Failed to get friends. Status: {response.StatusCode}, Error: {errorContent}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while calling GetFriend API");
+            throw;
+        }
+    }
+    
 }

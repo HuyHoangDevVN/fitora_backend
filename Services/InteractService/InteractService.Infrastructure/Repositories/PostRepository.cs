@@ -1,7 +1,7 @@
-using System.Linq.Expressions;
 using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using InteractService.Application.DTOs.Category.Response;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.DTOs.Post.Responses;
 using InteractService.Application.Services.IServices;
@@ -17,6 +17,7 @@ public class PostRepository : IPostRepository
 {
     private readonly IRepositoryBase<Post> _postRepo;
     private readonly IRepositoryBase<UserVoted> _userVotedRepo;
+    private readonly IRepositoryBase<UserSaved> _userSavedRepo;
     private readonly IUserApiService _userApiService;
     private readonly DbSet<Post> _dbSetPosts;
     private readonly DbSet<UserVoted> _dbSetUserVoteds;
@@ -27,10 +28,12 @@ public class PostRepository : IPostRepository
     private readonly UserGrpcClient _userClient;
 
     public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
+        IRepositoryBase<UserSaved> userSavedRepo,
         IUserApiService userApiService,
         ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
     {
         _postRepo = postRepo;
+        _userSavedRepo = userSavedRepo;
         _userApiService = userApiService;
         _dbSetPosts = dbContext.Set<Post>();
         _dbSetUserVoteds = dbContext.Set<UserVoted>();
@@ -47,16 +50,6 @@ public class PostRepository : IPostRepository
         post.CreatedAt = DateTime.Now;
         post.CreatedBy = post.UserId;
         await _postRepo.AddAsync(post);
-        // if (post.GroupId.HasValue)
-        // {
-        //     var isApproved = post.IsApproved ?? false;
-        //     var result = await _userApiService.CreateGroupPost(post.GroupId.Value, post.Id, isApproved,
-        //         CancellationToken.None);
-        //     if (!result)
-        //     {
-        //         throw new Exception("Error while create group post");
-        //     }
-        // }
         return await _postRepo.SaveChangesAsync() > 0;
     }
 
@@ -112,6 +105,43 @@ public class PostRepository : IPostRepository
         return await _userVotedRepo.SaveChangesAsync() > 0;
     }
 
+    public async Task<bool> SavePostAsync(SavePostRequest request)
+    {
+        var post = await _postRepo.GetAsync(p => p.Id == request.PostId);
+        if (post == null)
+        {
+            throw new Exception("Post not found");
+        }
+
+        var existingVote =
+            await _userSavedRepo.GetAsync(us => us.UserId == request.UserId && us.PostId == request.PostId);
+
+        if (existingVote != null)
+        {
+            throw new Exception("Post is already saved");
+        }
+
+        await _userSavedRepo.AddAsync(new UserSaved
+        {
+            UserId = request.UserId,
+            PostId = request.PostId,
+        });
+
+        return await _userSavedRepo.SaveChangesAsync() > 0;
+    }
+
+    public async Task<bool> UnSavePostAsync(SavePostRequest request)
+    {
+        var post = await _postRepo.GetAsync(p => p.Id == request.PostId);
+        if (post == null)
+        {
+            throw new Exception("Post not found");
+        }
+
+        await _userSavedRepo.DeleteAsync(us => us.UserId == request.UserId && us.PostId == request.PostId);
+        return await _userSavedRepo.SaveChangesAsync() > 0;
+    }
+
     public async Task<bool> DeleteAsync(Guid id)
     {
         try
@@ -125,23 +155,35 @@ public class PostRepository : IPostRepository
         }
     }
 
-    public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetSavedPosts(GetSavedPostsRequest request)
     {
         var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSetPosts.Where(p => p.UserId == request.Id);
+        var savedPost = await _userSavedRepo.FindAsync(us => us.UserId == request.Id);
+        var savedPostId = savedPost.Select(sp => sp.PostId).ToList();
+        IQueryable<Post> query = _dbSetPosts.Where(p => savedPostId.Contains(p.Id));
 
         // Parse composite cursor nếu có
-        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor ?? string.Empty);
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
 
         if (lastScore.HasValue && lastCreatedAt.HasValue)
         {
-            Expression<Func<Post, bool>> filter = p =>
-                GetPostScore(p, now) < lastScore.Value ||
-                (GetPostScore(p, now) == lastScore.Value && p.CreatedAt < lastCreatedAt.Value);
-            query = query.Where(filter);
+            query = query
+                .Select(p => new
+                {
+                    Post = p,
+                    Score = (_dbSetUserVoteds
+                                 .Where(uv => uv.PostId == p.Id)
+                                 .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                     uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
+                             _dbSetComments
+                                 .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
+                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                })
+                .Where(x => x.Score < lastScore.Value ||
+                            (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
+                .Select(x => x.Post);
         }
 
-        // Tính VotesCount và Score tương tự GetNewfeed
         var postsWithScore = await query
             .Select(p => new
             {
@@ -165,10 +207,9 @@ public class PostRepository : IPostRepository
                 x.Post,
                 x.VotesCount,
                 x.CommentsCount,
-                x.HoursSinceCreation,
                 x.CategoryName,
                 x.IsCategoryFollowed,
-                Score = (x.VotesCount * 2 + x.Post.CommentsCount) / x.HoursSinceCreation
+                Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
             .OrderByDescending(x => x.Score)
             .ThenByDescending(x => x.Post.CreatedAt)
@@ -301,121 +342,543 @@ public class PostRepository : IPostRepository
         );
     }
 
-    public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
-{
-    var now = DateTime.UtcNow;
-    IQueryable<Post> query = _dbSetPosts;
-
-    if (request.GroupId.HasValue)
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
-        query = query.Where(x => x.GroupId == request.GroupId.Value);
-    }
-    if (request.FeedType == FeedType.Category)
-    {
-        query = query.Where(p => p.CategoryId == request.CategoryId.Value);
-    }
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSetPosts.Where(p => p.UserId == request.Id);
 
-    (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
+        // Parse composite cursor nếu có
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
 
-    if (lastScore.HasValue && lastCreatedAt.HasValue)
-    {
-        query = query
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            query = query
+                .Select(p => new
+                {
+                    Post = p,
+                    Score = (_dbSetUserVoteds
+                                 .Where(uv => uv.PostId == p.Id)
+                                 .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                     uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
+                             _dbSetComments
+                                 .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
+                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                })
+                .Where(x => x.Score < lastScore.Value ||
+                            (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
+                .Select(x => x.Post);
+        }
+
+        var postsWithScore = await query
             .Select(p => new
             {
                 Post = p,
-                Score = (_dbSetUserVoteds
-                            .Where(uv => uv.PostId == p.Id)
-                            .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
-                         _dbSetComments
-                            .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
-                        ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                CommentsCount = _dbSetComments
+                    .Count(c => c.PostId == p.Id && !c.IsDeleted),
+                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                CategoryName = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories
+                                         .Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value)
             })
-            .Where(x => x.Score < lastScore.Value ||
-                        (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
-            .Select(x => x.Post);
+            .Select(x => new
+            {
+                x.Post,
+                x.VotesCount,
+                x.CommentsCount,
+                x.CategoryName,
+                x.IsCategoryFollowed,
+                Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        // Xử lý con trỏ (cursor) cho trang tiếp theo
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        // Lấy danh sách PostId
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+
+        // Lấy vote của người dùng cho các bài viết này
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        var totalCount = await query.CountAsync();
+
+        // Lấy thông tin người dùng
+        var userIds = postsWithScore.Select(x => x.Post.UserId.ToString("D")).Distinct().ToList();
+        var userInfos = new Dictionary<string, UserWithInfoDto>();
+
+        // Lấy thông tin người dùng từ Redis
+        foreach (var id in userIds)
+        {
+            var redisKey = $"user_info:{id}";
+            var userData = await _redis.HashGetAllAsync(redisKey);
+            if (userData.Length > 0)
+            {
+                userInfos[id] = new UserWithInfoDto
+                {
+                    Id = Guid.TryParse(id, out var guid) ? guid : Guid.Empty,
+                    Username = userData.FirstOrDefault(x => x.Name == "username").Value!,
+                    Email = userData.FirstOrDefault(x => x.Name == "email").Value!,
+                    IsFriend = (bool?)userData.FirstOrDefault(x => x.Name == "is_friend").Value,
+                    IsFollowing = (bool?)userData.FirstOrDefault(x => x.Name == "is_following").Value,
+                    FirstName = userData.FirstOrDefault(x => x.Name == "first_name").Value,
+                    LastName = userData.FirstOrDefault(x => x.Name == "last_name").Value,
+                    ProfilePictureUrl = userData.FirstOrDefault(x => x.Name == "profile_picture_url").Value,
+                    Address = userData.FirstOrDefault(x => x.Name == "address").Value,
+                    Gender = Enum.TryParse<Gender>(userData.FirstOrDefault(x => x.Name == "gender").Value,
+                        out var gender)
+                        ? gender
+                        : Gender.Unknown,
+                    BirthDate = DateTime.TryParse(userData.FirstOrDefault(x => x.Name == "birth_date").Value,
+                        out var birthDate)
+                        ? birthDate
+                        : default,
+                    PhoneNumber = userData.FirstOrDefault(x => x.Name == "phone_number").Value,
+                };
+            }
+        }
+
+        // Fallback sang gRPC nếu cache miss
+        var missingIds = userIds.Except(userInfos.Keys).ToList();
+        if (missingIds.Any())
+        {
+            var grpcUsers = await _userClient.GetUserInfoBatchAsync(request.Id, missingIds);
+            foreach (var user in grpcUsers)
+            {
+                var key = user.Id.ToString("D");
+                var userDto = new UserWithInfoDto
+                {
+                    Id = user.Id,
+                    IsFriend = user.IsFriend,
+                    IsFollowing = user.IsFollowing,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    ProfilePictureUrl = user.ProfilePictureUrl,
+                    Bio = user.Bio,
+                    Gender = user.Gender,
+                    BirthDate = user.BirthDate,
+                    PhoneNumber = user.PhoneNumber,
+                };
+                userInfos[key] = userDto;
+                // Lưu vào Redis
+                await _redis.HashSetAsync($"user_info:{key}", new[]
+                {
+                    new HashEntry("username", userDto.Username),
+                    new HashEntry("email", userDto.Email),
+                    new HashEntry("is_friend", userDto.IsFriend),
+                    new HashEntry("is_following", userDto.IsFollowing),
+                    new HashEntry("first_name", userDto.FirstName ?? string.Empty),
+                    new HashEntry("last_name", userDto.LastName ?? string.Empty),
+                    new HashEntry("profile_picture_url", userDto.ProfilePictureUrl ?? string.Empty),
+                    new HashEntry("address", userDto.Address ?? string.Empty),
+                    new HashEntry("gender", userDto.Gender.ToString()),
+                    new HashEntry("birth_date", userDto.BirthDate.ToString("yyyy-MM-dd")),
+                    new HashEntry("phone_number", userDto.PhoneNumber ?? string.Empty)
+                });
+            }
+        }
+
+        // Map dữ liệu sang PostResponseDto
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.VotesCount, // Sử dụng VotesCount đã tính động
+            CommentsCount = x.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            CategoryId = x.Post.CategoryId,
+            CategoryName = x.CategoryName,
+            IsCategoryFollowed = x.IsCategoryFollowed,
+            IsDeleted = x.Post.IsDeleted,
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType =
+                userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null // Gán trạng thái vote
+        }).ToList();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
     }
 
-    var postsWithScore = await query
-        .Select(p => new
-        {
-            Post = p,
-            VotesCount = _dbSetUserVoteds
-                .Where(uv => uv.PostId == p.Id)
-                .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
-            CommentsCount = _dbSetComments
-                .Count(c => c.PostId == p.Id && !c.IsDeleted),
-            HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
-            CategoryName = _dbSetCategories
-                .Where(cat => cat.Id == p.CategoryId)
-                .Select(cat => cat.Name)
-                .FirstOrDefault(),
-            IsCategoryFollowed = p.CategoryId.HasValue &&
-                                 _dbSetFollowCategories
-                                     .Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value)
-        })
-        .Select(x => new
-        {
-            x.Post,
-            x.VotesCount,
-            x.CommentsCount,
-            x.CategoryName,
-            x.IsCategoryFollowed,
-            Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
-        })
-        .OrderByDescending(x => x.Score)
-        .ThenByDescending(x => x.Post.CreatedAt)
-        .Take(request.Limit + 1)
-        .ToListAsync();
-
-    string nextCursor = null;
-    if (postsWithScore.Count > request.Limit)
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetExploreFeed(GetExplorePostRequest request)
     {
-        var lastItem = postsWithScore[request.Limit];
-        nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
-        postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSetPosts;
+
+        query = query.Where(p => p.Privacy == PrivacyPost.Public);
+
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
+
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            query = query
+                .Select(p => new
+                {
+                    Post = p,
+                    Score = (_dbSetUserVoteds
+                                 .Where(uv => uv.PostId == p.Id)
+                                 .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                     uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
+                             _dbSetComments
+                                 .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
+                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                })
+                .Where(x => x.Score < lastScore.Value ||
+                            (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
+                .Select(x => x.Post);
+        }
+
+        var postsWithScore = await query
+            .Select(p => new
+            {
+                Post = p,
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                CommentsCount = _dbSetComments
+                    .Count(c => c.PostId == p.Id && !c.IsDeleted),
+                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                CategoryName = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories
+                                         .Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value)
+            })
+            .Select(x => new
+            {
+                x.Post,
+                x.VotesCount,
+                x.CommentsCount,
+                x.CategoryName,
+                x.IsCategoryFollowed,
+                Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        var userIds = postsWithScore
+            .Select(x => x.Post.UserId.ToString("D"))
+            .Distinct()
+            .ToList();
+
+        var userInfos = await GetUserInfos(userIds, request.Id);
+
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.VotesCount,
+            CommentsCount = x.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            CategoryId = x.Post.CategoryId,
+            CategoryName = x.CategoryName,
+            IsCategoryFollowed = x.IsCategoryFollowed,
+            IsDeleted = x.Post.IsDeleted,
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType = userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null
+        }).ToList();
+
+        var totalCount = await query.CountAsync();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
     }
 
-    var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
-    var userVotes = await _dbSetUserVoteds
-        .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
-        .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
-
-    var userIds = postsWithScore
-        .Select(x => x.Post.UserId.ToString("D"))
-        .Distinct()
-        .ToList();
-
-    var userInfos = await GetUserInfos(userIds, request.Id);
-
-    var postDtos = postsWithScore.Select(x => new PostResponseDto
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
     {
-        Id = x.Post.Id,
-        Content = x.Post.Content,
-        CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
-        VotesCount = x.VotesCount,
-        CommentsCount = x.CommentsCount,
-        Score = x.Score,
-        MediaUrl = x.Post.MediaUrl,
-        Privacy = x.Post.Privacy,
-        GroupId = x.Post.GroupId,
-        CategoryId = x.Post.CategoryId,
-        CategoryName = x.CategoryName,
-        IsCategoryFollowed = x.IsCategoryFollowed,
-        IsDeleted = x.Post.IsDeleted,
-        User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
-        UserVoteType = userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null
-    }).ToList();
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSetPosts;
 
-    var totalCount = await query.CountAsync();
+        var friendResponse = await _userApiService.GetFriend(String.Empty, 0, 20, CancellationToken.None);
 
-    return new PaginatedCursorResult<PostResponseDto>(
-        request.Cursor,
-        request.Limit,
-        totalCount,
-        postDtos,
-        nextCursor
-    );
-}
+        var friendIds = friendResponse.Data.Data.Select(f => f.Id).ToList();
+        
+        if (request.GroupId.HasValue)
+        {
+            query = query.Where(x => x.GroupId == request.GroupId.Value);
+        }
+
+        if (request.FeedType == FeedType.Category)
+        {
+            query = query.Where(p => p.CategoryId == request.CategoryId.Value);
+        }
+
+        query = query.Where(p =>
+                p.Privacy == PrivacyPost.Public ||  
+                (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
+                (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
+        );
+
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
+
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            query = query
+                .Select(p => new
+                {
+                    Post = p,
+                    Score = (_dbSetUserVoteds
+                                 .Where(uv => uv.PostId == p.Id)
+                                 .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                     uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
+                             _dbSetComments
+                                 .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
+                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                })
+                .Where(x => x.Score < lastScore.Value ||
+                            (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
+                .Select(x => x.Post);
+        }
+
+        var postsWithScore = await query
+            .Select(p => new
+            {
+                Post = p,
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                CommentsCount = _dbSetComments
+                    .Count(c => c.PostId == p.Id && !c.IsDeleted),
+                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                CategoryName = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories
+                                         .Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value)
+            })
+            .Select(x => new
+            {
+                x.Post,
+                x.VotesCount,
+                x.CommentsCount,
+                x.CategoryName,
+                x.IsCategoryFollowed,
+                Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        var userIds = postsWithScore
+            .Select(x => x.Post.UserId.ToString("D"))
+            .Distinct()
+            .ToList();
+
+        var userInfos = await GetUserInfos(userIds, request.Id);
+
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.VotesCount,
+            CommentsCount = x.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            CategoryId = x.Post.CategoryId,
+            CategoryName = x.CategoryName,
+            IsCategoryFollowed = x.IsCategoryFollowed,
+            IsDeleted = x.Post.IsDeleted,
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType = userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null
+        }).ToList();
+
+        var totalCount = await query.CountAsync();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
+    }
+
+    public async Task<PaginatedCursorResult<PostResponseDto>> GetTrendingFeed(GetTrendingPostRequest request,
+        IEnumerable<CategoryResponseDto> trendingCategories)
+    {
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSetPosts;
+
+        // Lấy danh sách danh mục thịnh hành
+        var trendingCategoryIds = trendingCategories.Select(c => c.Id).ToList();
+
+        // Lọc bài viết thuộc các danh mục thịnh hành
+        query = query.Where(p => p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value));
+
+        (double? lastScore, DateTime? lastCreatedAt) = ParseCursor(request.Cursor);
+
+        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        {
+            query = query
+                .Select(p => new
+                {
+                    Post = p,
+                    Score = (_dbSetUserVoteds
+                                 .Where(uv => uv.PostId == p.Id)
+                                 .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 :
+                                     uv.VoteType == VoteType.DownVote ? -1 : 0) * 2 +
+                             _dbSetComments
+                                 .Count(c => c.PostId == p.Id && !c.IsDeleted)) /
+                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                })
+                .Where(x => x.Score < lastScore.Value ||
+                            (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value))
+                .Select(x => x.Post);
+        }
+
+        var postsWithScore = await query
+            .Select(p => new
+            {
+                Post = p,
+                VotesCount = _dbSetUserVoteds
+                    .Where(uv => uv.PostId == p.Id)
+                    .Sum(uv => uv.VoteType == VoteType.UpVote ? 1 : uv.VoteType == VoteType.DownVote ? -1 : 0),
+                CommentsCount = _dbSetComments
+                    .Count(c => c.PostId == p.Id && !c.IsDeleted),
+                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                CategoryName = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories
+                                         .Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value)
+            })
+            .Select(x => new
+            {
+                x.Post,
+                x.VotesCount,
+                x.CommentsCount,
+                x.CategoryName,
+                x.IsCategoryFollowed,
+                Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
+            })
+            .OrderByDescending(x => x.Score)
+            .ThenByDescending(x => x.Post.CreatedAt)
+            .Take(request.Limit + 1)
+            .ToListAsync();
+
+        string nextCursor = null;
+        if (postsWithScore.Count > request.Limit)
+        {
+            var lastItem = postsWithScore[request.Limit];
+            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}";
+            postsWithScore = postsWithScore.Take(request.Limit).ToList();
+        }
+
+        var postIds = postsWithScore.Select(x => x.Post.Id).ToList();
+        var userVotes = await _dbSetUserVoteds
+            .Where(uv => uv.UserId == request.Id && postIds.Contains(uv.PostId))
+            .ToDictionaryAsync(uv => uv.PostId, uv => uv.VoteType);
+
+        var userIds = postsWithScore
+            .Select(x => x.Post.UserId.ToString("D"))
+            .Distinct()
+            .ToList();
+
+        var userInfos = await GetUserInfos(userIds, request.Id);
+
+        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        {
+            Id = x.Post.Id,
+            Content = x.Post.Content,
+            CreatedAt = (DateTimeOffset)x.Post.CreatedAt,
+            VotesCount = x.VotesCount,
+            CommentsCount = x.CommentsCount,
+            Score = x.Score,
+            MediaUrl = x.Post.MediaUrl,
+            Privacy = x.Post.Privacy,
+            GroupId = x.Post.GroupId,
+            CategoryId = x.Post.CategoryId,
+            CategoryName = x.CategoryName,
+            IsCategoryFollowed = x.IsCategoryFollowed,
+            IsDeleted = x.Post.IsDeleted,
+            User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
+            UserVoteType = userVotes.ContainsKey(x.Post.Id) ? userVotes[x.Post.Id] : (VoteType?)null
+        }).ToList();
+
+        var totalCount = await query.CountAsync();
+
+        return new PaginatedCursorResult<PostResponseDto>(
+            request.Cursor,
+            request.Limit,
+            totalCount,
+            postDtos,
+            nextCursor
+        );
+    }
 
     // Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
     private (double? lastScore, DateTime? lastCreatedAt) ParseCursor(string cursor)

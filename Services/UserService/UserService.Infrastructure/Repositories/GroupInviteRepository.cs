@@ -16,9 +16,11 @@ public class GroupInviteRepository : IGroupInviteRepository
     private readonly IGroupMemberRepository _groupMemberRepo;
     private readonly IMapper _mapper;
 
-    public GroupInviteRepository(IRepositoryBase<GroupInvite> groupInviteRepo, IMapper mapper)
+    public GroupInviteRepository(IRepositoryBase<GroupInvite> groupInviteRepo, IGroupMemberRepository groupMemberRepo,
+        IMapper mapper)
     {
         _groupInviteRepo = groupInviteRepo;
+        _groupMemberRepo = groupMemberRepo;
         _mapper = mapper;
     }
 
@@ -111,7 +113,7 @@ public class GroupInviteRepository : IGroupInviteRepository
             gi => gi.GroupId == request.GroupId
         );
 
-    private static GroupInviteDto MapToGroupInviteDto(GroupInvite gi) => new() 
+    private static GroupInviteDto MapToGroupInviteDto(GroupInvite gi) => new()
     {
         Id = gi.Id,
         GroupId = gi.GroupId,

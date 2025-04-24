@@ -12,5 +12,6 @@ public interface IApplicationDbContext
     DbSet<Category> Categories { get; }
     DbSet<FollowCategory> FollowCategories { get; }
     DbSet<CommentVotes> CommentVotes { get; }
+    DbSet<UserSaved> UserSaveds { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
