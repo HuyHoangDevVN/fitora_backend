@@ -18,4 +18,5 @@ public class Post : Entity<Guid>, ISoftDelete
     public Category? Category { get; set; }
     public bool? IsApproved { get; set; } = false;
     public int CommentsCount { get; set; } = 0;
+    public double? Score { get; set; } = 0;
 }
