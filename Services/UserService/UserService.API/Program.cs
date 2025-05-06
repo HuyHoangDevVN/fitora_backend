@@ -1,8 +1,8 @@
 using System.Text;
-using AuthService.API.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using UserService.API.Middleware;
 using UserService.Application;
 using UserService.Application.Services;
 using UserService.Application.Services.IServices;

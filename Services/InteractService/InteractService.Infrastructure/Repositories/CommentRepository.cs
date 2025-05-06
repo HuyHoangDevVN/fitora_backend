@@ -17,29 +17,59 @@ namespace InteractService.Infrastructure.Repositories;
 public class CommentRepository : ICommentRepository
 {
     private readonly IRepositoryBase<Comment> _commentRepo;
+    private readonly IRepositoryBase<Post> _postRepo;
     private readonly IRepositoryBase<CommentVotes> _commentVotesRepo;
     private readonly DbSet<Comment> _dbSetComments;
     private readonly DbSet<CommentVotes> _dbSetCommentVotes;
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
+    private readonly ApplicationDbContext _dbContext;
 
 
     public CommentRepository(IRepositoryBase<Comment> commentRepo, IRepositoryBase<CommentVotes> commentVotesRepo,
+        IRepositoryBase<Post> postRepo,
         ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
     {
         _commentRepo = commentRepo;
         _commentVotesRepo = commentVotesRepo;
+        _postRepo = postRepo;
         _dbSetComments = dbContext.Set<Comment>();
         _dbSetCommentVotes = dbContext.Set<CommentVotes>();
         _redis = redis.GetDatabase();
         _userClient = userClient;
+        _dbContext = dbContext;
     }
 
     public async Task<bool> CreateAsync(Comment comment)
     {
-        comment.CreatedAt = DateTime.Now;
-        await _commentRepo.AddAsync(comment);
-        return await _commentRepo.SaveChangesAsync() > 0;
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+
+        try
+        {
+            comment.CreatedAt = DateTime.Now;
+            await _commentRepo.AddAsync(comment);
+            var result = await _commentRepo.SaveChangesAsync() > 0;
+            
+            if (!result)
+                throw new Exception("Failed to create comment");
+
+            var post = await _postRepo.GetAsync(p => p.Id == comment.PostId)
+                       ?? throw new Exception("Post not found");
+
+            post.CommentsCount++;
+            await _postRepo.UpdateAsync(p => p.Id == post.Id, post);
+
+            var isUpdate = await _postRepo.SaveChangesAsync() > 0;
+
+            await transaction.CommitAsync();
+
+            return result && isUpdate;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<Comment> GetByIdAsync(Guid id)
@@ -55,54 +85,114 @@ public class CommentRepository : ICommentRepository
 
     public async Task<bool> VoteAsync(VoteCommentRequest request)
     {
-        var comment = await _commentRepo.GetAsync(c => c.Id == request.CommentId);
-        if (comment == null)
-        {
-            throw new Exception("Comment not found");
-        }
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-        var existingVote =
-            await _commentVotesRepo.GetAsync(uv => uv.UserId == request.UserId && uv.CommentId == request.CommentId);
+        try
+        {
+            var comment = await _commentRepo.GetAsync(c => c.Id == request.CommentId)
+                          ?? throw new Exception("Comment not found");
 
-        if (request.VoteType == VoteType.UnVote)
-        {
-            // Nếu là UnVote và có bản ghi vote, xóa bản ghi
-            if (existingVote != null)
+            var existingVote = await _commentVotesRepo
+                .GetAsync(v => v.UserId == request.UserId && v.CommentId == request.CommentId);
+
+            var voteChange = CalculateVoteChange(existingVote?.VoteType, request.VoteType);
+
+            if (request.VoteType == VoteType.UnVote)
             {
-                await _commentVotesRepo.DeleteAsync(uv => uv.Id == existingVote.Id);
-            }
-        }
-        else
-        {
-            if (existingVote != null)
-            {
-                // Cập nhật VoteType
-                existingVote.VoteType = request.VoteType;
-                await _commentVotesRepo.UpdateAsync(uv => uv.Id == existingVote.Id, existingVote);
+                if (existingVote != null)
+                {
+                    await _commentVotesRepo.DeleteAsync(v => v.Id == existingVote.Id);
+                }
             }
             else
             {
-                await _commentVotesRepo.AddAsync(new CommentVotes
+                if (existingVote != null)
                 {
-                    UserId = request.UserId,
-                    CommentId = request.CommentId,
-                    VoteType = request.VoteType
-                });
+                    existingVote.VoteType = request.VoteType;
+                    await _commentVotesRepo.UpdateAsync(v => v.Id == existingVote.Id, existingVote);
+                }
+                else
+                {
+                    var newVote = new CommentVotes
+                    {
+                        UserId = request.UserId,
+                        CommentId = request.CommentId,
+                        VoteType = request.VoteType
+                    };
+                    await _commentVotesRepo.AddAsync(newVote);
+                }
             }
+
+            if (voteChange != 0)
+            {
+                comment.VotesCont += voteChange;
+                await _commentRepo.UpdateAsync(c => c.Id == comment.Id, comment);
+            }
+
+            await _commentVotesRepo.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private int CalculateVoteChange(VoteType? oldVote, VoteType newVote)
+    {
+        if (newVote == VoteType.UnVote)
+        {
+            return oldVote switch
+            {
+                VoteType.UpVote => -1,
+                VoteType.DownVote => 1,
+                _ => 0
+            };
         }
 
-        return await _commentVotesRepo.SaveChangesAsync() > 0;
+        if (oldVote == null)
+        {
+            return newVote == VoteType.UpVote ? 1 :
+                newVote == VoteType.DownVote ? -1 : 0;
+        }
+
+        return (oldVote, newVote) switch
+        {
+            (VoteType.UpVote, VoteType.DownVote) => -2,
+            (VoteType.DownVote, VoteType.UpVote) => 2,
+            _ => 0
+        };
     }
 
     public async Task<bool> DeleteAsync(Guid id)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         try
         {
-            await _commentRepo.DeleteAsync(p => p.Id == id);
-            return await _commentRepo.SaveChangesAsync() > 0;
+            var comment = await _commentRepo.GetAsync(c => c.Id == id)
+                          ?? throw new Exception("Comment not found");
+
+            var post = await _postRepo.GetAsync(p => p.Id == comment.PostId)
+                       ?? throw new Exception("Post not found");
+
+            await _commentRepo.DeleteAsync(c => c.Id == id);
+            
+            var commentDeleted = await _commentRepo.SaveChangesAsync() > 0;
+            
+            if (!commentDeleted)
+                throw new Exception("Failed to delete comment");
+            post.CommentsCount--;
+            await _postRepo.UpdateAsync(p => p.Id == post.Id, post);
+            var postUpdated = await _postRepo.SaveChangesAsync() > 0;
+
+            await transaction.CommitAsync();
+            return postUpdated && commentDeleted;
         }
         catch (Exception e)
         {
+            await transaction.RollbackAsync();
             throw new BadRequestException(e.Message);
         }
     }
@@ -130,9 +220,7 @@ public class CommentRepository : ICommentRepository
             .Select(c => new
             {
                 Comment = c,
-                VotesCount = _dbSetCommentVotes
-                    .Where(cv => cv.CommentId == c.Id)
-                    .Sum(cv => cv.VoteType == VoteType.UpVote ? 1 : cv.VoteType == VoteType.DownVote ? -1 : 0),
+                VotesCount = c.VotesCont,
                 ReplyCount = _dbSetComments
                     .Count(r => r.ParentCommentId == c.Id && !r.IsDeleted),
                 HoursSinceCreation = EF.Functions.DateDiffMinute(c.CreatedAt, now) / 60.0 + 2
@@ -143,7 +231,7 @@ public class CommentRepository : ICommentRepository
                 x.VotesCount,
                 x.ReplyCount,
                 Score = (x.VotesCount * 2 + x.ReplyCount) /
-                        x.HoursSinceCreation 
+                        x.HoursSinceCreation
             })
             .OrderByDescending(x => x.Score)
             .ThenByDescending(x => x.Comment.CreatedAt)
@@ -227,9 +315,7 @@ public class CommentRepository : ICommentRepository
             .Select(c => new
             {
                 Comment = c,
-                VotesCount = _dbSetCommentVotes
-                    .Where(cv => cv.CommentId == c.Id)
-                    .Sum(cv => cv.VoteType == VoteType.UpVote ? 1 : cv.VoteType == VoteType.DownVote ? -1 : 0),
+                VotesCount = c.VotesCont,
                 ReplyCount = _dbSetComments
                     .Count(r => r.ParentCommentId == c.Id && !r.IsDeleted),
                 HoursSinceCreation = EF.Functions.DateDiffMinute(c.CreatedAt, now) / 60.0 + 2
