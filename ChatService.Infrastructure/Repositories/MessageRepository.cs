@@ -1,3 +1,4 @@
+using ChatService.Application.Data.Message.Request;
 using ChatService.Application.Services;
 using MongoDB.Driver;
 
@@ -17,9 +18,14 @@ public class MessageRepository : IMessageRepository
         await _messages.InsertOneAsync(message);
     }
 
-    public async Task<List<Message>> GetByConversationIdAsync(string conversationId)
+    public async Task<List<Message>> GetByConversationIdAsync(GetHistoryChatRequest request)
     {
-        return await _messages.Find(m => m.GroupId == conversationId || m.ReceiverId == conversationId).ToListAsync();
+        int skip = request.PageIndex * request.PageSize;
+        return await _messages
+            .Find(m => m.GroupId == request.ConversationId || m.ReceiverId == request.ConversationId)
+            .Skip(skip)
+            .Limit(request.PageSize)
+            .ToListAsync();
     }
 
     public async Task UpdateAsync(Message message)

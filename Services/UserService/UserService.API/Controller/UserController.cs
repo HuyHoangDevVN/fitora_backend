@@ -2,6 +2,7 @@ using AutoMapper;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Security;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.User.Requests;
 using UserService.Application.DTOs.User.Responses;
@@ -14,6 +15,7 @@ namespace UserService.API.Controller;
 
 [Route("api/user")]
 [ApiController]
+[Authorize]
 public class UserController : Microsoft.AspNetCore.Mvc.Controller
 {
     private readonly ISender _sender;

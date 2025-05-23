@@ -9,6 +9,7 @@ using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.Services.IServices;
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,12 +22,14 @@ public class AuthController : Controller
     private readonly ISender _sender;
     private readonly IMapper _mapper;
     private readonly IAuthRepository _authoRepo;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
-    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService)
+    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService, IAuthorizeExtension authorizeExtension)
     {
         _sender = sender;
         _mapper = mapper;
         _authoRepo = authorizationService;
+        _authorizeExtension = authorizeExtension;
     }
 
     [HttpPost("register")]
@@ -82,7 +85,7 @@ public class AuthController : Controller
         var cookieToken = Request.Cookies["refreshToken"];
         if (cookieToken != null)
         {
-            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto(cookieToken));
+            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto( cookieToken));
             var result = await _sender.Send(command);
             var response = new ResponseDto(result, Message: "Refresh Token Successful");
             return Ok(response);

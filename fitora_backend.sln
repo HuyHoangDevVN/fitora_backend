@@ -4,6 +4,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Services", "Services", "{842F3043-BCA6-4A42-9207-7B47D3B56241}"
+	ProjectSection(SolutionItems) = preProject
+		Services\docker-compose.yml = Services\docker-compose.yml
+	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AuthService", "AuthService", "{9AA4F59B-91AC-415A-8A2C-3939A5C284E6}"
 EndProject

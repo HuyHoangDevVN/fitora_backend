@@ -5,6 +5,7 @@ using AuthService.Application.Messaging;
 using AuthService.Application.Services;
 using AuthService.Domain.Abstractions;
 using BuildingBlocks.Behaviors;
+using BuildingBlocks.Security;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IKeyRepository<Guid>, KeyRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
+        services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         //services.Decorate<IAuthRepository, TokenManagementRepository>();
         services.AddAutoMapper(typeof(ServiceProfile));
         return services;
