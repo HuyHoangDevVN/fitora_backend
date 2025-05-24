@@ -57,11 +57,19 @@ namespace ChatService.Infrastructure.Hubs
                 throw new HubException("User not authenticated.");
             }
 
-            // Lưu tin nhắn vào MongoDB thông qua IChatService
-            await _chatService.SendMessageAsync(userId, conversationId, content, type);
+            // Lưu tin nhắn vào MongoDB thông qua IChatService, trả về message vừa lưu
+            var message = await _chatService.SendMessageAsync(userId, conversationId, content, type);
 
-            // Gửi tin nhắn đến tất cả client trong conversation
-            await Clients.Group(conversationId).SendAsync("ReceiveMessage", userId, conversationId, content, type);
+            // Gửi tin nhắn đến tất cả client trong conversation, bao gồm cả id và createdAt
+            await Clients.Group(conversationId).SendAsync(
+                "ReceiveMessage",
+                message.Id,
+                message.SenderId,
+                conversationId,
+                message.Content,
+                message.Type,
+                message.Timestamp
+            );
         }
     }
 }

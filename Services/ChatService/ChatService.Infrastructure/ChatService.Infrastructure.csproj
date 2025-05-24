@@ -13,7 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\BuildingBlocks\BuildingBlocks\BuildingBlocks.csproj" />
+      <ProjectReference Include="..\..\..\BuildingBlocks\BuildingBlocks\BuildingBlocks.csproj" />
       <ProjectReference Include="..\ChatService.Application\ChatService.Application.csproj" />
       <ProjectReference Include="..\ChatService.Domain\ChatService.Domain.csproj" />
     </ItemGroup>

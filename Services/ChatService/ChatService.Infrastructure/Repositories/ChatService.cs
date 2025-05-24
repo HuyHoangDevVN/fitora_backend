@@ -43,7 +43,7 @@ public class ChatService : IChatService
         return await _conversationRepository.GetPrivateConversationAsync(userId, otherUserId);
     }
 
-    public async Task SendMessageAsync(string senderId, string conversationId, string content, string type)
+    public async Task<Message> SendMessageAsync(string senderId, string conversationId, string content, string type)
     {
         var message = new Message
         {
@@ -61,6 +61,7 @@ public class ChatService : IChatService
         // Gửi tin nhắn qua SignalR đến tất cả client trong conversation
         await _hubContext.Clients.Group(conversationId)
             .SendAsync("ReceiveMessage", senderId, conversationId, content, type);
+        return message;
     }
 
     public async Task<List<Message>> GetChatHistoryAsync(GetHistoryChatRequest request)

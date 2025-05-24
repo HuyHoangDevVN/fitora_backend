@@ -7,7 +7,7 @@ public interface IChatService
     Task<string> CreateConversationAsync(List<string> participantIds, bool isGroup, Group groupInfo = null!);
     Task<List<Conversation>> GetGroupConversationsByUserIdAsync(string userId);
     Task<Conversation> GetPrivateConversationAsync(string userId, string otherUserId);
-    Task SendMessageAsync(string senderId, string conversationId, string content, string type);
+    Task<Message> SendMessageAsync(string senderId, string conversationId, string content, string type);
     Task<List<Message>> GetChatHistoryAsync(GetHistoryChatRequest request);
     Task<bool> DeleteMessageAsync(string messageId);
     Task<bool> RecallMessageAsync(GetHistoryChatRequest request);
