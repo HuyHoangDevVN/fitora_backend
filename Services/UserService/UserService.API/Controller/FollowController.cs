@@ -18,7 +18,7 @@ using UserService.Application.Usecases.Friendship.Queries.GetFriends;
 
 namespace UserService.API.Controller;
 
-[Route("api/follow")]
+[Route("api/user/follow")]
 [ApiController]
 [Authorize]
 public class FollowController : Microsoft.AspNetCore.Mvc.Controller

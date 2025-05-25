@@ -16,7 +16,7 @@ using UserService.Application.Usecases.Friendship.Queries.GetFriends;
 
 namespace UserService.API.Controller;
 
-[Route("api/friendship")]
+[Route("api/user/friendship")]
 [ApiController]
 [Authorize]
 public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller

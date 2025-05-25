@@ -13,7 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
-[Route("api/category")]
+[Route("api/interact/category")]
 [ApiController]
 public class CategoryController : Controller
 {

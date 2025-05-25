@@ -18,7 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
-[Route("api/post")]
+[Route("api/interact/post")]
 [ApiController]
 public class PostController : Controller
 {

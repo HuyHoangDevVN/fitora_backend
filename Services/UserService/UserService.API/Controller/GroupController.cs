@@ -30,7 +30,7 @@ using UserService.Application.Usecases.GroupPost.Commands.UpdateGroupPost;
 
 namespace UserService.API.Controller;
 
-[Route("api/group")]
+[Route("api/user/group")]
 [ApiController]
 [Authorize]
 public class GroupController : Microsoft.AspNetCore.Mvc.Controller

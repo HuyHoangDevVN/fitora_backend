@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AuthService.API.Controllers;
 
 [ApiController]
-[Route("api/user")]
+[Route("api/auth/user")]
 public class UserController : Controller
 {
     private readonly IMapper _mapper;

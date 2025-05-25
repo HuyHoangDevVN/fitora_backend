@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Route("api/role")]
+[Route("api/auth/role")]
 [ApiController]
 public class RoleController : Controller
 {
