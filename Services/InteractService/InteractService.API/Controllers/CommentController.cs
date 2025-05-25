@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
-[Route("api/comment")]
+[Route("api/interact/comment")]
 [ApiController]
 public class CommentController : Controller
 {

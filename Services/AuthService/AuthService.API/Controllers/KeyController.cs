@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Route("api/key")]
+[Route("api/auth/key")]
 [ApiController]
 public class KeyController : Controller
 {

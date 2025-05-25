@@ -13,7 +13,7 @@ using UserService.Application.Usecases.Users.Queries.GetUsers;
 
 namespace UserService.API.Controller;
 
-[Route("api/user")]
+[Route("api/user/user")]
 [ApiController]
 [Authorize]
 public class UserController : Microsoft.AspNetCore.Mvc.Controller
