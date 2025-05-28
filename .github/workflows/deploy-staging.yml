@@ -58,7 +58,7 @@ jobs:
           dotnet restore
           dotnet build --configuration Release --no-restore
           dotnet publish --configuration Release --output ./publish/apigateway --no-restore --no-build
-        working-directory: ./ApiGateways
+        working-directory: ./ApiGateways/ApiGateway
 
       - name: Deploy to Windows Server
         uses: appleboy/ssh-action@master
