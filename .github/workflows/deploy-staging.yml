@@ -10,6 +10,14 @@ jobs:
     runs-on: [self-hosted, windows]
 
     steps:
+      - name: Debug runner
+        run: |
+          echo "Self-hosted runner is alive!"
+          whoami
+          dir
+          hostname
+        shell: powershell
+
       - name: Checkout code
         uses: actions/checkout@v4
 
