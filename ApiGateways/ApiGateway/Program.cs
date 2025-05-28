@@ -53,11 +53,9 @@ app.UseHttpsRedirection();
 // Dùng await cho UseOcelot vì nó trả về Task
 await app.UseOcelot();
 
-// Thêm Swagger UI
-if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 app.Run();
