@@ -25,43 +25,52 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
+      - name: Verify Project Files
+        run: |
+          dir Services/AuthService/AuthService.API/*.csproj || echo "AuthService.API.csproj not found"
+          dir Services/ChatService/ChatService.API/*.csproj || echo "ChatService.API.csproj not found"
+          dir Services/InteractService/InteractService.API/*.csproj || echo "InteractService.API.csproj not found"
+          dir Services/UserService/UserService.API/*.csproj || echo "UserService.API.csproj not found"
+          dir ApiGateways/ApiGateway/*.csproj || echo "ApiGateway.csproj not found"
+        shell: powershell
+
       - name: Build and Publish AuthService
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/authservice --no-restore --no-build
-        working-directory: ./Services/AuthService/AuthService.API
+          dotnet restore Services/AuthService/AuthService.API/AuthService.API.csproj
+          dotnet build Services/AuthService/AuthService.API/AuthService.API.csproj --configuration Release --no-restore
+          dotnet publish Services/AuthService/AuthService.API/AuthService.API.csproj --configuration Release --output ./publish/authservice --no-restore --no-build
+        shell: powershell
 
       - name: Build and Publish ChatService
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/chatservice --no-restore --no-build
-        working-directory: ./Services/ChatService/ChatService.API
+          dotnet restore Services/ChatService/ChatService.API/ChatService.API.csproj
+          dotnet build Services/ChatService/ChatService.API/ChatService.API.csproj --configuration Release --no-restore
+          dotnet publish Services/ChatService/ChatService.API/ChatService.API.csproj --configuration Release --output ./publish/chatservice --no-restore --no-build
+        shell: powershell
 
       - name: Build and Publish InteractService
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/interactservice --no-restore --no-build
-        working-directory: ./Services/InteractService/InteractService.API
+          dotnet restore Services/InteractService/InteractService.API/InteractService.API.csproj
+          dotnet build Services/InteractService/InteractService.API/InteractService.API.csproj --configuration Release --no-restore
+          dotnet publish Services/InteractService/InteractService.API/InteractService.API.csproj --configuration Release --output ./publish/interactservice --no-restore --no-build
+        shell: powershell
 
       - name: Build and Publish UserService
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/userservice --no-restore --no-build
-        working-directory: ./Services/UserService/UserService.API
+          dotnet restore Services/UserService/UserService.API/UserService.API.csproj
+          dotnet build Services/UserService/UserService.API/UserService.API.csproj --configuration Release --no-restore
+          dotnet publish Services/UserService/UserService.API/UserService.API.csproj --configuration Release --output ./publish/userservice --no-restore --no-build
+        shell: powershell
 
       - name: Build and Publish ApiGateway
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/apigateway --no-restore --no-build
-        working-directory: ./ApiGateways/ApiGateway
+          dotnet restore ApiGateways/ApiGateway/ApiGateway.csproj
+          dotnet build ApiGateways/ApiGateway/ApiGateway.csproj --configuration Release --no-restore
+          dotnet publish ApiGateways/ApiGateway/ApiGateway.csproj --configuration Release --output ./publish/apigateway --no-restore --no-build
+        shell: powershell
 
       - name: Deploy to Windows Server
-        uses: appleboy/ssh-action@master
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
@@ -80,3 +89,4 @@ jobs:
             Copy-Item -Path ./publish/userservice/* -Destination C:\inetpub\wwwroot\userservice -Recurse
             Copy-Item -Path ./publish/apigateway/* -Destination C:\inetpub\wwwroot\apigateway -Recurse
             net start w3svc
+          shell: powershell
