@@ -7,7 +7,8 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: windows-latest
+    runs-on: self-hosted
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,7 +30,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/authservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\authservice --no-restore --no-build
         working-directory: ./Services/AuthService/AuthService.API
         shell: powershell
 
@@ -37,7 +38,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/chatservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\chatservice --no-restore --no-build
         working-directory: ./Services/ChatService/ChatService.API
         shell: powershell
 
@@ -45,7 +46,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/interactservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\interactservice --no-restore --no-build
         working-directory: ./Services/InteractService/InteractService.API
         shell: powershell
 
@@ -53,7 +54,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/userservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\userservice --no-restore --no-build
         working-directory: ./Services/UserService/UserService.API
         shell: powershell
 
@@ -61,37 +62,22 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output ./publish/apigateway --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\apigateway --no-restore --no-build
         working-directory: ./ApiGateways/ApiGateway
         shell: powershell
 
-      - name: Deploy to Windows Server
+      - name: Deploy to IIS
         run: |
           $ErrorActionPreference = "Stop"
-          $privateKey = "${{ secrets.SSH_PRIVATE_KEY }}"
-          $privateKeyPath = "C:\Users\Administrator\.ssh\id_rsa"
-          $sshDir = Split-Path $privateKeyPath
+          $services = @("authservice", "chatservice", "interactservice", "userservice", "apigateway")
 
-          if (!(Test-Path $sshDir)) {
-            New-Item -ItemType Directory -Path $sshDir -Force | Out-Null
+          net stop was
+
+          foreach ($service in $services) {
+            $target = "C:\inetpub\wwwroot\$service"
+            Remove-Item "$target\*" -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item "C:\publish\$service\*" -Destination $target -Recurse
           }
 
-          Set-Content -Path $privateKeyPath -Value $privateKey
-          icacls $privateKeyPath /inheritance:r /grant:r "$env:USERNAME:F"
-          $services = @("authservice", "chatservice", "interactservice", "userservice", "apigateway")
-          $script = @'
-            param([string[]]$services)
-            net stop was
-            foreach ($service in $services) {
-              $targetPath = "C:\inetpub\wwwroot\$service"
-              Remove-Item -Path "$targetPath\*" -Recurse -Force -ErrorAction SilentlyContinue
-              Copy-Item -Path ".\publish\$service\*" -Destination $targetPath -Recurse
-            }
-            net start w3svc
-          '@
-          $scriptBlock = "$script; Invoke-Command -ScriptBlock { param(\$services) . { $script } } -ArgumentList @($services)"
-
-          ssh -i $privateKeyPath -o StrictHostKeyChecking=no -p 7000 `
-            ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} `
-            "powershell -NoProfile -Command `"& { $scriptBlock }`""
-        shell: pwsh
+          net start w3svc
+        shell: powershell
