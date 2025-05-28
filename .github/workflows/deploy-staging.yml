@@ -69,7 +69,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $privateKey = "${{ secrets.SSH_PRIVATE_KEY }}"
-          $privateKeyPath = "$env:USERPROFILE\.ssh\id_rsa"
+          $privateKeyPath = "${{ secrets.SERVER_USERNAME }}\.ssh\id_rsa"
           Set-Content -Path $privateKeyPath -Value $privateKey
           chmod 600 $privateKeyPath
           $script = @'
