@@ -15,7 +15,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: "8.0.x"
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -66,13 +66,13 @@ jobs:
         shell: powershell
 
       - name: Deploy to Windows Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
-          script: |
+        run: |
+          $ErrorActionPreference = "Stop"
+          $privateKey = "${{ secrets.SSH_PRIVATE_KEY }}"
+          $privateKeyPath = "$env:USERPROFILE\.ssh\id_rsa"
+          Set-Content -Path $privateKeyPath -Value $privateKey
+          chmod 600 $privateKeyPath
+          $script = @'
             net stop was
             Remove-Item -Path C:\inetpub\wwwroot\authservice\* -Recurse -Force -ErrorAction SilentlyContinue
             Remove-Item -Path C:\inetpub\wwwroot\chatservice\* -Recurse -Force -ErrorAction SilentlyContinue
@@ -85,4 +85,6 @@ jobs:
             Copy-Item -Path ./publish/userservice/* -Destination C:\inetpub\wwwroot\userservice -Recurse
             Copy-Item -Path ./publish/apigateway/* -Destination C:\inetpub\wwwroot\apigateway -Recurse
             net start w3svc
-          shell: powershell
+          '@
+          ssh -i $privateKeyPath -o StrictHostKeyChecking=no -p 22 ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "powershell -Command `$script"
+        shell: pwsh
