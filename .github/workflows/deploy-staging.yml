@@ -91,12 +91,10 @@
 #         shell: powershell
 
 name: Simple Runner Test
-
 on:
   push:
     branches:
       - staging
-
 jobs:
   test-runner:
     runs-on: [self-hosted, windows]
@@ -104,11 +102,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4 # Thêm bước checkout mã nguồn
-
       - name: Check runner identity
         run: whoami
         shell: powershell
-
       - name: List current directory
         run: dir
         shell: powershell
