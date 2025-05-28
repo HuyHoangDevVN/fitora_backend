@@ -6,24 +6,42 @@ var builder = WebApplication.CreateBuilder(args);
 // Load cấu hình Ocelot
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
-// Đăng ký Ocelot **trước khi gọi builder.Build()**
 builder.Services.AddOcelot(builder.Configuration);
 
-// CORS hoặc các dịch vụ khác cũng đăng ký trước builder.Build()
+// Configure CORS: Cho phép gửi cookies từ frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://192.168.161.84:5173", "https://fitora.aiotlab.edu.vn")
-              .AllowCredentials()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "http://192.168.161.84:5173",
+            "https://fitora.aiotlab.edu.vn"
+        )
+        .AllowCredentials()
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
-
 var app = builder.Build(); // Build sau khi đăng ký xong
 
 app.UseCors("AllowSpecificOrigin");
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == HttpMethods.Options)
+    {
+        context.Response.StatusCode = 204;
+        context.Response.Headers.Add("Access-Control-Allow-Origin", context.Request.Headers["Origin"]);
+        context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+        context.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
+        await context.Response.CompleteAsync();
+        return;
+    }
+
+    await next();
+});
 
 app.UseHttpsRedirection();
 
