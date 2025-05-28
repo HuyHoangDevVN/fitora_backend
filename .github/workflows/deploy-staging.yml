@@ -100,8 +100,11 @@ on:
 jobs:
   test-runner:
     runs-on: [self-hosted, windows]
-
+    timeout-minutes: 10 # Thêm timeout để tránh hủy sớm
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Thêm bước checkout mã nguồn
+
       - name: Check runner identity
         run: whoami
         shell: powershell
