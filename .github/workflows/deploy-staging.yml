@@ -70,21 +70,28 @@ jobs:
           $ErrorActionPreference = "Stop"
           $privateKey = "${{ secrets.SSH_PRIVATE_KEY }}"
           $privateKeyPath = "C:\Users\Administrator\.ssh\id_rsa"
+          $sshDir = Split-Path $privateKeyPath
+
+          if (!(Test-Path $sshDir)) {
+            New-Item -ItemType Directory -Path $sshDir -Force | Out-Null
+          }
+
           Set-Content -Path $privateKeyPath -Value $privateKey
-          chmod 600 $privateKeyPath
+          icacls $privateKeyPath /inheritance:r /grant:r "$env:USERNAME:F"
+          $services = @("authservice", "chatservice", "interactservice", "userservice", "apigateway")
           $script = @'
+            param([string[]]$services)
             net stop was
-            Remove-Item -Path C:\inetpub\wwwroot\authservice\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path C:\inetpub\wwwroot\chatservice\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path C:\inetpub\wwwroot\interactservice\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path C:\inetpub\wwwroot\userservice\* -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path C:\inetpub\wwwroot\apigateway\* -Recurse -Force -ErrorAction SilentlyContinue
-            Copy-Item -Path ./publish/authservice/* -Destination C:\inetpub\wwwroot\authservice -Recurse
-            Copy-Item -Path ./publish/chatservice/* -Destination C:\inetpub\wwwroot\chatservice -Recurse
-            Copy-Item -Path ./publish/interactservice/* -Destination C:\inetpub\wwwroot\interactservice -Recurse
-            Copy-Item -Path ./publish/userservice/* -Destination C:\inetpub\wwwroot\userservice -Recurse
-            Copy-Item -Path ./publish/apigateway/* -Destination C:\inetpub\wwwroot\apigateway -Recurse
+            foreach ($service in $services) {
+              $targetPath = "C:\inetpub\wwwroot\$service"
+              Remove-Item -Path "$targetPath\*" -Recurse -Force -ErrorAction SilentlyContinue
+              Copy-Item -Path ".\publish\$service\*" -Destination $targetPath -Recurse
+            }
             net start w3svc
           '@
-          ssh -i $privateKeyPath -o StrictHostKeyChecking=no -p 22 ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} "powershell -Command `$script"
+          $scriptBlock = "$script; Invoke-Command -ScriptBlock { param(\$services) . { $script } } -ArgumentList @($services)"
+
+          ssh -i $privateKeyPath -o StrictHostKeyChecking=no -p 22 `
+            ${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }} `
+            "powershell -NoProfile -Command `"& { $scriptBlock }`""
         shell: pwsh
