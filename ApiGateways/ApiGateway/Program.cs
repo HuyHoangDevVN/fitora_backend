@@ -23,6 +23,11 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod();
     });
 });
+
+// Thêm Swagger cho kiểm tra API
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 var app = builder.Build(); // Build sau khi đăng ký xong
 
 app.UseCors("AllowSpecificOrigin");
@@ -32,10 +37,10 @@ app.Use(async (context, next) =>
     if (context.Request.Method == HttpMethods.Options)
     {
         context.Response.StatusCode = 204;
-        context.Response.Headers.Add("Access-Control-Allow-Origin", context.Request.Headers["Origin"]);
-        context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        context.Response.Headers.Add("Access-Control-Allow-Credentials", "true");
+        context.Response.Headers["Access-Control-Allow-Origin"] = context.Request.Headers["Origin"];
+        context.Response.Headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization";
+        context.Response.Headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS";
+        context.Response.Headers["Access-Control-Allow-Credentials"] = "true";
         await context.Response.CompleteAsync();
         return;
     }
@@ -47,5 +52,12 @@ app.UseHttpsRedirection();
 
 // Dùng await cho UseOcelot vì nó trả về Task
 await app.UseOcelot();
+
+// Thêm Swagger UI
+if (app.Environment.IsDevelopment() || app.Environment.IsStaging())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.Run();
