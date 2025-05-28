@@ -6,7 +6,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5001
+          "Port": 5002
         }
       ],
       "UpstreamPathTemplate": "/auth/{everything}",
@@ -18,7 +18,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5003
+          "Port": 5004
         }
       ],
       "UpstreamPathTemplate": "/user/{everything}",
@@ -30,7 +30,7 @@
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
-          "Port": 5005
+          "Port": 5006
         }
       ],
       "UpstreamPathTemplate": "/interact/{everything}",

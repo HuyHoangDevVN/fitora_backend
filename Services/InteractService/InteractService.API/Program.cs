@@ -31,7 +31,7 @@ builder.Services.AddSingleton<UserGrpcClient>(sp =>
     {
         HttpHandler = handler
     });
-    
+
     var grpcClient = new UserService.Infrastructure.Grpc.UserService.UserServiceClient(channel);
     return new UserGrpcClient(grpcClient);
 });
@@ -118,11 +118,8 @@ builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
