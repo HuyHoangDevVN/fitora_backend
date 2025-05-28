@@ -17,10 +17,10 @@ builder.Services.AddSwaggerGen();
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5003, listenOptions =>
+    options.ListenLocalhost(5004, listenOptions =>
     {
         listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("./certificate.pfx", "123456@Aa");
+        listenOptions.UseHttps("C:/certs/localhost.pfx", "123456@Aa");
     });
 });
 

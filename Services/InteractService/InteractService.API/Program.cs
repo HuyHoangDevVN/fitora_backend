@@ -14,10 +14,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5005, listenOptions =>
+    options.ListenLocalhost(5006, listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("./certificate.pfx", "123456@Aa");
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+        listenOptions.UseHttps("C:/certs/localhost.pfx", "123456@Aa");
     });
 });
 
