@@ -27,7 +27,7 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-// Configure JWT Bearer Authentication
+
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
