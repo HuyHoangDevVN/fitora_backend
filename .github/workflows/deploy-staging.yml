@@ -97,7 +97,7 @@ on:
       - staging
 jobs:
   test-runner:
-    runs-on: self-hosted
+    runs-on: [self-hosted, Windows]
     timeout-minutes: 10 # Thêm timeout để tránh hủy sớm
     steps:
       - name: Checkout code
