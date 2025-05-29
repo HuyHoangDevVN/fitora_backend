@@ -39,7 +39,7 @@ public static class DependencyInjection
         // Call api
         services.AddHttpClient("UserService", client =>
         {
-            client.BaseAddress = new Uri("https://localhost:5003/");
+            client.BaseAddress = new Uri("https://localhost:5004/");
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         }).AddHttpMessageHandler<BearerTokenHandler>();
 
