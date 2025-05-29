@@ -21,6 +21,7 @@ public interface IRepositoryBase<TEntity> where TEntity : class
         CancellationToken cancellationToken = default!);
 
     Task DeleteAsync(Expression<Func<TEntity, bool>> func, CancellationToken cancellationToken = default!);
+    Task DeleteRangeAsync(Expression<Func<TEntity, bool>> func, CancellationToken cancellationToken = default!);
     Task AddRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default!);
     Task UpdateRangeAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken = default!);
 
@@ -55,9 +56,8 @@ public interface IRepositoryBase<TEntity> where TEntity : class
         CancellationToken cancellationToken = default);
 
 
-    Task<TEntity> GetByFieldWithIncludesAsync(
-        string fieldName,
-        object value,
+    Task<TEntity> GetWithIncludesAsync(
+        Expression<Func<TEntity, bool>> expression, 
         List<Expression<Func<TEntity, object>>>? includes = null,
         CancellationToken cancellationToken = default);
 

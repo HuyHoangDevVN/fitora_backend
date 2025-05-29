@@ -1,0 +1,15 @@
+global using BuildingBlocks.CQRS;
+// global using ChatService.Application.DTOs.User.Requests;
+// global using ChatService.Application.DTOs.User.Responses;
+global using ChatService.Application.Services;
+// global using ChatService.Application.Helpers;
+// global using ChatService.Application.Extensions;
+global using ChatService.Application.Data;
+global using ChatService.Domain.Models;
+global using ChatService.Application.Mapper;
+global using AutoMapper;
+global using BuildingBlocks.Exceptions;
+global using BuildingBlocks.Pagination;
+global using Microsoft.AspNetCore.Identity;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging;

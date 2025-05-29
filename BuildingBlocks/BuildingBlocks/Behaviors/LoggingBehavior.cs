@@ -12,7 +12,7 @@ public class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TReque
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         logger.LogInformation(
-            "[START] handle Request={Request} - Response={Response} - RequestData={RequestData}",
+            "[START] handle Request={Request} - Responses={Responses} - RequestData={RequestData}",
             typeof(TRequest).Name, typeof(TResponse).Name, request
         );
 
@@ -31,7 +31,7 @@ public class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TReque
             );
         }
         logger.LogInformation(
-            "[END] Handled {Request} with {Response}",
+            "[END] Handled {Request} with {Responses}",
             typeof(TRequest).Name, typeof(TResponse).Name
         );
 

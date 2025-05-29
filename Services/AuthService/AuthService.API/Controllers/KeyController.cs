@@ -1,16 +1,14 @@
-using AuthService.API.Endpoints.Keys;
-using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.Auths.Queries.GetKeys;
 using AuthService.Application.DTOs.Key.Responses;
 using AutoMapper;
-using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Route("api/key")]
+[Route("api/auth/key")]
 [ApiController]
 public class KeyController : Controller
 {
@@ -30,7 +28,4 @@ public class KeyController : Controller
         var response = new GetKeysResponse(MetaData: result.PaginatedResult, Message: "Get Keys Successful");
         return Ok(response);
     }
-
-    
-    
 }

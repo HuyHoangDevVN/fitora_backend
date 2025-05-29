@@ -267,6 +267,10 @@
               "target": "Package",
               "version": "[13.0.3, )"
             },
+            "Polly": {
+              "target": "Package",
+              "version": "[8.5.2, )"
+            },
             "RabbitMQ.Client": {
               "target": "Package",
               "version": "[6.2.2, )"
@@ -414,6 +418,19 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Google.Protobuf": {
+              "target": "Package",
+              "version": "[3.27.1, )"
+            },
+            "Grpc.AspNetCore": {
+              "target": "Package",
+              "version": "[2.67.0, )"
+            },
+            "Grpc.Tools": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[2.67.0, )"
+            },
             "Microsoft.AspNetCore.Identity.EntityFrameworkCore": {
               "target": "Package",
               "version": "[8.0.8, )"

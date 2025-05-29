@@ -1,4 +1,4 @@
-namespace AuthService.API.Middleware;
+namespace UserService.API.Middleware;
 
 public class HybridAuthMiddleware
 {

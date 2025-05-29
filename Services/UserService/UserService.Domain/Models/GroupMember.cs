@@ -10,4 +10,5 @@ public class GroupMember : Entity<Guid>
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
     public GroupRole Role { get; set; } = GroupRole.Member;
+    public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
 }

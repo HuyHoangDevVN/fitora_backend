@@ -13,6 +13,12 @@ public interface IApplicationDbContext
     DbSet<Group> Groups { get; }
     DbSet<GroupInvite> GroupInvites { get; }
     DbSet<GroupMember> GroupMembers { get; }
+    DbSet<GroupPost> GroupPosts { get; }
+    DbSet<GroupEvent> GroupEvents { get; }
+    DbSet<GroupJoinRequest> GroupJoinRequests { get; }
+    DbSet<GroupLog> GroupLogs { get; }
+    DbSet<GroupNotification> GroupNotifications { get; }
+    DbSet<EventRsvp> EventRsvps { get; }
     
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace InteractService.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/interact/[controller]")]
     public class UploadController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;

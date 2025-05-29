@@ -23,7 +23,6 @@ public class KeyRepository(
     {
         try
         {
-
             var token = jwtTokenGenerator.GeneratorRefreshToken(dto.UserId);
             var keyModel = Key.Create(
                 token: token,
@@ -32,11 +31,12 @@ public class KeyRepository(
                 isUsed: false,
                 isRevoked: false);
             context.Keys.Add(keyModel);
-            bool isCreated =  await context.SaveChangesAsync(cancellationToken) > 0;
+            bool isCreated = await context.SaveChangesAsync(cancellationToken) > 0;
             if (!isCreated)
             {
                 throw new BadRequestException("Create key is failure");
             }
+
             return keyModel.Id.Value;
         }
         catch (Exception exception)
@@ -53,19 +53,18 @@ public class KeyRepository(
             {
                 throw new BadRequestException("User is required");
             }
-            var keyByUsers = await context.Keys
-                .AsTracking()
-                .Where(c => c.UserId == userId)
-                .ToListAsync(cancellationToken: cancellationToken);
 
-            if (keyByUsers.Count > 0)
+            var keyByUsers = await context.Keys
+                .Where(k => k.UserId == userId) 
+                .ToListAsync(cancellationToken);
+
+            if (keyByUsers.Any())
             {
-                IEnumerable<KeyDto> keyDtos = keyByUsers
-                    .Select(k => new KeyDto(k.UserId, k.Token, k.Expires, k.IsUsed, k.IsRevoked)).ToList();
-                return keyDtos;
+                return keyByUsers.Select(
+                    k => new KeyDto(k.UserId.ToString(), k.Token, k.Expires, k.IsUsed, k.IsRevoked));
             }
 
-            return null;
+            return Enumerable.Empty<KeyDto>();
         }
         catch (Exception e)
         {
@@ -73,15 +72,17 @@ public class KeyRepository(
         }
     }
 
-    public async Task<RefreshTokenByUserResponseDto> RefreshTokenByUser(RefreshTokenByUserRequestDto dto, CancellationToken cancellationToken = default)
+    public async Task<RefreshTokenByUserResponseDto> RefreshTokenByUser(RefreshTokenByUserRequestDto dto,
+        CancellationToken cancellationToken = default)
     {
         try
         {
             string userId = "";
-            if(contextAccessor.HttpContext!.Request.Headers.TryGetValue("x-client-id", out var clientId)){
+            if (contextAccessor.HttpContext!.Request.Headers.TryGetValue("x-client-id", out var clientId))
+            {
                 userId = Convert.ToString(clientId);
             }
-            
+
             if (string.IsNullOrEmpty(userId))
             {
                 throw new BadRequestException("Invalid token");
@@ -94,7 +95,8 @@ public class KeyRepository(
             }
 
             var roles = await userManager.GetRolesAsync(userFound);
-            var token = await context.Keys.AsTracking().FirstOrDefaultAsync(t => t.Token == dto.Token && t.UserId == userId, cancellationToken);
+            var token = await context.Keys.AsTracking()
+                .FirstOrDefaultAsync(t => t.Token == dto.Token && t.UserId == userId, cancellationToken);
             if (token is null)
             {
                 throw new BadRequestException("Token is null");
@@ -131,7 +133,8 @@ public class KeyRepository(
         }
     }
 
-    public async Task<PaginatedResult<KeyDto>> GetKeysAsync(PaginationRequest paginationRequest, CancellationToken cancellationToken = default)
+    public async Task<PaginatedResult<KeyDto>> GetKeysAsync(PaginationRequest paginationRequest,
+        CancellationToken cancellationToken = default)
     {
         try
         {
@@ -140,7 +143,7 @@ public class KeyRepository(
             long keyCount = 0;
 
             var cacheData = await cache.GetStringAsync("keys-list", cancellationToken);
-           
+
             // if (!string.IsNullOrEmpty(cacheData))
             // {
             //     
@@ -151,7 +154,7 @@ public class KeyRepository(
 
             var keys = await context.Keys.AsNoTracking().Skip(pageIndex * pageSize).Take(pageSize)
                 .ToListAsync(cancellationToken);
-            
+
             var keysDto = KeyExtensions.KeyToDto(keys);
             PaginatedResult<KeyDto> result = new PaginatedResult<KeyDto>(pageIndex, pageSize, keyCount, keysDto);
             return result;

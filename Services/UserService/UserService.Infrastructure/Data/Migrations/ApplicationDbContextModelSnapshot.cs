@@ -34,8 +34,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -52,6 +52,42 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.ToTable("Blocks");
                 });
 
+            modelBuilder.Entity("UserService.Domain.Models.EventRsvp", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("EventId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("EventRsvps");
+                });
+
             modelBuilder.Entity("UserService.Domain.Models.Follow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -61,8 +97,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("FollowedId")
                         .HasColumnType("char(36)");
@@ -97,8 +133,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -133,8 +169,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -163,17 +199,19 @@ namespace UserService.Infrastructure.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
 
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasColumnType("longtext");
+
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("GroupName")
                         .IsRequired()
                         .HasColumnType("longtext");
 
@@ -183,9 +221,64 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Privacy")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("RequirePostApproval")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Groups");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("EventDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Location")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("GroupEvents");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.GroupInvite", b =>
@@ -197,7 +290,106 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("ReceiverUserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("SenderUserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("ReceiverUserId");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.ToTable("GroupInvites");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupJoinRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReviewComment")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("ReviewedBy");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("GroupJoinRequests");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<Guid>("GroupId")
@@ -209,24 +401,19 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<Guid>("ReceiverUserID")
+                    b.Property<Guid>("PerformedBy")
                         .HasColumnType("char(36)");
 
-                    b.Property<Guid>("SenderUserID")
+                    b.Property<Guid>("PerformedByUserId")
                         .HasColumnType("char(36)");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
 
-                    b.HasIndex("ReceiverUserID");
+                    b.HasIndex("PerformedByUserId");
 
-                    b.HasIndex("SenderUserID");
-
-                    b.ToTable("GroupInvites");
+                    b.ToTable("GroupLogs");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.GroupMember", b =>
@@ -238,11 +425,14 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("GroupId")
                         .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("JoinedAt")
+                        .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("LastModified")
                         .HasColumnType("datetime(6)");
@@ -265,6 +455,88 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.ToTable("GroupMembers");
                 });
 
+            modelBuilder.Entity("UserService.Domain.Models.GroupNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("ReceiverUserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId");
+
+                    b.HasIndex("ReceiverUserId");
+
+                    b.ToTable("GroupNotifications");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupPost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("GroupPosts");
+                });
+
             modelBuilder.Entity("UserService.Domain.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -274,8 +546,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -314,8 +586,8 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("longtext");
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("FirstName")
                         .HasColumnType("longtext");
@@ -371,6 +643,25 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Navigation("BlockerUser");
                 });
 
+            modelBuilder.Entity("UserService.Domain.Models.EventRsvp", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.GroupEvent", "Event")
+                        .WithMany()
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("UserService.Domain.Models.Follow", b =>
                 {
                     b.HasOne("UserService.Domain.Models.User", "Followed")
@@ -424,6 +715,17 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Navigation("User2");
                 });
 
+            modelBuilder.Entity("UserService.Domain.Models.GroupEvent", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
             modelBuilder.Entity("UserService.Domain.Models.GroupInvite", b =>
                 {
                     b.HasOne("UserService.Domain.Models.Group", "Group")
@@ -434,13 +736,13 @@ namespace UserService.Infrastructure.Data.Migrations
 
                     b.HasOne("UserService.Domain.Models.User", "ReceiverUser")
                         .WithMany()
-                        .HasForeignKey("ReceiverUserID")
+                        .HasForeignKey("ReceiverUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("UserService.Domain.Models.User", "SenderUser")
                         .WithMany()
-                        .HasForeignKey("SenderUserID")
+                        .HasForeignKey("SenderUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -449,6 +751,50 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Navigation("ReceiverUser");
 
                     b.Navigation("SenderUser");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupJoinRequest", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.User", "ReviewedByUser")
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy");
+
+                    b.HasOne("UserService.Domain.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("ReviewedByUser");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupLog", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.User", "PerformedByUser")
+                        .WithMany()
+                        .HasForeignKey("PerformedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("PerformedByUser");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.GroupMember", b =>
@@ -468,6 +814,44 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Navigation("Group");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupNotification", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.User", "ReceiverUser")
+                        .WithMany()
+                        .HasForeignKey("ReceiverUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+
+                    b.Navigation("ReceiverUser");
+                });
+
+            modelBuilder.Entity("UserService.Domain.Models.GroupPost", b =>
+                {
+                    b.HasOne("UserService.Domain.Models.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("UserService.Domain.Models.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Group");
                 });
 
             modelBuilder.Entity("UserService.Domain.Models.UserInfo", b =>

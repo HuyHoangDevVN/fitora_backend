@@ -14,8 +14,8 @@ public class EditInForUserHandler
         return EditUserResponseToUserResult(result);
     }
 
-    private static EditInForUserRequestDto EditInForCommandToDto(EditInForUserCommand command)
-        => new EditInForUserRequestDto(command.UserId, command.FullName, command.PhoneNumber, command.Avatar);
+    private static EditInfoUserRequest EditInForCommandToDto(EditInForUserCommand command)
+        => new EditInfoUserRequest(command.UserId, command.FullName, command.PhoneNumber, command.Avatar);
 
     private static EditInForUserResult EditUserResponseToUserResult(GetUserResponseDto dto)
         => new EditInForUserResult(dto.UserId, dto.Email, dto.Username, dto.FullName, dto.PhoneNumber, dto.Avatar);

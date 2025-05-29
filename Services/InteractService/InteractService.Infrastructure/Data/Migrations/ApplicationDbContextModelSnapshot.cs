@@ -19,6 +19,55 @@ namespace InteractService.Infrastructure.Data.Migrations
                 .HasAnnotation("ProductVersion", "8.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
+            modelBuilder.Entity("InteractService.Domain.Models.Category", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("ParentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("Categories");
+                });
+
             modelBuilder.Entity("InteractService.Domain.Models.Comment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -44,7 +93,11 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<string>("LastModifiedBy")
                         .HasColumnType("longtext");
 
-                    b.Property<Guid>("ParentCommentId")
+                    b.Property<string>("MediaUrl")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid?>("ParentCommentId")
                         .HasColumnType("char(36)");
 
                     b.Property<Guid>("PostId")
@@ -56,7 +109,7 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
 
-                    b.Property<int>("Votes")
+                    b.Property<int>("VotesCont")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -68,10 +121,81 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.ToTable("Comments");
                 });
 
+            modelBuilder.Entity("InteractService.Domain.Models.CommentVotes", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CommentId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CommentId");
+
+                    b.ToTable("CommentVotes");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.FollowCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.ToTable("FollowCategories");
+                });
+
             modelBuilder.Entity("InteractService.Domain.Models.Post", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("CategoryId")
                         .HasColumnType("char(36)");
 
                     b.Property<int>("CommentsCount")
@@ -90,6 +214,9 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<Guid?>("GroupId")
                         .HasColumnType("char(36)");
 
+                    b.Property<bool?>("IsApproved")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
@@ -106,6 +233,9 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
+                    b.Property<double?>("Score")
+                        .HasColumnType("double");
+
                     b.Property<Guid>("UserId")
                         .HasColumnType("char(36)");
 
@@ -113,6 +243,8 @@ namespace InteractService.Infrastructure.Data.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
 
                     b.ToTable("Posts");
                 });
@@ -265,13 +397,91 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("InteractService.Domain.Models.UserSaved", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("UserSaveds");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.UserVoted", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("LastModified")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("VoteType")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("UserVoteds");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.Category", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Category", "Parent")
+                        .WithMany("SubCategories")
+                        .HasForeignKey("ParentId");
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("InteractService.Domain.Models.Comment", b =>
                 {
                     b.HasOne("InteractService.Domain.Models.Comment", "ParentComment")
                         .WithMany()
-                        .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ParentCommentId");
 
                     b.HasOne("InteractService.Domain.Models.Post", "Post")
                         .WithMany()
@@ -282,6 +492,37 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Navigation("ParentComment");
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.CommentVotes", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Comment", "Comment")
+                        .WithMany("CommentVotes")
+                        .HasForeignKey("CommentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Comment");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.FollowCategory", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.Post", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Category", "Category")
+                        .WithMany("Posts")
+                        .HasForeignKey("CategoryId");
+
+                    b.Navigation("Category");
                 });
 
             modelBuilder.Entity("InteractService.Domain.Models.Share", b =>
@@ -301,6 +542,45 @@ namespace InteractService.Infrastructure.Data.Migrations
                     b.Navigation("OriginalPost");
 
                     b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.UserSaved", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Post", "Post")
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.UserVoted", b =>
+                {
+                    b.HasOne("InteractService.Domain.Models.Post", "Post")
+                        .WithMany("UserVoteds")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.Category", b =>
+                {
+                    b.Navigation("Posts");
+
+                    b.Navigation("SubCategories");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.Comment", b =>
+                {
+                    b.Navigation("CommentVotes");
+                });
+
+            modelBuilder.Entity("InteractService.Domain.Models.Post", b =>
+                {
+                    b.Navigation("UserVoteds");
                 });
 #pragma warning restore 612, 618
         }

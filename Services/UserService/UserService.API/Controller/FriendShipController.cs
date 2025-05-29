@@ -1,22 +1,22 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
-using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.Friendship.Requests;
-using UserService.Application.Usecases.Friendship.Command.AccpectFriendRequest;
-using UserService.Application.Usecases.Friendship.Command.CreateFriendRequest;
-using UserService.Application.Usecases.Friendship.Command.DeleteFriendRequest;
-using UserService.Application.Usecases.Friendship.Command.UnFriend;
+using UserService.Application.Usecases.Friendship.Commands.AccpectFriendRequest;
+using UserService.Application.Usecases.Friendship.Commands.CreateFriendRequest;
+using UserService.Application.Usecases.Friendship.Commands.DeleteFriendRequest;
+using UserService.Application.Usecases.Friendship.Commands.Unfriend;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Received;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Sended;
 using UserService.Application.Usecases.Friendship.Queries.GetFriends;
 
 namespace UserService.API.Controller;
 
-[Route("api/friendship")]
+[Route("api/user/friendship")]
 [ApiController]
 [Authorize]
 public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
@@ -77,11 +77,11 @@ public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpGet("get-friends")]
-    public async Task<IActionResult> GetFriends([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetFriends([FromQuery] GetFriendsQuery query)
     {
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
-        var sended = new GetFriendsRequest(userGuid, request.PageIndex, request.PageSize);
+        var sended = new GetFriendsRequest(userGuid, query.KeySearch, query.PageIndex, query.PageSize);
 
         try
         {

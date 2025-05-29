@@ -1,26 +1,24 @@
 using AutoMapper;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using UserService.Application.DTOs.Follow.Requests;
 using UserService.Application.DTOs.Friendship.Requests;
-using UserService.Application.Usecases.Follow.Command.Follow;
-using UserService.Application.Usecases.Follow.Command.Unfollow;
+using UserService.Application.Usecases.Follow.Commands.Follow;
+using UserService.Application.Usecases.Follow.Commands.Unfollow;
 using UserService.Application.Usecases.Follow.Queries.GetFollowees;
 using UserService.Application.Usecases.Follow.Queries.GetFollowers;
-using UserService.Application.Usecases.Friendship.Command.AccpectFriendRequest;
-using UserService.Application.Usecases.Friendship.Command.CreateFriendRequest;
-using UserService.Application.Usecases.Friendship.Command.DeleteFriendRequest;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Received;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Sended;
 using UserService.Application.Usecases.Friendship.Queries.GetFriends;
 
 namespace UserService.API.Controller;
 
-[Route("api/follow")]
+[Route("api/user/follow")]
 [ApiController]
 [Authorize]
 public class FollowController : Microsoft.AspNetCore.Mvc.Controller

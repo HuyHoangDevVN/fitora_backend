@@ -43,13 +43,17 @@ public static class DependencyInjection
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         services.AddSingleton<IRabbitMqConsumer<UserRegisteredMessageDto>, RabbitMqConsumer<UserRegisteredMessageDto>>();
         services.AddScoped<IMessageHandler<UserRegisteredMessageDto>, UserRegisteredMessageHandler>();
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        // services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
-        services.AddScoped<IFollowRepository, FollowRepository>();
-        
         services.AddHostedService<RabbitMqConsumerHostedService>();
 
+        // Call api
+        services.AddHttpClient("InteractService", client =>
+        {
+            client.BaseAddress = new Uri("https://localhost:5005/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        });
+        
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration.GetConnectionString("Redis");

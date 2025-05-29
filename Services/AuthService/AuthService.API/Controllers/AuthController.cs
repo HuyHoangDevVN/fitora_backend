@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using AuthService.API.Endpoints.Auths;
 using AuthService.Application.Auths.Commands.AuthChangePassword;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
@@ -8,29 +6,30 @@ using AuthService.Application.Auths.Commands.AuthRegister;
 using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Key.Requests;
-using AuthService.Application.DTOs.Key.Responses;
 using AuthService.Application.Services.IServices;
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Security;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-[Route("api/auth")]
+[Route("api/auth/auth")]
 [ApiController]
 public class AuthController : Controller
 {
     private readonly ISender _sender;
     private readonly IMapper _mapper;
     private readonly IAuthRepository _authoRepo;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
-    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService)
+    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService, IAuthorizeExtension authorizeExtension)
     {
         _sender = sender;
         _mapper = mapper;
         _authoRepo = authorizationService;
+        _authorizeExtension = authorizeExtension;
     }
 
     [HttpPost("register")]
@@ -48,9 +47,8 @@ public class AuthController : Controller
     {
         var requestModel = _mapper.Map<AuthLoginCommand>(req);
         var result = await _sender.Send(requestModel);
-        var response = new ResponseDto(result, Message: "Login Successful");
-        _authoRepo.SetTokenInsideCookie(result, HttpContext);
-        return Ok(response);
+        if (result.Token != null) _authoRepo.SetTokenInsideCookie(result.Token, HttpContext);
+        return Ok(result);
     }
 
     [HttpPost("logout")]
@@ -87,7 +85,7 @@ public class AuthController : Controller
         var cookieToken = Request.Cookies["refreshToken"];
         if (cookieToken != null)
         {
-            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto(cookieToken));
+            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto( cookieToken));
             var result = await _sender.Send(command);
             var response = new ResponseDto(result, Message: "Refresh Token Successful");
             return Ok(response);
@@ -97,7 +95,7 @@ public class AuthController : Controller
     }
 
     [HttpDelete("delete-account")]
-    public async Task<IActionResult> DeleteAccount(DeleteAccountRequest req)
+    public async Task<IActionResult> DeleteAccount(DeleteUserRequestDto req)
     {
         var requestModel = _mapper.Map<AuthDeleteAccountCommand>(req);
         var result = await _sender.Send(requestModel);

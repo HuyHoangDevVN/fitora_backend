@@ -1,31 +1,61 @@
 using System.Text;
+using Grpc.Net.Client;
 using InteractService.API.Middleware;
 using InteractService.Application;
 using InteractService.Infrastructure;
+using InteractService.Infrastructure.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Thêm Controller, Swagger và Endpoints
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(5005, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+        listenOptions.UseHttps("./certificate.pfx", "123456@Aa");
+    });
+});
+
+builder.Services.AddSingleton<UserGrpcClient>(sp =>
+{
+    var handler = new HttpClientHandler
+    {
+        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+    };
+    var channel = GrpcChannel.ForAddress("https://localhost:5003", new GrpcChannelOptions
+    {
+        HttpHandler = handler
+    });
+    
+    var grpcClient = new UserService.Infrastructure.Grpc.UserService.UserServiceClient(channel);
+    return new UserGrpcClient(grpcClient);
+});
+
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Cấu hình CORS cho phép gửi cookies
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")  // Đảm bảo là địa chỉ frontend của bạn
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();  // Quan trọng để gửi cookies
+        policy.WithOrigins(
+                "http://localhost:5173",
+                "http://192.168.161.84:5173",
+                "https://fitora.aiotlab.edu.vn"
+            )
+            .AllowCredentials()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
-// Configure JWT Bearer Authentication
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -39,14 +69,11 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
+        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"],
+        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
         ClockSkew = TimeSpan.Zero
     };
-
-    // Lấy token từ cookie 
     options.Events = new JwtBearerEvents
     {
         OnMessageReceived = context =>
@@ -60,91 +87,49 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Cấu hình Swagger với bảo mật JWT
 builder.Services.AddSwaggerGen(opt =>
 {
-    opt.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "MyAPI",
-        Version = "v1",
-        Description = "API documentation for MyAPI with JWT authentication."
-    });
-
-    // Thêm cấu hình bảo mật với JWT Bearer
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
     opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Enter your JWT token in the following format: Bearer {your token}"
+        In = ParameterLocation.Header
     });
-
-    // Áp dụng cấu hình bảo mật cho toàn bộ API
     opt.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header
-            },
-            new string[] {}  // Không yêu cầu phạm vi cụ thể
-        }
+        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, Array.Empty<string>() }
     });
-    // Thêm FileUploadOperationFilter để hỗ trợ kiểm tra upload file trên Swagger
-    opt.OperationFilter<FileUploadOperationFilter>();
 });
 
-// Thêm các services ứng dụng và hạ tầng
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
+
 builder.Services
     .AddApplicationServices(builder.Configuration)
     .AddInfrastructureServices(builder.Configuration);
 
-// Cấu hình Application Cookie
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.None;  
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;  
-    options.Cookie.HttpOnly = true;  
-});
-
-builder.Services.AddAuthorization();
-
-// Thêm Health Checks (tuỳ chọn)
-builder.Services.AddHealthChecks();
+builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-// Nếu môi trường phát triển thì hiển thị Swagger UI
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Phục vụ file tĩnh từ wwwroot (ví dụ cho upload file)
-app.UseStaticFiles();
-
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseCors("AllowSpecificOrigin");
-
-// Middleware tùy chỉnh (ví dụ HybridAuthMiddleware)
 app.UseMiddleware<HybridAuthMiddleware>();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
-// Map Health Check endpoint
-app.MapHealthChecks("/health");
 
 app.Run();

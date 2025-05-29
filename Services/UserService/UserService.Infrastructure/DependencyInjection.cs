@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using UserService.Application.Data;
+using UserService.Application.Services.IServices;
 using UserService.Infrastructure.Data;
+using UserService.Infrastructure.Repositories;
 
 namespace UserService.Infrastructure;
 
@@ -16,9 +18,6 @@ public static class DependencyInjection
     {
         var connectionString = configuration.GetConnectionString("Database");
         if(configuration is null) { throw new ArgumentNullException(nameof(configuration)); }
-        // Add service to the container
-        // services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
-        //services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
@@ -26,7 +25,14 @@ public static class DependencyInjection
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
         });
-        
+        services.AddScoped<IFriendshipRepository, FriendshipRepository>();
+        services.AddScoped<IFollowRepository, FollowRepository>();
+        services.AddScoped<IGroupMemberRepository, GroupMemberRepository>();
+        services.AddScoped<IGroupInviteRepository, GroupInviteRepository>();
+        services.AddScoped<IGroupRepository, GroupRepository>();
+        services.AddScoped<IGroupPostRepository, GroupPostRepository>();
+        services.AddScoped<IInteractApiService, InteractApiService>();
+
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         return services;
     }

@@ -1,3 +1,3 @@
 namespace AuthService.Application.DTOs.Auth.Responses;
 
-public record LoginResponseDto(UserDto User, LoginTokenResponseDto Token);
+public record LoginResponseDto(bool IsSuccess, UserDto? User, LoginTokenResponseDto? Token, string? Message);
