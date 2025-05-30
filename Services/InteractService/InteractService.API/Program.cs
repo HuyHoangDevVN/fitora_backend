@@ -12,14 +12,21 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var certPath = builder.Environment.IsDevelopment()
+    ? builder.Configuration["CertificateSettings:DevPath"]
+    : builder.Configuration["CertificateSettings:ProdPath"];
+
+var certPassword = builder.Configuration["CertificateSettings:Password"];
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(5006, listenOptions =>
     {
         listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("C:/certs/localhost.pfx", "123456@Aa");
+        listenOptions.UseHttps(certPath!, certPassword);
     });
 });
+
 
 builder.Services.AddSingleton<UserGrpcClient>(sp =>
 {

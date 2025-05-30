@@ -77,12 +77,7 @@ public class KeyRepository(
     {
         try
         {
-            string userId = "";
-            if (contextAccessor.HttpContext!.Request.Headers.TryGetValue("x-client-id", out var clientId))
-            {
-                userId = Convert.ToString(clientId);
-            }
-
+            string userId = dto.UserId.ToString();
             if (string.IsNullOrEmpty(userId))
             {
                 throw new BadRequestException("Invalid token");

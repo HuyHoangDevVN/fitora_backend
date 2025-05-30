@@ -70,8 +70,6 @@ public class JwtTokenGenerator(IOptions<JwtOptionsSetting> options) : IJwtTokenG
         }
     }
 
-   
-
     public UserDto DecodeToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();

@@ -11,6 +11,7 @@ using AutoMapper;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Security;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
@@ -24,7 +25,8 @@ public class AuthController : Controller
     private readonly IAuthRepository _authoRepo;
     private readonly IAuthorizeExtension _authorizeExtension;
 
-    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService, IAuthorizeExtension authorizeExtension)
+    public AuthController(ISender sender, IMapper mapper, IAuthRepository authorizationService,
+        IAuthorizeExtension authorizeExtension)
     {
         _sender = sender;
         _mapper = mapper;
@@ -85,7 +87,8 @@ public class AuthController : Controller
         var cookieToken = Request.Cookies["refreshToken"];
         if (cookieToken != null)
         {
-            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto( cookieToken));
+            var userId = _authorizeExtension.DecodeToken().Id;
+            var command = _mapper.Map<RefreshTokenCommand>(new RefreshTokenByUserRequestDto(cookieToken, userId));
             var result = await _sender.Send(command);
             var response = new ResponseDto(result, Message: "Refresh Token Successful");
             return Ok(response);
@@ -115,5 +118,12 @@ public class AuthController : Controller
         }
 
         return Ok(new ResponseDto(cookieToken, IsSuccess: true, "User is logged in"));
+    }
+    
+    [HttpGet("check-cookie")]
+    public IActionResult CheckCookie()
+    {
+        var token = Request.Cookies["accessToken"];
+        return Ok(new { accessToken = token });
     }
 }

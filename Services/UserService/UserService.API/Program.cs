@@ -15,12 +15,18 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var certPath = builder.Environment.IsDevelopment()
+    ? builder.Configuration["CertificateSettings:DevPath"]
+    : builder.Configuration["CertificateSettings:ProdPath"];
+
+var certPassword = builder.Configuration["CertificateSettings:Password"];
+
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenLocalhost(5004, listenOptions =>
     {
         listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("C:/certs/localhost.pfx", "123456@Aa");
+        listenOptions.UseHttps(certPath!, certPassword);
     });
 });
 

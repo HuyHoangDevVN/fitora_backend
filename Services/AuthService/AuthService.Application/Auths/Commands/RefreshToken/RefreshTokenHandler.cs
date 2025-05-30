@@ -7,7 +7,7 @@ public class RefreshTokenHandler(IKeyRepository<Guid> repository)
 {
     public async Task<RefreshTokenResult> Handle(RefreshTokenCommand command, CancellationToken cancellationToken)
     {
-        var refreshTokenRequestDto = new RefreshTokenByUserRequestDto(command.Token);
+        var refreshTokenRequestDto = new RefreshTokenByUserRequestDto(command.Token, command.UserId);
         var result = await repository.RefreshTokenByUser(refreshTokenRequestDto, cancellationToken);
         return new RefreshTokenResult(result.AccessToken, result.RefreshToken);
     }

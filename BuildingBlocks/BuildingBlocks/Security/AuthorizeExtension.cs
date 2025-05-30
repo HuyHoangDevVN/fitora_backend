@@ -32,11 +32,13 @@ public class AuthorizeExtension : IAuthorizeExtension
             throw new BadRequestException("Invalid token");
         }
 
-        var userId = user.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-
+        var userIdClaim = user.FindFirst(ClaimTypes.NameIdentifier) ?? user.FindFirst("nameid");
+        if (userIdClaim == null)
+            throw new BadRequestException("Token does not contain user id claim.");
+        
         return new UserLoginResponseBase
         (
-            Id: Guid.Parse(userId),
+            Id: Guid.Parse(userIdClaim.Value),
             UserName: user?.FindFirst(ClaimTypes.Name)!.Value ?? "",
             FullName: user?.FindFirst("FullName")!.Value ?? ""
         );
