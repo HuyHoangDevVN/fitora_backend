@@ -348,3 +348,4 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bi
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\tr-TR\Hangfire.Core.resources.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\zh-TW\Hangfire.Core.resources.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\zh\Hangfire.Core.resources.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\appsettings.Production.json
