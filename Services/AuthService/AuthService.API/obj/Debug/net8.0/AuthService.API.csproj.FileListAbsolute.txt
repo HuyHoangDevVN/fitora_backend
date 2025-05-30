@@ -327,3 +327,4 @@ D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\Aut
 D:\Workspace\GraduationProject\FitoraProject\Backend\fitora_backend\Services\AuthService\AuthService.API\obj\Debug\net8.0\ref\AuthService.API.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\Polly.dll
 D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\Polly.Core.dll
+D:\Workspace\DATN\fitora_backend\Services\AuthService\AuthService.API\bin\Debug\net8.0\appsettings.Production.json
