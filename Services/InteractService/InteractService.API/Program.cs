@@ -6,6 +6,7 @@ using InteractService.Infrastructure;
 using InteractService.Infrastructure.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
@@ -130,7 +131,11 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"C:\AppUploads\InteractFiles"),
+    RequestPath = "/api/interact/upload/file"
+});
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
