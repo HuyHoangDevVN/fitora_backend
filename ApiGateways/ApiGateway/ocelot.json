@@ -52,6 +52,15 @@
       ]
     },
     {
+      "DownstreamPathTemplate": "/api/interact/uploads/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        { "Host": "localhost", "Port": 5006 }
+      ],
+      "UpstreamPathTemplate": "/interact/uploads/{everything}",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/chat/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
