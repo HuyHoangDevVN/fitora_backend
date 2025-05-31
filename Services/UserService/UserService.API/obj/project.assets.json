@@ -6774,6 +6774,7 @@
       "Microsoft.AspNetCore.OpenApi >= 8.0.11",
       "Microsoft.EntityFrameworkCore >= 8.0.8",
       "Microsoft.EntityFrameworkCore.Design >= 8.0.8",
+      "Microsoft.Extensions.Hosting >= 8.0.1",
       "Microsoft.Extensions.Hosting.WindowsServices >= 8.0.1",
       "Swashbuckle.AspNetCore >= 6.6.2",
       "UserService.Application >= 1.0.0",
@@ -6845,6 +6846,10 @@
             "suppressParent": "All",
             "target": "Package",
             "version": "[8.0.8, )"
+          },
+          "Microsoft.Extensions.Hosting": {
+            "target": "Package",
+            "version": "[8.0.1, )"
           },
           "Microsoft.Extensions.Hosting.WindowsServices": {
             "target": "Package",

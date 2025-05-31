@@ -27,7 +27,6 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
-builder.Host.UseWindowsService();
 
 
 
