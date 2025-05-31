@@ -12,8 +12,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
-// [Authorize(Roles = "ADMIN")]
-[AllowAnonymous]
 [ApiController]
 [Route("api/auth/user")]
 public class UserController : Controller
