@@ -93,7 +93,7 @@
       "UpstreamHttpMethod": [ "Post" ]
     },
     {
-      "DownstreamPathTemplate": "/uploads/{everything}",
+      "DownstreamPathTemplate": "/upload/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -101,7 +101,7 @@
           "Port": 5006
         }
       ],
-      "UpstreamPathTemplate": "/interact/uploads/{everything}",
+      "UpstreamPathTemplate": "/interact/upload/{everything}",
       "UpstreamHttpMethod": [
         "Get"
       ]
