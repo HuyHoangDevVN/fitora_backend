@@ -7,10 +7,12 @@ using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination;
 using BuildingBlocks.Pagination.Base;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
+[Authorize(Roles = "ADMIN")]
 [ApiController]
 [Route("api/auth/user")]
 public class UserController : Controller
