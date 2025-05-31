@@ -22,6 +22,19 @@ jobs:
             ${{ runner.os }}-nuget-
 
       # ===== gRPC Services (Kestrel standalone) =====
+      - name: Stop Windows Services (User/Interact)
+        run: |
+          $services = @("userservice", "interactservice")
+          foreach ($service in $services) {
+            $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -eq 'Running') {
+              Stop-Service -Name $service -Force
+              Write-Host "Stopped $service"
+            }
+          }
+          Start-Sleep -Seconds 5
+        shell: powershell
+
       - name: Build & Publish UserService (gRPC)
         run: |
           dotnet restore
@@ -38,39 +51,20 @@ jobs:
         working-directory: ./Services/InteractService/InteractService.API
         shell: powershell
 
-      - name: Restart gRPC Windows Services (User/Interact)
+      - name: Start Windows Services (User/Interact)
         run: |
-          function Restart-ServiceSafe {
+          function Start-ServiceSafe {
               param (
                   [Parameter(Mandatory=$true)]
                   [string]$Name,
                   [int]$TimeoutSeconds = 30
               )
-              
-              Write-Host "Checking service: $Name"
               $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
               if (-not $svc) {
                   Write-Error "Service $Name does not exist"
                   exit 1
               }
-
-              try {
-                  if ($svc.Status -eq 'Running') {
-                      Write-Host "Stopping service $Name..."
-                      Stop-Service -Name $Name -Force -ErrorAction Stop
-                      $timeout = $TimeoutSeconds
-                      while ($svc.Status -ne 'Stopped' -and $timeout -gt 0) {
-                          Start-Sleep -Seconds 1
-                          $timeout--
-                          $svc.Refresh()
-                      }
-                      if ($svc.Status -ne 'Stopped') {
-                          Write-Error "Service $Name failed to stop within $TimeoutSeconds seconds"
-                          exit 1
-                      }
-                  }
-
-                  Write-Host "Starting service $Name..."
+              if ($svc.Status -ne 'Running') {
                   Start-Service -Name $Name -ErrorAction Stop
                   $timeout = $TimeoutSeconds
                   while ($svc.Status -ne 'Running' -and $timeout -gt 0) {
@@ -84,14 +78,13 @@ jobs:
                   }
                   Write-Host "Service $Name is now running"
               }
-              catch {
-                  Write-Error "Error occurred while restarting $Name : $_"
-                  exit 1
+              else {
+                  Write-Host "Service $Name is already running"
               }
           }
 
-          Restart-ServiceSafe -Name "userservice" -TimeoutSeconds 30
-          Restart-ServiceSafe -Name "interactservice" -TimeoutSeconds 30
+          Start-ServiceSafe -Name "userservice" -TimeoutSeconds 30
+          Start-ServiceSafe -Name "interactservice" -TimeoutSeconds 30
         shell: powershell
 
       # ===== Web API Services (IIS) =====
