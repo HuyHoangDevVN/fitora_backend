@@ -26,7 +26,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\deploy\userservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\userservice --no-restore --no-build
         working-directory: ./Services/UserService/UserService.API
         shell: powershell
 
@@ -34,7 +34,7 @@ jobs:
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\deploy\interactservice --no-restore --no-build
+          dotnet publish --configuration Release --output C:\publish\interactservice --no-restore --no-build
         working-directory: ./Services/InteractService/InteractService.API
         shell: powershell
 
