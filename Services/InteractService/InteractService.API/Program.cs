@@ -65,36 +65,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"],
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-        ClockSkew = TimeSpan.Zero
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            if (context.Request.Cookies.ContainsKey("accessToken"))
-            {
-                context.Token = context.Request.Cookies["accessToken"];
-            }
-            return Task.CompletedTask;
-        }
-    };
-});
 
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -121,7 +91,8 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration);
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationAuthentication(builder.Configuration);
 
 builder.Services.AddGrpc();
 
