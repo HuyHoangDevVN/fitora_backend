@@ -132,7 +132,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-// app.UseMiddleware<HybridAuthMiddleware>();
+app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
