@@ -40,12 +40,17 @@ jobs:
 
       - name: Restart gRPC Windows Services (User/Interact)
         run: |
-          sc.exe stop userservice
-          Start-Sleep -Seconds 2
-          sc.exe start userservice
-          sc.exe stop interactservice
-          Start-Sleep -Seconds 2
-          sc.exe start interactservice
+          function Restart-ServiceSafe($name) {
+              $svc = Get-Service $name -ErrorAction SilentlyContinue
+              if ($svc -and $svc.Status -eq 'Running') {
+                  sc.exe stop $name
+                  Start-Sleep -Seconds 2
+              }
+              sc.exe start $name
+          }
+
+          Restart-ServiceSafe userservice
+          Restart-ServiceSafe interactservice
         shell: powershell
 
       # ===== Web API Services (IIS) =====
