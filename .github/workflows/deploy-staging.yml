@@ -40,26 +40,58 @@ jobs:
 
       - name: Restart gRPC Windows Services (User/Interact)
         run: |
-          function Restart-ServiceSafe($name) {
-              $svc = Get-Service $name -ErrorAction SilentlyContinue
-              if ($svc -and $svc.Status -eq 'Running') {
-                  sc.exe stop $name
-                  $timeout = 30
-                  while ((Get-Service $name).Status -ne 'Stopped' -and $timeout -gt 0) {
+          function Restart-ServiceSafe {
+              param (
+                  [Parameter(Mandatory=$true)]
+                  [string]$Name,
+                  [int]$TimeoutSeconds = 30
+              )
+              
+              Write-Host "Checking service: $Name"
+              $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
+              if (-not $svc) {
+                  Write-Error "Service $Name does not exist"
+                  exit 1
+              }
+
+              try {
+                  if ($svc.Status -eq 'Running') {
+                      Write-Host "Stopping service $Name..."
+                      Stop-Service -Name $Name -Force -ErrorAction Stop
+                      $timeout = $TimeoutSeconds
+                      while ($svc.Status -ne 'Stopped' -and $timeout -gt 0) {
+                          Start-Sleep -Seconds 1
+                          $timeout--
+                          $svc.Refresh()
+                      }
+                      if ($svc.Status -ne 'Stopped') {
+                          Write-Error "Service $Name failed to stop within $TimeoutSeconds seconds"
+                          exit 1
+                      }
+                  }
+
+                  Write-Host "Starting service $Name..."
+                  Start-Service -Name $Name -ErrorAction Stop
+                  $timeout = $TimeoutSeconds
+                  while ($svc.Status -ne 'Running' -and $timeout -gt 0) {
                       Start-Sleep -Seconds 1
                       $timeout--
+                      $svc.Refresh()
                   }
+                  if ($svc.Status -ne 'Running') {
+                      Write-Error "Service $Name failed to start within $TimeoutSeconds seconds"
+                      exit 1
+                  }
+                  Write-Host "Service $Name is now running"
               }
-              sc.exe start $name
-              $timeout = 30
-              while ((Get-Service $name).Status -ne 'Running' -and $timeout -gt 0) {
-                  Start-Sleep -Seconds 1
-                  $timeout--
+              catch {
+                  Write-Error "Error occurred while restarting $Name : $_"
+                  exit 1
               }
           }
 
-          Restart-ServiceSafe userservice
-          Restart-ServiceSafe interactservice
+          Restart-ServiceSafe -Name "userservice" -TimeoutSeconds 30
+          Restart-ServiceSafe -Name "interactservice" -TimeoutSeconds 30
         shell: powershell
 
       # ===== Web API Services (IIS) =====
