@@ -40,12 +40,12 @@ jobs:
 
       - name: Restart gRPC Windows Services (User/Interact)
         run: |
-          nssm stop userservice
+          sc.exe stop userservice
           Start-Sleep -Seconds 2
-          nssm start userservice
-          nssm stop interactservice
+          sc.exe start userservice
+          sc.exe stop interactservice
           Start-Sleep -Seconds 2
-          nssm start interactservice
+          sc.exe start interactservice
         shell: powershell
 
       # ===== Web API Services (IIS) =====
