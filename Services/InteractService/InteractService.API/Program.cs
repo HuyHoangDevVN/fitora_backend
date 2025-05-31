@@ -27,6 +27,9 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
+builder.Host.UseWindowsService();
+
+
 
 builder.Services.AddSingleton<UserGrpcClient>(sp =>
 {

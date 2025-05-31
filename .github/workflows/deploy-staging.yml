@@ -21,7 +21,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nuget-
 
-      - name: Build and Publish AuthService
+      # ===== gRPC Services (Kestrel standalone) =====
+      - name: Build & Publish UserService (gRPC)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\deploy\userservice --no-restore --no-build
+        working-directory: ./Services/UserService/UserService.API
+        shell: powershell
+
+      - name: Build & Publish InteractService (gRPC)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\deploy\interactservice --no-restore --no-build
+        working-directory: ./Services/InteractService/InteractService.API
+        shell: powershell
+
+      - name: Restart gRPC Windows Services (User/Interact)
+        run: |
+          nssm stop userservice
+          Start-Sleep -Seconds 2
+          nssm start userservice
+          nssm stop interactservice
+          Start-Sleep -Seconds 2
+          nssm start interactservice
+        shell: powershell
+
+      # ===== Web API Services (IIS) =====
+      - name: Build & Publish AuthService (IIS)
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
@@ -29,7 +57,7 @@ jobs:
         working-directory: ./Services/AuthService/AuthService.API
         shell: powershell
 
-      - name: Build and Publish ChatService
+      - name: Build & Publish ChatService (IIS)
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
@@ -37,23 +65,7 @@ jobs:
         working-directory: ./Services/ChatService/ChatService.API
         shell: powershell
 
-      - name: Build and Publish InteractService
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\interactservice --no-restore --no-build
-        working-directory: ./Services/InteractService/InteractService.API
-        shell: powershell
-
-      - name: Build and Publish UserService
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\userservice --no-restore --no-build
-        working-directory: ./Services/UserService/UserService.API
-        shell: powershell
-
-      - name: Build and Publish ApiGateway
+      - name: Build & Publish ApiGateway (IIS)
         run: |
           dotnet restore
           dotnet build --configuration Release --no-restore
@@ -61,10 +73,9 @@ jobs:
         working-directory: ./ApiGateways/ApiGateway
         shell: powershell
 
-      - name: Deploy to IIS
+      - name: Deploy Web APIs to IIS
         run: |
-          $ErrorActionPreference = "Stop"
-          $services = @("authservice", "chatservice", "interactservice", "userservice", "apigateway")
+          $services = @("authservice", "chatservice", "apigateway")
 
           net stop w3svc
 

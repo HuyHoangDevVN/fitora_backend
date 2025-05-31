@@ -30,6 +30,8 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
+builder.Host.UseWindowsService();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
