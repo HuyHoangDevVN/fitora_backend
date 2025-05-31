@@ -68,8 +68,14 @@ namespace InteractService.API.Controllers
             if (!System.IO.File.Exists(filePath))
                 return NotFound("Không tìm thấy file");
 
-            var contentType = "application/octet-stream";
-            return PhysicalFile(filePath, contentType, fileName);
+            var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+            string contentType;
+            if (!provider.TryGetContentType(filePath, out contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+
+            return PhysicalFile(filePath, contentType); // Không truyền fileName để không force download
         }
     }
 }
