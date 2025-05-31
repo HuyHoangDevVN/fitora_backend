@@ -19,7 +19,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
         policy.WithOrigins(
-                "http://localhost:5173", 
+                "http://localhost:5173",
                 "http://192.168.161.84:5173",
                 "https://fitora.aiotlab.edu.vn"
             )
@@ -132,7 +132,7 @@ app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
+// app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
