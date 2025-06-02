@@ -7,6 +7,7 @@ using AuthService.Application.Auths.Queries.GetRoles;
 using AuthService.Application.DTOs.Roles.Requests;
 using AutoMapper;
 using BuildingBlocks.DTOs;
+using BuildingBlocks.Pagination.Base;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -56,10 +57,10 @@ public class RoleController : Controller
     }
 
     [HttpGet("get-roles")]
-    public async Task<IActionResult> GetRoles()
+    public async Task<IActionResult> GetRoles(PaginationRequest req)
     {
-        var result = await _sender.Send(new GetRolesQuery());
-        var response = new ResponseDto(Data: result.Response, Message: "Get Roles Successful");
+        var result = await _sender.Send(new GetRolesQuery(req.PageIndex, req.PageSize));
+        var response = new ResponseDto(Data: result, Message: "Get Roles Successful");
         return Ok(response);
     }
 

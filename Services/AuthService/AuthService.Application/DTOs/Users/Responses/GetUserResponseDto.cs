@@ -5,4 +5,6 @@ public record GetUserResponseDto(string UserId,
     string Username,
     string FullName,
     string PhoneNumber,
-    string Avatar);
+    string Avatar,
+    int Status = 0,
+    IList<string> Roles = null!);

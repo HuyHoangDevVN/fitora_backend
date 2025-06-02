@@ -14,7 +14,8 @@
         "Get",
         "Post",
         "Put",
-        "Delete"
+        "Delete",
+        "Patch"
       ]
     },
     {
@@ -31,7 +32,8 @@
         "Get",
         "Post",
         "Put",
-        "Delete"
+        "Delete",
+        "Patch"
       ]
     },
     {
@@ -48,7 +50,8 @@
         "Get",
         "Post",
         "Put",
-        "Delete"
+        "Delete",
+        "Patch"
       ]
     },
     {
@@ -65,12 +68,13 @@
         "Get",
         "Post",
         "Put",
-        "Delete"
+        "Delete",
+        "Patch"
       ]
     },
     {
       "DownstreamPathTemplate": "/hubs/chat",
-      "DownstreamScheme": "http", 
+      "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -78,7 +82,10 @@
         }
       ],
       "UpstreamPathTemplate": "/chat",
-      "UpstreamHttpMethod": [ "Get", "Post" ]
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post"
+      ]
     },
     {
       "DownstreamPathTemplate": "/hubs/chat/negotiate",
@@ -90,7 +97,9 @@
         }
       ],
       "UpstreamPathTemplate": "/chat/negotiate",
-      "UpstreamHttpMethod": [ "Post" ]
+      "UpstreamHttpMethod": [
+        "Post"
+      ]
     },
     {
       "DownstreamPathTemplate": "/api/interact/upload/{everything}",

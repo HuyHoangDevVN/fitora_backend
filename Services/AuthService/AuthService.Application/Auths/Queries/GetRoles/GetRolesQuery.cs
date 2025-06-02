@@ -1,5 +1,7 @@
-﻿namespace AuthService.Application.Auths.Queries.GetRoles;
+﻿using BuildingBlocks.Pagination.Base;
 
-public record GetRolesQuery() : IQuery<GetRolesResult>;
+namespace AuthService.Application.Auths.Queries.GetRoles;
+
+public record GetRolesQuery(int PageIndex = 0, int PageSize = 10) : IQuery<PaginatedResult<Object>>;
 
 public record GetRolesResult(IEnumerable<object> Response);

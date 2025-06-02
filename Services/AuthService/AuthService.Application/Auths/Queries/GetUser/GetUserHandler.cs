@@ -25,5 +25,7 @@ public class GetUserHandler
             dto.Username,
             dto.FullName,
             dto.PhoneNumber,
-            dto.Avatar);
+            dto.Avatar,
+            dto.Status,
+            dto.Roles);
 }

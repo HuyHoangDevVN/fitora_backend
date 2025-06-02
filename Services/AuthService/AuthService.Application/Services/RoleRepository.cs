@@ -1,5 +1,6 @@
 ﻿
 using AuthService.Application.DTOs.Roles.Requests;
+using BuildingBlocks.Pagination.Base;
 using Microsoft.Extensions.Caching.Distributed;
 
 namespace AuthService.Application.Services;
@@ -12,11 +13,14 @@ public class RoleRepository(
     : IRoleRepository
 {
 
-    public async Task<IEnumerable<object>> GetRolesAsync(CancellationToken cancellationToken = default!)
+    public async Task<PaginatedResult<object>> GetRolesAsync(PaginationRequest paginationRequest,CancellationToken cancellationToken = default!)
     {
         try
         {
-            var roles = await roleManager.Roles.ToListAsync(cancellationToken);
+            int pageIndex = paginationRequest.PageIndex;
+            int pageSize = paginationRequest.PageSize;
+            long totalCount = await roleManager.Roles.LongCountAsync(cancellationToken);
+            var roles = await roleManager.Roles.Skip(pageSize * pageIndex).Take(pageSize).ToListAsync(cancellationToken);
             List<object> responses = [];
             foreach (var role in roles)
             {
@@ -29,9 +33,8 @@ public class RoleRepository(
                     TotalUser = totalUser
                 };
                 responses.Add(roleResponse);
-               
             }
-            return responses;
+            return new PaginatedResult<object>(pageIndex, pageSize, totalCount, responses);
         }
         catch (Exception e)
         {

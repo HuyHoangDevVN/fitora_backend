@@ -7,12 +7,14 @@ using AuthService.Application.Auths.Commands.AuthRegister;
 using AuthService.Application.Auths.Commands.CreateKey;
 using AuthService.Application.Auths.Commands.CreateRole;
 using AuthService.Application.Auths.Commands.DeleteRole;
+using AuthService.Application.Auths.Commands.EditInForUser;
 using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.Auths.Commands.UpdateRole;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.DTOs.Key.Responses;
 using AuthService.Application.DTOs.Roles.Requests;
+using AuthService.Application.DTOs.Users.Requests;
 
 namespace AuthService.Application.Mapper;
 
@@ -24,6 +26,7 @@ public class ServiceProfile : Profile
         // User
         CreateMap<ApplicationUser, UserDto>().ReverseMap();
         CreateMap<UserDto, ApplicationUser>().ReverseMap();
+        CreateMap<EditInfoUserRequest, EditInForUserCommand>().ReverseMap();
         // Register 
         CreateMap<AuthRegisterCommand, RegisterRequestDto>().ReverseMap();
         CreateMap<RegisterRequestDto, AuthRegisterCommand>().ReverseMap();

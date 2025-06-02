@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("InteractService.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5937a923410ca51ee1e558a74e68838a32b5c791")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9f3c1a34fba45e02042bf1aa0b8a33f1955ca60d")]
 [assembly: System.Reflection.AssemblyProductAttribute("InteractService.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("InteractService.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

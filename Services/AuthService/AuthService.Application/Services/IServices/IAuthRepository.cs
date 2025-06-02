@@ -13,4 +13,6 @@ public interface IAuthRepository
     Task<bool> LockUserAsync(LockUserRequestDto dto);
     Task<bool> DeleteUserAsync(DeleteUserRequestDto dto);
     void SetTokenInsideCookie(LoginTokenResponseDto result, HttpContext context);
+    Task<bool> LockUserByAdminAsync(Guid userId);
+    Task<bool> UnlockUserByAdminAsync(Guid userId);
 }
