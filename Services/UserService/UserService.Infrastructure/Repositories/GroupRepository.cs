@@ -46,12 +46,16 @@ public class GroupRepository : IGroupRepository
 
     public async Task<PaginatedResult<Group>> GetGroupsAsync(GetGroupsRequest request)
     {
-        var keySearch = request.Keysearch.Trim().ToLower();
+        var keySearch = request.KeySearch?.Trim().ToLower();
         return await _groupRepo.GetPageAsync(
-            new PaginationRequest(request.PageIndex, request.PageSize),
-            CancellationToken.None,
-            g => g.Name.ToLower().Contains(keySearch) || g.Description.ToLower().Contains(keySearch)
-        );
+                new PaginationRequest(request.PageIndex, request.PageSize),
+                CancellationToken.None,
+                g => (keySearch == null || g.Name.ToLower().Contains(keySearch) ||
+                      g.Description.ToLower().Contains(keySearch)) &&
+                     (request.Privacy == null || g.Privacy == request.Privacy) &&
+                     (request.Status == null || g.Status == request.Status)
+            )
+            ;
     }
 
     public async Task<PaginatedResult<Group>> GetManagedGroupsAsync(GetManagedGroupsRequest request)

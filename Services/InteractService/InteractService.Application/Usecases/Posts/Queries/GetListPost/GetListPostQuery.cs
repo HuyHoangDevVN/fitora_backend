@@ -1,6 +1,5 @@
+using BuildingBlocks.Pagination.Base;
+
 namespace InteractService.Application.Usecases.Posts.Queries.GetListPost;
 
-public class GetListPostQuery
-{
-    
-}
+public record GetListPostQuery(GetListPostRequest Request) : IQuery<PaginatedResult<PostResponseDto>>;

@@ -1,3 +1,4 @@
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using InteractService.Application.DTOs.Category.Response;
 
@@ -20,5 +21,7 @@ public interface IPostRepository
         IEnumerable<CategoryResponseDto> trendingCategories);
 
     Task<PaginatedCursorResult<PostResponseDto>> GetExploreFeed(GetExplorePostRequest request);
+    
+    Task<PaginatedResult<PostResponseDto>> GetListPost(GetListPostRequest request);
 
 }

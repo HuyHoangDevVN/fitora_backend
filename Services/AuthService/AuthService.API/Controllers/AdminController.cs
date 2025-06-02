@@ -1,11 +1,19 @@
+using AuthService.Application.Auths.Commands.AssignRoles;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
+using AuthService.Application.Auths.Commands.CreateRole;
+using AuthService.Application.Auths.Commands.DeleteRole;
 using AuthService.Application.Auths.Commands.EditInForUser;
 using AuthService.Application.Auths.Commands.LockAccByAdmin;
+using AuthService.Application.Auths.Commands.RemoveRoles;
 using AuthService.Application.Auths.Commands.UnlockAccByAdmin;
+using AuthService.Application.Auths.Commands.UpdateRole;
+using AuthService.Application.Auths.Queries.GetRole;
+using AuthService.Application.Auths.Queries.GetRoles;
 using AuthService.Application.Auths.Queries.GetUser;
 using AuthService.Application.Auths.Queries.GetUsers;
 using AuthService.Application.DTOs.Auth.Requests;
+using AuthService.Application.DTOs.Roles.Requests;
 using AuthService.Application.DTOs.Users.Requests;
 using AutoMapper;
 using BuildingBlocks.DTOs;
@@ -95,6 +103,74 @@ public class AdminController : Controller
         var result = await _sender.Send(requestModel);
         var deleteAccountResult = _mapper.Map<AuthDeleteAccountResult>(result);
         var response = new ResponseDto(deleteAccountResult, Message: "Delete Account Successful");
+        return Ok(response);
+    }
+
+    [HttpPost("create-role")]
+    public async Task<IActionResult> CreateRole(CreateRoleRequestDto req)
+    {
+        var command = _mapper.Map<CreateRoleCommand>(req);
+        var result = await _sender.Send(command);
+        var response = new ResponseDto(IsSuccess: result.IsSuccess,
+            Data: result.IsSuccess ? "Create Role Successful" : "Create Role Failure");
+        return Ok(response);
+    }
+
+    [HttpPost("assign-role")]
+    public async Task<IActionResult> AssignRole(AssignRoleRequestDto req)
+    {
+        var command = _mapper.Map<AssignRolesCommand>(req);
+        var result = await _sender.Send(command);
+        var response = new ResponseDto(Data: null, IsSuccess: result.IsSuccess,
+            Message: result.IsSuccess ? "AssignRole Successful" : "AssignRole Failure");
+        return Ok(response);
+    }
+
+    [HttpPost("remove-role")]
+    public async Task<IActionResult> RemoveRole(AssignRoleRequestDto req)
+    {
+        var command = _mapper.Map<RemoveRolesCommand>(req);
+        var result = await _sender.Send(command);
+        var response = new ResponseDto(Data: null, IsSuccess: result.IsSuccess,
+            Message: result.IsSuccess ? "AssignRole Successful" : "AssignRole Failure");
+        return Ok(response);
+    }
+
+    [HttpPut("update-role")]
+    public async Task<IActionResult> UpdateRole(UpdateRoleRequestDto req)
+    {
+        var command = _mapper.Map<UpdateRoleCommand>(req);
+        var result = await _sender.Send(command);
+        var response = new ResponseDto(Data: null, IsSuccess: result.IsSuccess,
+            Message: result.IsSuccess ? "Update Role Successful" : "Update Role Failure");
+        return Ok(response);
+    }
+
+    [HttpGet("get-roles")]
+    public async Task<IActionResult> GetRoles([FromQuery] PaginationRequest req)
+    {
+        var result = await _sender.Send(new GetRolesQuery(req.PageIndex, req.PageSize));
+        var response = new ResponseDto(Data: result, Message: "Get Roles Successful");
+        return Ok(response);
+    }
+
+    [HttpGet("get-role")]
+    public async Task<IActionResult> GetRoles([FromQuery] string id)
+    {
+        var result = await _sender.Send(new GetRoleQuery(id));
+        var response = new ResponseDto(Data: result, Message: "Get Role Successful");
+        return Ok(response);
+    }
+
+    [HttpDelete("delete-role")]
+    public async Task<IActionResult> DeleteRole(string name)
+    {
+        var request = new DeleteRoleRequestDto(name);
+        var command = _mapper.Map<DeleteRoleCommand>(request);
+        var result = await _sender.Send(command);
+        var response = new ResponseDto(Data: null, IsSuccess: result.IsSuccess,
+            Message: result.IsSuccess ? "Delete Role Successful" : "Delete role failure");
+
         return Ok(response);
     }
 }

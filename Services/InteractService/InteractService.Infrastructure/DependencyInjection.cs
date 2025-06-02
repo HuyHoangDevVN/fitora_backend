@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
         services.AddScoped<ICategoryRepository, CategoryRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IUserApiService, UserApiService>();
 

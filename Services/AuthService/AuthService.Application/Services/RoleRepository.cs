@@ -1,5 +1,4 @@
-﻿
-using AuthService.Application.DTOs.Roles.Requests;
+﻿using AuthService.Application.DTOs.Roles.Requests;
 using BuildingBlocks.Pagination.Base;
 using Microsoft.Extensions.Caching.Distributed;
 
@@ -13,7 +12,7 @@ public class RoleRepository(
     : IRoleRepository
 {
 
-    public async Task<PaginatedResult<object>> GetRolesAsync(PaginationRequest paginationRequest,CancellationToken cancellationToken = default!)
+    public async Task<PaginatedResult<object>> GetRolesAsync(PaginationRequest paginationRequest, CancellationToken cancellationToken = default!)
     {
         try
         {
@@ -42,6 +41,31 @@ public class RoleRepository(
             throw new BadRequestException(e.Message);
         }
     }
+
+    public async Task<object> GetRoleByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var roleFound = await roleManager.FindByIdAsync(id) ??
+                            throw new NotFoundException("Role NotFound");
+            var userWithRole = await userManager.GetUsersInRoleAsync(roleFound.Name!);
+            var totalUser = userWithRole.Count();
+            var roleResponse = new
+            {
+                RoleId = roleFound.Id,
+                RoleName = roleFound.Name!,
+                TotalUser = totalUser
+            };
+            return roleResponse;
+
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            throw new BadRequestException(e.Message);
+        }
+    }
+
 
     public async Task<bool> AssignRolesAsync(AssignRoleRequestDto dto, CancellationToken cancellationToken = default!)
     {
@@ -128,6 +152,26 @@ public class RoleRepository(
                 return false;
             }
 
+            return true;
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e.Message);
+            throw new BadRequestException(e.Message);
+        }
+    }
+
+    public async Task<bool> RemoveRolesAsync(AssignRoleRequestDto dto, CancellationToken cancellationToken = default!)
+    {
+        try
+        {
+            var userFound = await userManager.FindByEmailAsync(dto.Email) ??
+                            throw new NotFoundException("Không tìm thấy người dùng");
+            var removeRoleForUser = await userManager.RemoveFromRolesAsync(userFound, dto.RoleNames);
+            if (!removeRoleForUser.Succeeded)
+            {
+                return false;
+            }
             return true;
         }
         catch (Exception e)

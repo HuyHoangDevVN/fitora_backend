@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using BuildingBlocks.Exceptions;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.DTOs.Comment.Requests;
@@ -49,7 +50,7 @@ public class CommentRepository : ICommentRepository
             comment.CreatedAt = DateTime.Now;
             await _commentRepo.AddAsync(comment);
             var result = await _commentRepo.SaveChangesAsync() > 0;
-            
+
             if (!result)
                 throw new Exception("Failed to create comment");
 
@@ -178,9 +179,9 @@ public class CommentRepository : ICommentRepository
                        ?? throw new Exception("Post not found");
 
             await _commentRepo.DeleteAsync(c => c.Id == id);
-            
+
             var commentDeleted = await _commentRepo.SaveChangesAsync() > 0;
-            
+
             if (!commentDeleted)
                 throw new Exception("Failed to delete comment");
             post.CommentsCount--;
@@ -381,6 +382,37 @@ public class CommentRepository : ICommentRepository
             totalCount,
             commentDtos,
             nextCursor
+        );
+    }
+
+    public async Task<PaginatedResult<CommentResponseDto>> GetListAsync(GetListCommentRequest request)
+    {
+        var comments = await _commentRepo.GetPageAsync(request, CancellationToken.None, c =>
+                (request.UserId == Guid.Empty ||
+                 c.UserId == request.UserId) && (request.PostId == Guid.Empty || c.PostId == request.PostId) &&
+                (request.ParentCommentId == Guid.Empty || c.ParentCommentId == request.ParentCommentId) &&
+                (String.IsNullOrEmpty(request.Keysearch) ||
+                 c.Content.ToString().ToLower().Contains(request.Keysearch.ToLower()))
+        );
+        var totalCount = comments.Data.Count();
+        var commentDtos = comments.Data.Select(c => new CommentResponseDto
+        {
+            Id = c.Id,
+            UserId = c.UserId,
+            PostId = c.PostId,
+            ParentCommentId = c.ParentCommentId,
+            Content = c.Content,
+            MediaUrl = c.MediaUrl,
+            Votes = c.VotesCont,
+            ReplyCount = c.ReplyCount,
+            IsDeleted = c.IsDeleted,
+            UserVoteType = null
+        }).ToList();
+        return new PaginatedResult<CommentResponseDto>(
+            comments.PageIndex,
+            comments.PageSize,
+            totalCount,
+            commentDtos
         );
     }
 

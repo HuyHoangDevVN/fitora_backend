@@ -1,4 +1,5 @@
 using BuildingBlocks.Exceptions;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.DTOs.Category.Response;
@@ -515,6 +516,36 @@ public class PostRepository : IPostRepository
             totalCount,
             postDtos,
             nextCursor
+        );
+    }
+
+    public async Task<PaginatedResult<PostResponseDto>> GetListPost(GetListPostRequest request)
+    {
+        var posts = await _postRepo.GetPageAsync(request, CancellationToken.None, p =>
+            (!request.UserId.HasValue || p.UserId == request.UserId) &&
+            (!request.GroupId.HasValue || p.GroupId == request.GroupId) &&
+            (!request.CategoryId.HasValue || p.CategoryId == request.CategoryId) &&
+            !p.IsDeleted);
+        var totalCount = posts.Data.Count();
+        var postDto =  posts.Data.Select(p => new PostResponseDto
+        {
+            Id = p.Id,
+            Content = p.Content,
+            CreatedAt = (DateTimeOffset)p.CreatedAt!,
+            VotesCount = p.VotesCount,
+            CommentsCount = p.CommentsCount,
+            Score = p.Score,
+            MediaUrl = p.MediaUrl,
+            Privacy = p.Privacy,
+            GroupId = p.GroupId,
+            CategoryId = p.CategoryId,
+            IsDeleted = p.IsDeleted
+        }).ToList();
+        return new PaginatedResult<PostResponseDto>(
+            posts.PageIndex,
+            posts.PageSize,
+            totalCount,
+            postDto
         );
     }
 

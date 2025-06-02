@@ -46,14 +46,22 @@ public class CategoryRepository : ICategoryRepository
         }
 
         await _categoryRepo.AddAsync(category);
-        var isSuccess =  await _categoryRepo.SaveChangesAsync() > 0;
+        var isSuccess = await _categoryRepo.SaveChangesAsync() > 0;
         return (isSuccess ? category : null)!;
+    }
+
+    public async Task<bool> UpdateCategory(Category category)
+    {
+        await _categoryRepo.UpdateAsync(c => c.Id == category.Id, category);
+        return await _categoryRepo.SaveChangesAsync() > 0;
     }
 
     public async Task<PaginatedResult<Category>> GetCategories(GetCategoriesRequest request)
     {
         var categories = await _categoryRepo.GetPageAsync(request, CancellationToken.None,
-            c => request.KeySearch == null || c.Name.ToLower().Contains(request.KeySearch.ToLower()));
+            c => request.KeySearch == null || c.Name.ToLower().Contains(request.KeySearch.ToLower()) ||
+                 c.Slug.ToLower().Contains(request.KeySearch.ToLower()) ||
+                 c.Description.ToLower().Contains(request.KeySearch.ToLower()));
         return categories;
     }
 
@@ -170,6 +178,12 @@ public class CategoryRepository : ICategoryRepository
             .ToListAsync();
 
         return trendingCategories;
+    }
+
+    public async Task<bool> DeleteCategoryAsync(Guid id)
+    {
+        await _categoryRepo.DeleteAsync(c => c.Id == id);
+        return await _categoryRepo.SaveChangesAsync() > 0;
     }
 
     private void ValidateFollowCategoryRequest(FollowCategoryRequest request)

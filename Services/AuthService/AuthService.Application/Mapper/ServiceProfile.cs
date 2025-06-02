@@ -9,6 +9,7 @@ using AuthService.Application.Auths.Commands.CreateRole;
 using AuthService.Application.Auths.Commands.DeleteRole;
 using AuthService.Application.Auths.Commands.EditInForUser;
 using AuthService.Application.Auths.Commands.RefreshToken;
+using AuthService.Application.Auths.Commands.RemoveRoles;
 using AuthService.Application.Auths.Commands.UpdateRole;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
@@ -51,11 +52,11 @@ public class ServiceProfile : Profile
         // Key
         CreateMap<Key, KeyDto>().ReverseMap();
         CreateMap<KeyDto, Key>().ReverseMap();
-        
+
         // Create Key
         CreateMap<CreateKeyRequestDto, CreateKeyCommand>().ReverseMap();
         CreateMap<CreateKeyCommand, CreateKeyRequestDto>().ReverseMap();
-        
+
         // Refresh Token Request
         CreateMap<RefreshTokenCommand, RefreshTokenByUserResponseDto>();
         CreateMap<RefreshTokenByUserResponseDto, RefreshTokenCommand>();
@@ -72,7 +73,8 @@ public class ServiceProfile : Profile
         CreateMap<AssignRolesCommand, AssignRoleRequestDto>().ReverseMap();
         CreateMap<UpdateRoleCommand, UpdateRoleRequestDto>().ReverseMap();
         CreateMap<DeleteRoleCommand, DeleteRoleRequestDto>().ReverseMap();
-        
+        CreateMap<AssignRoleRequestDto, RemoveRolesCommand>().ReverseMap();
+
 
 
         #endregion
