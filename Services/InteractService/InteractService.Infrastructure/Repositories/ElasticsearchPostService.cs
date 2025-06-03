@@ -35,7 +35,7 @@ public class ElasticsearchPostService : IElasticsearchPostService
     // Update
     public async Task UpdatePostAsync(Post post)
     {
-        await IndexPostAsync(post); 
+        await IndexPostAsync(post);
     }
 
     // Delete
@@ -61,21 +61,25 @@ public class ElasticsearchPostService : IElasticsearchPostService
         );
         return searchResponse.Documents.ToList();
     }
-    
+
+
     public async Task BulkIndexPostsAsync(IEnumerable<Post> posts)
     {
-        var bulkRequest = new BulkRequest("post-index");
-
+        var operations = new List<IBulkOperation>();
         foreach (var post in posts)
         {
-            bulkRequest.Operations.Add(new BulkIndexOperation<Post>(post) { Id = post.Id.ToString() });
+            operations.Add(new BulkIndexOperation<Post>(post)
+            {
+                Index = IndexName,
+                Id = post.Id.ToString()
+            });
         }
-
-        var response = await _client.BulkAsync(bulkRequest);
-
+        var response = await _client.BulkAsync(new BulkRequest(IndexName)
+        {
+            Operations = operations
+        });
         if (!response.IsValidResponse)
         {
-            // Log lỗi chi tiết
             throw new Exception($"Bulk index failed: {response.DebugInformation}");
         }
     }
