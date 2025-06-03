@@ -92,6 +92,9 @@ public class RoleRepository(
                 return false;
             }
 
+            // Xóa cache token của user để cập nhật claim role mới
+            await cache.RemoveAsync($"token-{userFound.Id}");
+
             return true;
         }
         catch (Exception e)
@@ -107,6 +110,12 @@ public class RoleRepository(
         {
             var roleFound = await roleManager.FindByNameAsync(dto.RoleName) ??
                             throw new NotFoundException("Role NotFound");
+            // Xóa cache token của tất cả user có role này
+            var usersWithRole = await userManager.GetUsersInRoleAsync(dto.RoleName);
+            foreach (var user in usersWithRole)
+            {
+                await cache.RemoveAsync($"token-{user.Id}");
+            }
             var isDeleted = await roleManager.DeleteAsync(roleFound);
             if (!isDeleted.Succeeded) return false;
             return true;
@@ -172,6 +181,8 @@ public class RoleRepository(
             {
                 return false;
             }
+            // Xóa cache token của user để cập nhật claim role mới
+            await cache.RemoveAsync($"token-{userFound.Id}");
             return true;
         }
         catch (Exception e)
