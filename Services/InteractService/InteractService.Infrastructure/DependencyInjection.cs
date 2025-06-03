@@ -34,6 +34,13 @@ public static class DependencyInjection
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IUserApiService, UserApiService>();
+        services.AddScoped<IElasticsearchPostService>(sp =>
+        {
+            var elasticUri = configuration["ElasticsearchSettings:Uri"];
+            var username = configuration["ElasticsearchSettings:Username"];
+            var password = configuration["ElasticsearchSettings:Password"];
+            return new ElasticsearchPostService(elasticUri!, username!, password!);
+        });
 
         services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {

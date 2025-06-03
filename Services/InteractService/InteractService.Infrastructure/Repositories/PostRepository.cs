@@ -29,12 +29,14 @@ public class PostRepository : IPostRepository
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
     private readonly IAuthorizeExtension _authorizeExtension;
+    private readonly IElasticsearchPostService _elasticsearchPostService;
 
     public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
         IRepositoryBase<UserSaved> userSavedRepo,
         IUserApiService userApiService,
         ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
-        IAuthorizeExtension authorizeExtension)
+        IAuthorizeExtension authorizeExtension,
+        IElasticsearchPostService elasticsearchPostService)
     {
         _postRepo = postRepo;
         _userSavedRepo = userSavedRepo;
@@ -48,6 +50,7 @@ public class PostRepository : IPostRepository
         _userClient = userClient;
         _dbContext = dbContext;
         _authorizeExtension = authorizeExtension;
+        _elasticsearchPostService = elasticsearchPostService;
     }
 
     public async Task<bool> CreateAsync(Post post)
@@ -55,7 +58,12 @@ public class PostRepository : IPostRepository
         post.CreatedAt = DateTime.Now;
         post.CreatedBy = post.UserId;
         await _postRepo.AddAsync(post);
-        return await _postRepo.SaveChangesAsync() > 0;
+        var saved = await _postRepo.SaveChangesAsync() > 0;
+        if (saved)
+        {
+            await _elasticsearchPostService.IndexPostAsync(post);
+        }
+        return saved;
     }
 
     public async Task<Post> GetByIdAsync(Guid id)
@@ -66,7 +74,12 @@ public class PostRepository : IPostRepository
     public async Task<bool> UpdateAsync(Post post)
     {
         await _postRepo.UpdateAsync(p => p.Id == post.Id, post);
-        return await _postRepo.SaveChangesAsync() > 0;
+        var saved = await _postRepo.SaveChangesAsync() > 0;
+        if (saved)
+        {
+            await _elasticsearchPostService.UpdatePostAsync(post);
+        }
+        return saved;
     }
 
     public async Task<bool> VoteAsync(VotePostRequest request)
@@ -202,12 +215,20 @@ public class PostRepository : IPostRepository
     {
         try
         {
-            await _postRepo.DeleteAsync(p => p.Id == id);
-            return await _postRepo.SaveChangesAsync() > 0;
+            var post = await _postRepo.GetAsync(p => p.Id == id);
+            if (post == null) return false;
+            post.IsDeleted = true;
+            await _postRepo.UpdateAsync(p => p.Id == id, post);
+            var saved = await _postRepo.SaveChangesAsync() > 0;
+            if (saved)
+            {
+                await _elasticsearchPostService.DeletePostAsync(id);
+            }
+            return saved;
         }
         catch (Exception e)
         {
-            throw new BadRequestException(e.Message);
+            throw new Exception($"Delete failed: {e.Message}");
         }
     }
 
@@ -321,7 +342,7 @@ public class PostRepository : IPostRepository
     public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
         var privacy = _authorizeExtension.GetUserFromClaimToken().Id == request.Id ? 0 : request.IsFriend == true ? 1 : 2;
-      
+
         var now = DateTime.UtcNow;
         IQueryable<Post> query = _dbSetPosts.Where(p => p.Privacy >= (PrivacyPost)privacy && p.UserId == request.Id);
 
@@ -336,7 +357,7 @@ public class PostRepository : IPostRepository
                              p.CommentsCount) /
                             ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
                 })
-                .Where(x =>  x.Score < lastScore.Value ||
+                .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt == lastCreatedAt.Value &&
                              x.Post.Id < lastPostId.Value))
@@ -557,6 +578,40 @@ public class PostRepository : IPostRepository
 
     public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
     {
+        if (!string.IsNullOrEmpty(request.KeySearch))
+        {
+            var esPosts = await _elasticsearchPostService.SearchByContentAsync(request.KeySearch, request.Limit);
+            var esPostIds = esPosts.Select(p => p.Id).ToList();
+            var posts = await _dbSetPosts.Where(p => esPostIds.Contains(p.Id) && !p.IsDeleted).ToListAsync();
+            var esUserIds = posts.Select(x => x.UserId.ToString("D")).Distinct().ToList();
+            var esUserInfos = await GetUserInfos(esUserIds, request.Id);
+            var esPostDtos = posts.Select(p => new PostResponseDto
+            {
+                Id = p.Id,
+                Content = p.Content,
+                CreatedAt = (DateTimeOffset)p.CreatedAt!,
+                VotesCount = p.VotesCount,
+                CommentsCount = p.CommentsCount,
+                Score = null, // Không tính score khi search
+                MediaUrl = p.MediaUrl,
+                Privacy = p.Privacy,
+                GroupId = p.GroupId,
+                CategoryId = p.CategoryId,
+                CategoryName = _dbSetCategories.FirstOrDefault(c => c.Id == p.CategoryId)?.Name,
+                IsCategoryFollowed = p.CategoryId.HasValue && _dbSetFollowCategories.Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value),
+                IsDeleted = p.IsDeleted,
+                User = esUserInfos.GetValueOrDefault(p.UserId.ToString("D")),
+                UserVoteType = _dbSetUserVoteds.FirstOrDefault(uv => uv.UserId == request.Id && uv.PostId == p.Id)?.VoteType
+            }).ToList();
+            return new PaginatedCursorResult<PostResponseDto>(
+                request.Cursor,
+                request.Limit,
+                esPostDtos.Count,
+                esPostDtos,
+                null // Không phân trang khi search
+            );
+        }
+
         var now = DateTime.UtcNow;
         IQueryable<Post> query = _dbSetPosts;
 
@@ -679,7 +734,6 @@ public class PostRepository : IPostRepository
             nextCursor
         );
     }
-
 
     public async Task<PaginatedCursorResult<PostResponseDto>> GetTrendingFeed(GetTrendingPostRequest request,
         IEnumerable<CategoryResponseDto> trendingCategories)

@@ -5,6 +5,7 @@ public record GetPostRequest(
     FeedType FeedType,
     Guid? CategoryId = null,
     bool? IsFriend = false,
+    string? KeySearch = null,
     string? Cursor = null,
     int Limit = 10,
     Guid? GroupId = null)
