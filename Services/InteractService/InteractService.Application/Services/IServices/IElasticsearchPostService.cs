@@ -7,4 +7,6 @@ public interface IElasticsearchPostService
     Task UpdatePostAsync(Post post);
     Task DeletePostAsync(Guid id);
     Task<List<Post>> SearchByContentAsync(string keyword, int size = 10);
+
+    Task BulkIndexPostsAsync(IEnumerable<Post> posts);
 }

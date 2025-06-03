@@ -13,6 +13,7 @@ using InteractService.Application.Usecases.Category.Queries.GetCategory;
 using InteractService.Application.Usecases.Comments.Commands.DeleteComment;
 using InteractService.Application.Usecases.Comments.Queries.GetListComment;
 using InteractService.Application.Usecases.Posts.Commands.DeletePost;
+using InteractService.Application.Usecases.Posts.Commands.SyncAllPosts;
 using InteractService.Application.Usecases.Posts.Queries.GetByIdPost;
 using InteractService.Application.Usecases.Posts.Queries.GetListPost;
 using InteractService.Application.Usecases.Report.Commands.DeleteReport;
@@ -162,6 +163,13 @@ public class AdminController : Controller
 
         var response = new ResponseDto(Message: "Delete Successful");
         return Ok(response);
+    }
+    
+    [HttpPost("sync-all-posts")]
+    public async Task<IActionResult> SyncAllPosts([FromQuery] int batchSize = 100)
+    {
+        var result = await _sender.Send(new SyncAllPostsCommand(batchSize));
+        return Ok(result);
     }
 
     #endregion

@@ -21,7 +21,9 @@ public interface IPostRepository
         IEnumerable<CategoryResponseDto> trendingCategories);
 
     Task<PaginatedCursorResult<PostResponseDto>> GetExploreFeed(GetExplorePostRequest request);
-    
+
     Task<PaginatedResult<PostResponseDto>> GetListPost(GetListPostRequest request);
+
+    Task<bool> SyncAllPostsToElasticsearchAsync(int batchSize = 1000);
 
 }

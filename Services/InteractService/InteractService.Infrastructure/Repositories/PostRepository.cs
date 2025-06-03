@@ -843,6 +843,22 @@ public class PostRepository : IPostRepository
         );
     }
 
+    /// Đồng bộ toàn bộ dữ liệu Post từ database sang Elasticsearch, chia batch nếu quá lớn
+    public async Task<bool> SyncAllPostsToElasticsearchAsync(int batchSize = 1000)
+    {
+        var totalPosts = await _dbSetPosts.CountAsync();
+        bool success = true;
+        for (int i = 0; i < totalPosts; i += batchSize)
+        {
+            var batch = await _dbSetPosts.OrderBy(p => p.Id).Skip(i).Take(batchSize).ToListAsync();
+            if (batch.Count > 0)
+            {
+                await _elasticsearchPostService.BulkIndexPostsAsync(batch);
+            }
+        }
+        return success;
+    }
+
     // Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
     private (double? score, DateTime? createdAt, Guid? postId) ParseCursor(string cursor)
     {

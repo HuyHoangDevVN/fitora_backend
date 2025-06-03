@@ -1,4 +1,5 @@
 using Elastic.Clients.Elasticsearch;
+using Elastic.Clients.Elasticsearch.Core.Bulk;
 using Elastic.Transport;
 using InteractService.Application.Services.IServices;
 
@@ -59,5 +60,23 @@ public class ElasticsearchPostService : IElasticsearchPostService
             )
         );
         return searchResponse.Documents.ToList();
+    }
+    
+    public async Task BulkIndexPostsAsync(IEnumerable<Post> posts)
+    {
+        var bulkRequest = new BulkRequest("post-index");
+
+        foreach (var post in posts)
+        {
+            bulkRequest.Operations.Add(new BulkIndexOperation<Post>(post) { Id = post.Id.ToString() });
+        }
+
+        var response = await _client.BulkAsync(bulkRequest);
+
+        if (!response.IsValidResponse)
+        {
+            // Log lỗi chi tiết
+            throw new Exception($"Bulk index failed: {response.DebugInformation}");
+        }
     }
 }
