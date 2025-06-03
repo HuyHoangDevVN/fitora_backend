@@ -70,11 +70,12 @@
         "Put",
         "Delete",
         "Patch"
-      ]
+      ],
+      "UseWebSockets": true
     },
     {
       "DownstreamPathTemplate": "/hubs/chat",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -85,11 +86,12 @@
       "UpstreamHttpMethod": [
         "Get",
         "Post"
-      ]
+      ],
+      "UseWebSockets": true
     },
     {
       "DownstreamPathTemplate": "/hubs/chat/negotiate",
-      "DownstreamScheme": "http",
+      "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
           "Host": "localhost",
@@ -99,7 +101,8 @@
       "UpstreamPathTemplate": "/chat/negotiate",
       "UpstreamHttpMethod": [
         "Post"
-      ]
+      ],
+      "UseWebSockets": true
     },
     {
       "DownstreamPathTemplate": "/api/interact/upload/{everything}",
