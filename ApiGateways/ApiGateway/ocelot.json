@@ -55,6 +55,36 @@
       ]
     },
     {
+      "DownstreamPathTemplate": "/hubs/chat/negotiate",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "UpstreamPathTemplate": "/chat/negotiate",
+      "UpstreamHttpMethod": [
+        "Post"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/hubs/chat",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5008
+        }
+      ],
+      "UpstreamPathTemplate": "/chat",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post"
+      ],
+      "UseWebSockets": true
+    },
+    {
       "DownstreamPathTemplate": "/api/chat/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
@@ -70,39 +100,7 @@
         "Put",
         "Delete",
         "Patch"
-      ],
-      "UseWebSockets": true
-    },
-    {
-      "DownstreamPathTemplate": "/hubs/chat",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 5008
-        }
-      ],
-      "UpstreamPathTemplate": "/chat",
-      "UpstreamHttpMethod": [
-        "Get",
-        "Post"
-      ],
-      "UseWebSockets": true
-    },
-    {
-      "DownstreamPathTemplate": "/hubs/chat/negotiate",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 5008
-        }
-      ],
-      "UpstreamPathTemplate": "/chat/negotiate",
-      "UpstreamHttpMethod": [
-        "Post"
-      ],
-      "UseWebSockets": true
+      ]
     },
     {
       "DownstreamPathTemplate": "/api/interact/upload/{everything}",
