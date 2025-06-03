@@ -10,7 +10,14 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration["ConnectionStrings:Redis"]!);
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration["ConnectionStrings:Redis"]!);
+
+builder.Services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15); // Ping every 15s
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30); // Timeout after 30s without ping
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
