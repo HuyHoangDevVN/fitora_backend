@@ -82,10 +82,8 @@
       "UpstreamHttpMethod": [
         "Get",
         "Post"
-      ],
-      "UseWebSockets": true
-    }
-    ,
+      ]
+    },
     {
       "DownstreamPathTemplate": "/api/chat/{everything}",
       "DownstreamScheme": "https",
@@ -102,8 +100,7 @@
         "Put",
         "Delete",
         "Patch"
-      ],
-      "UseWebSockets": true
+      ]
     },
     {
       "DownstreamPathTemplate": "/api/interact/upload/{everything}",

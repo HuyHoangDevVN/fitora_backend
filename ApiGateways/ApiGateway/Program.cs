@@ -7,6 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
 builder.Services.AddOcelot(builder.Configuration);
+builder.Services.AddSignalR();
 
 // Configure CORS: Cho phép gửi cookies từ frontend
 builder.Services.AddCors(options =>
@@ -49,6 +50,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
+app.UseWebSockets();
 
 // Dùng await cho UseOcelot vì nó trả về Task
 await app.UseOcelot();
