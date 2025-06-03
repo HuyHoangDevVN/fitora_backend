@@ -42,7 +42,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "https://fitora-api.aiotlab.edu.vn")
             .AllowCredentials()
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -82,7 +82,7 @@ app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseWebSockets();
 // Map SignalR Hub
 app.MapHub<ChatHub>("/hubs/chat");
 
