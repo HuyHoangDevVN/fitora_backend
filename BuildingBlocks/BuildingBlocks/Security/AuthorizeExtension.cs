@@ -110,6 +110,40 @@ public class AuthorizeExtension : IAuthorizeExtension
             FullName: principal?.FindFirst("FullName")!.Value ?? ""
         );
     }
+    
+    public UserLoginResponseBase DecodeExpiredToken()
+    {
+        var token = GetToken(); 
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+        if (!tokenHandler.CanReadToken(token))
+        {
+            throw new SecurityTokenException("Invalid token format");
+        }
+
+        var key = Encoding.UTF8.GetBytes(_jwtConfiguration.Secret);
+        var signingKey = new SymmetricSecurityKey(key);
+        var validationParameters = new TokenValidationParameters
+        {
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidateLifetime = false, 
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = _jwtConfiguration.Issuer,
+            ValidAudience = _jwtConfiguration.Audience,
+            IssuerSigningKey = signingKey
+        };
+
+        var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+        var userId = principal.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+
+        return new UserLoginResponseBase(
+            Id: Guid.Parse(userId),
+            UserName: principal?.FindFirst(ClaimTypes.Name)!.Value ?? "",
+            FullName: principal?.FindFirst("FullName")!.Value ?? ""
+        );
+    }
+
 
     /// <summary>
     /// Lấy token từ HttpOnly Cookie
