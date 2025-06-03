@@ -2,6 +2,7 @@ using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Category.Response;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.DTOs.Post.Responses;
@@ -27,11 +28,13 @@ public class PostRepository : IPostRepository
     private readonly DbSet<FollowCategory> _dbSetFollowCategories;
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
+    private readonly IAuthorizeExtension _authorizeExtension;
 
     public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
         IRepositoryBase<UserSaved> userSavedRepo,
         IUserApiService userApiService,
-        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
+        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
+        IAuthorizeExtension authorizeExtension)
     {
         _postRepo = postRepo;
         _userSavedRepo = userSavedRepo;
@@ -44,6 +47,7 @@ public class PostRepository : IPostRepository
         _userApiService = userApiService;
         _userClient = userClient;
         _dbContext = dbContext;
+        _authorizeExtension = authorizeExtension;
     }
 
     public async Task<bool> CreateAsync(Post post)
@@ -316,8 +320,10 @@ public class PostRepository : IPostRepository
 
     public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
+        var privacy = _authorizeExtension.GetUserFromClaimToken().Id == request.Id ? 0 : request.IsFriend == true ? 1 : 2;
+      
         var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSetPosts.Where(p => p.UserId == request.Id);
+        IQueryable<Post> query = _dbSetPosts.Where(p => p.Privacy >= (PrivacyPost)privacy && p.UserId == request.Id);
 
         (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
         if (lastScore.HasValue && lastCreatedAt.HasValue)
@@ -330,7 +336,7 @@ public class PostRepository : IPostRepository
                              p.CommentsCount) /
                             ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
                 })
-                .Where(x => x.Score < lastScore.Value ||
+                .Where(x =>  x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt == lastCreatedAt.Value &&
                              x.Post.Id < lastPostId.Value))
@@ -527,7 +533,7 @@ public class PostRepository : IPostRepository
             (!request.CategoryId.HasValue || p.CategoryId == request.CategoryId) &&
             !p.IsDeleted);
         var totalCount = posts.Data.Count();
-        var postDto =  posts.Data.Select(p => new PostResponseDto
+        var postDto = posts.Data.Select(p => new PostResponseDto
         {
             Id = p.Id,
             Content = p.Content,

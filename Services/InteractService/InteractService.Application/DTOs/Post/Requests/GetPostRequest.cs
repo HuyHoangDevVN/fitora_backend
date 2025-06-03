@@ -4,6 +4,7 @@ public record GetPostRequest(
     Guid Id,
     FeedType FeedType,
     Guid? CategoryId = null,
+    bool? IsFriend = false,
     string? Cursor = null,
     int Limit = 10,
     Guid? GroupId = null)
@@ -15,6 +16,7 @@ public record GetPostRequest(
         ? throw new ArgumentException("Vui lòng truyền vào CategoryID.")
         : CategoryId;
 }
+
 
 public enum FeedType
 {
