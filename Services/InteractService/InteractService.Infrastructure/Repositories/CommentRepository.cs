@@ -388,11 +388,11 @@ public class CommentRepository : ICommentRepository
     public async Task<PaginatedResult<CommentResponseDto>> GetListAsync(GetListCommentRequest request)
     {
         var comments = await _commentRepo.GetPageAsync(request, CancellationToken.None, c =>
-                (request.UserId == Guid.Empty ||
-                 c.UserId == request.UserId) && (request.PostId == Guid.Empty || c.PostId == request.PostId) &&
-                (request.ParentCommentId == Guid.Empty || c.ParentCommentId == request.ParentCommentId) &&
-                (String.IsNullOrEmpty(request.Keysearch) ||
-                 c.Content.ToString().ToLower().Contains(request.Keysearch.ToLower()))
+            (!request.UserId.HasValue || c.UserId == request.UserId) &&
+            (!request.PostId.HasValue || c.PostId == request.PostId) &&
+            (!request.ParentCommentId.HasValue || c.ParentCommentId == request.ParentCommentId) &&
+            (string.IsNullOrWhiteSpace(request.Keysearch) ||
+             EF.Functions.Like(c.Content.ToLower(), $"%{request.Keysearch.ToLower()}%"))
         );
         var totalCount = comments.Data.Count();
         var commentDtos = comments.Data.Select(c => new CommentResponseDto
