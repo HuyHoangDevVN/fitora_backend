@@ -44,7 +44,7 @@ public static class DependencyInjection
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
-        services.AddSingleton<IRabbitMqPublisher<NotificationMessageDto>, IRabbitMqPublisher<NotificationMessageDto>>();
+        services.AddSingleton<IRabbitMqPublisher<NotificationMessageDto>, RabbitMqPublisher<NotificationMessageDto>>();
         services.AddSingleton<IRabbitMqConsumer<NotificationMessageDto>, RabbitMqConsumer<NotificationMessageDto>>();
         services.AddScoped<IMessageHandler<NotificationMessageDto>, NotificationMessageHandler>();
         services.AddHostedService<NotificationConsumerHostedService>();
