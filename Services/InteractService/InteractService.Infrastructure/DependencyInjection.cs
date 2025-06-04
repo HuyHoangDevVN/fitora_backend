@@ -2,7 +2,9 @@ using System.Text;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using BuildingBlocks.Security;
 using InteractService.Application.Data;
+using InteractService.Application.DTOs.RabbitMQ.Requests;
 using InteractService.Application.Helpers;
+using InteractService.Application.Messaging;
 using InteractService.Application.Services.IServices;
 using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Repositories;
@@ -27,6 +29,8 @@ public static class DependencyInjection
         }
 
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
+        services.AddTransient(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
+        services.AddSingleton<IRabbitMqPublisher<NotificationMessageDto>, RabbitMqPublisher<NotificationMessageDto>>();
         services.AddTransient<BearerTokenHandler>();
         services.AddScoped<IPostRepository, PostRepository>();
         services.AddScoped<ICommentRepository, CommentRepository>();
@@ -58,7 +62,9 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         return services;
     }
-    public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration)
+
+    public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
+        IConfiguration configuration)
     {
         var jwtOptions = configuration.GetSection("ApiSettings:JwtOptions");
         var secret = jwtOptions["Secret"]!;
@@ -70,37 +76,38 @@ public static class DependencyInjection
         services.Configure<JwtOptionsSetting>(configuration.GetSection("ApiSettings:JwtOptions"));
 
         services.AddAuthentication(options =>
-        {
-            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        })
-        .AddJwtBearer(options =>
-        {
-            options.TokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(key),
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidIssuer = issuer,
-                ValidAudience = audience,
-                RequireExpirationTime = true,
-                ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero,
-            };
-            options.Events = new JwtBearerEvents
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
             {
-                OnMessageReceived = context =>
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    // Đọc accessToken từ Cookie nếu có
-                    if (context.Request.Cookies.ContainsKey("accessToken"))
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
+                    RequireExpirationTime = true,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero,
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
                     {
-                        context.Token = context.Request.Cookies["accessToken"];
+                        // Đọc accessToken từ Cookie nếu có
+                        if (context.Request.Cookies.ContainsKey("accessToken"))
+                        {
+                            context.Token = context.Request.Cookies["accessToken"];
+                        }
+
+                        return Task.CompletedTask;
                     }
-                    return Task.CompletedTask;
-                }
-            };
-        });
+                };
+            });
 
         return services;
     }
