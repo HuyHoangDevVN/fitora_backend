@@ -90,6 +90,7 @@ public class AdminController : Controller
                 request.Name,
                 request.Slug,
                 request.Description,
+                request.Color,
                 request.ParentId,
                 userId
             )

@@ -6,6 +6,7 @@ using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.DTOs.Comment.Requests;
 using InteractService.Application.DTOs.Comment.Responses;
 using InteractService.Application.DTOs.Post.Responses;
+using InteractService.Application.DTOs.RabbitMQ.Requests;
 using InteractService.Application.Services.IServices;
 using InteractService.Domain.Enums;
 using InteractService.Infrastructure.Data;
@@ -25,11 +26,13 @@ public class CommentRepository : ICommentRepository
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRabbitMqPublisher<NotificationMessageDto> _publisher;
 
 
     public CommentRepository(IRepositoryBase<Comment> commentRepo, IRepositoryBase<CommentVotes> commentVotesRepo,
         IRepositoryBase<Post> postRepo,
-        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
+        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
+        IRabbitMqPublisher<NotificationMessageDto> publisher)
     {
         _commentRepo = commentRepo;
         _commentVotesRepo = commentVotesRepo;
@@ -39,6 +42,7 @@ public class CommentRepository : ICommentRepository
         _redis = redis.GetDatabase();
         _userClient = userClient;
         _dbContext = dbContext;
+        _publisher = publisher;
     }
 
     public async Task<bool> CreateAsync(Comment comment)
@@ -63,6 +67,20 @@ public class CommentRepository : ICommentRepository
             var isUpdate = await _postRepo.SaveChangesAsync() > 0;
 
             await transaction.CommitAsync();
+
+            var message = new NotificationMessageDto
+            {
+                SenderId = comment.UserId,
+                UserId = comment.ParentCommentId ?? comment.Post.UserId,
+                NotificationTypeId = 1,
+                ObjectId = comment.Id,
+                Title = "Bình luận mới:",
+                Content = comment.ParentCommentId.HasValue
+                    ? "Đã trả lời bình luận của bạn !"
+                    : "Đã bình luận vào bài viết của bạn !",
+                Channel = NotificationChannel.Web
+            };
+            await _publisher.PublishMessageAsync(message, "noti_queue");
 
             return result && isUpdate;
         }

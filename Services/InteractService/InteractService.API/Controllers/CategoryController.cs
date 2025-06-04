@@ -35,6 +35,7 @@ public class CategoryController : Controller
                 request.Name,
                 request.Slug,
                 request.Description,
+                request.Color,
                 request.ParentId,
                 userGuid
             )

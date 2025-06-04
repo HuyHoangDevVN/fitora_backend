@@ -371,3 +371,5 @@ D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bi
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\System.ServiceProcess.ServiceController.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
 D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\runtimes\win\lib\net8.0\System.ServiceProcess.ServiceController.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Elastic.Clients.Elasticsearch.dll
+D:\Workspace\DATN\fitora_backend\Services\InteractService\InteractService.API\bin\Debug\net8.0\Elastic.Transport.dll

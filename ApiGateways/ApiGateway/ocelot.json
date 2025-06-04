@@ -101,6 +101,53 @@
         "Delete",
         "Patch"
       ]
+    },{
+      "DownstreamPathTemplate": "/hubs/noti/negotiate",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti/negotiate",
+      "UpstreamHttpMethod": [
+        "Post"
+      ],
+      "UseWebSockets": true
+    },
+    {
+      "DownstreamPathTemplate": "/hubs/noti",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/notification/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/notification/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete",
+        "Patch"
+      ]
     },
     {
       "DownstreamPathTemplate": "/api/interact/upload/{everything}",
