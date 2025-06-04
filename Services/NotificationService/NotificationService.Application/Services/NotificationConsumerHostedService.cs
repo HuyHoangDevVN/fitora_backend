@@ -47,7 +47,7 @@ namespace NotificationService.Application.Services
 
                     await notificationRepo.CreateAsync(notification);
 
-                    await _rabbitMqPublisher.PublishMessageAsync(message, "noti_realtime_channel");
+                    await _rabbitMqPublisher.PublishMessageAsync(message, "noti_realtime_queue");
 
                     Console.WriteLine($"[NotificationService] Saved and pushed to realtime: {message.UserId}");
                 });
