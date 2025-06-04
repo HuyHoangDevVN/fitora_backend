@@ -23,7 +23,7 @@ public class SignalRNotificationConsumerHostedService : BackgroundService
     {
         Console.WriteLine("RealtimeService is starting to listen for notifications...");
 
-        await _rabbitMqConsumer.StartConsumingAsync("noti_realtime_channel", async message =>
+        await _rabbitMqConsumer.StartConsumingAsync("noti_realtime_queue", async message =>
         {
             // Gửi notification tới đúng user qua SignalR
             await _hubContext.Clients.User(message.UserId.ToString())
