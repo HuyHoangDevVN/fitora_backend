@@ -111,10 +111,11 @@ public class AuthController : Controller
     public IActionResult GetCurrentUser()
     {
         var cookieToken = Request.Cookies["accessToken"];
+        var user = _authorizeExtension.DecodeToken();
 
         if (string.IsNullOrEmpty(cookieToken))
         {
-            return Ok(new ResponseDto(null, IsSuccess: false, "User is not logged in"));
+            return Ok(new ResponseDto(user, IsSuccess: false, "User is not logged in"));
         }
 
         return Ok(new ResponseDto(cookieToken, IsSuccess: true, "User is logged in"));
