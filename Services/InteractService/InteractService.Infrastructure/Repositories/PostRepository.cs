@@ -63,6 +63,7 @@ public class PostRepository : IPostRepository
         {
             await _elasticsearchPostService.IndexPostAsync(post);
         }
+
         return saved;
     }
 
@@ -79,6 +80,7 @@ public class PostRepository : IPostRepository
         {
             await _elasticsearchPostService.UpdatePostAsync(post);
         }
+
         return saved;
     }
 
@@ -224,6 +226,7 @@ public class PostRepository : IPostRepository
             {
                 await _elasticsearchPostService.DeletePostAsync(id);
             }
+
             return saved;
         }
         catch (Exception e)
@@ -341,7 +344,8 @@ public class PostRepository : IPostRepository
 
     public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
-        var privacy = _authorizeExtension.GetUserFromClaimToken().Id == request.Id ? 0 : request.IsFriend == true ? 1 : 2;
+        var privacy = _authorizeExtension.GetUserFromClaimToken().Id == request.Id ? 0 :
+            request.IsFriend == true ? 1 : 2;
 
         var now = DateTime.UtcNow;
         IQueryable<Post> query = _dbSetPosts.Where(p => p.Privacy >= (PrivacyPost)privacy && p.UserId == request.Id);
@@ -582,7 +586,9 @@ public class PostRepository : IPostRepository
         {
             var esPosts = await _elasticsearchPostService.SearchByContentAsync(request.KeySearch, request.Limit);
             var esPostIds = esPosts.Select(p => p.Id).ToList();
-            var posts = await _dbSetPosts.Where(p => esPostIds.Contains(p.Id) && !p.IsDeleted).ToListAsync();
+            var posts = await _dbSetPosts.Where(p =>
+                esPostIds.Contains(p.Id) && !p.IsDeleted &&
+                (p.UserId == request.Id || p.Privacy > PrivacyPost.FriendsOnly)).ToListAsync();
             var esUserIds = posts.Select(x => x.UserId.ToString("D")).Distinct().ToList();
             var esUserInfos = await GetUserInfos(esUserIds, request.Id);
             var esPostDtos = posts.Select(p => new PostResponseDto
@@ -598,10 +604,13 @@ public class PostRepository : IPostRepository
                 GroupId = p.GroupId,
                 CategoryId = p.CategoryId,
                 CategoryName = _dbSetCategories.FirstOrDefault(c => c.Id == p.CategoryId)?.Name,
-                IsCategoryFollowed = p.CategoryId.HasValue && _dbSetFollowCategories.Any(fc => fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value),
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories.Any(fc =>
+                                         fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value),
                 IsDeleted = p.IsDeleted,
                 User = esUserInfos.GetValueOrDefault(p.UserId.ToString("D")),
-                UserVoteType = _dbSetUserVoteds.FirstOrDefault(uv => uv.UserId == request.Id && uv.PostId == p.Id)?.VoteType
+                UserVoteType = _dbSetUserVoteds.FirstOrDefault(uv => uv.UserId == request.Id && uv.PostId == p.Id)
+                    ?.VoteType
             }).ToList();
             return new PaginatedCursorResult<PostResponseDto>(
                 request.Cursor,
@@ -615,7 +624,7 @@ public class PostRepository : IPostRepository
         var now = DateTime.UtcNow;
         IQueryable<Post> query = _dbSetPosts;
 
-        var friendResponse = await _userApiService.GetFriend(String.Empty, 0, 20, CancellationToken.None);
+        var friendResponse = await _userApiService.GetFriend(String.Empty, 0, 100, CancellationToken.None);
 
         var friendIds = friendResponse.Data.Data.Select(f => f.Id).ToList();
 
@@ -743,7 +752,9 @@ public class PostRepository : IPostRepository
 
         var trendingCategoryIds = trendingCategories.Select(c => c.Id).ToList();
 
-        query = query.Where(p => p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value) && p.Privacy >= PrivacyPost.FriendsOnly);
+        query = query.Where(p =>
+            p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value) &&
+            p.Privacy >= PrivacyPost.FriendsOnly);
 
         (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
         if (lastScore.HasValue && lastCreatedAt.HasValue)
@@ -856,6 +867,7 @@ public class PostRepository : IPostRepository
                 await _elasticsearchPostService.BulkIndexPostsAsync(batch);
             }
         }
+
         return success;
     }
 
