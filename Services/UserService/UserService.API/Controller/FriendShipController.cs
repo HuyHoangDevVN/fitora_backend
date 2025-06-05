@@ -79,7 +79,7 @@ public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
     [HttpGet("get-friends")]
     public async Task<IActionResult> GetFriends([FromQuery] GetFriendsQuery query)
     {
-        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = query.Id ?? _authorizeExtension.GetUserFromClaimToken().Id;
 
         var sended = new GetFriendsRequest(userGuid, query.KeySearch, query.PageIndex, query.PageSize);
 
