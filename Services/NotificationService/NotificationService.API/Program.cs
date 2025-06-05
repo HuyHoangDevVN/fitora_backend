@@ -36,8 +36,6 @@ builder.WebHost.ConfigureKestrel(options =>
     });
 });
 
-builder.Host.UseWindowsService();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
@@ -90,6 +88,7 @@ app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseWebSockets();
 
 // Map SignalR Hub
 app.MapHub<NotificationHub>("/hubs/noti");
