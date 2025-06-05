@@ -101,7 +101,8 @@
         "Delete",
         "Patch"
       ]
-    },{
+    },
+    {
       "DownstreamPathTemplate": "/hubs/noti/negotiate",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
