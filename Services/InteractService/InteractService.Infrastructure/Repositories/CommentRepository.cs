@@ -68,6 +68,11 @@ public class CommentRepository : ICommentRepository
 
             await transaction.CommitAsync();
 
+            var userInfo =
+                await GetUserInfos(new List<string> { comment.UserId.ToString("D"), comment.Post.UserId.ToString("D") },
+                    comment.UserId);
+
+            var username = userInfo.Values.First().FirstName;
             var message = new NotificationMessageDto
             {
                 SenderId = comment.UserId,
@@ -76,8 +81,8 @@ public class CommentRepository : ICommentRepository
                 ObjectId = comment.Id,
                 Title = "Bình luận mới:",
                 Content = comment.ParentCommentId.HasValue
-                    ? "Đã trả lời bình luận của bạn !"
-                    : "Đã bình luận vào bài viết của bạn !",
+                    ? $"{username} đã trả lời bình luận của bạn!"
+                    : $"{username} đã bình luận vào bài viết của bạn!",
                 Channel = NotificationChannel.Web
             };
             await _publisher.PublishMessageAsync(message, "noti_queue");
