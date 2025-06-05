@@ -743,7 +743,7 @@ public class PostRepository : IPostRepository
 
         var trendingCategoryIds = trendingCategories.Select(c => c.Id).ToList();
 
-        query = query.Where(p => p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value));
+        query = query.Where(p => p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value) && p.Privacy >= PrivacyPost.FriendsOnly);
 
         (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
         if (lastScore.HasValue && lastCreatedAt.HasValue)

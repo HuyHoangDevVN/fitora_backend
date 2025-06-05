@@ -6,7 +6,7 @@ using NotificationService.Application.Services.IServices;
 namespace NotificationService.API.Controller
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/noti/notification-settings")]
     [Authorize]
     public class NotificationSettingController : ControllerBase
     {

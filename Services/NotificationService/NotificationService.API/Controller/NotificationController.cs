@@ -7,7 +7,7 @@ using NotificationService.Domain.Models;
 namespace NotificationService.API.Controller
 {
     [ApiController]
-    [Route("api/notification")]
+    [Route("api/noti/notification")]
     [Authorize]
     public class NotificationController : ControllerBase
     {
