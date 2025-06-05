@@ -42,6 +42,7 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotificationTypeRepository, NotificationTypeRepository>();
         services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         

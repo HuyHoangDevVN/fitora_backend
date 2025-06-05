@@ -8,7 +8,7 @@ public class NotificationDto
     public Guid UserId { get; set; }
     public Guid? SenderId { get; set; }
     public int NotificationTypeId { get; set; }
-    public NotificationType NotificationType { get; set; } = null!;
+    public Domain.Models.NotificationType NotificationType { get; set; } = null!;
     public Guid? ObjectId { get; set; }
     public string? Title { get; set; }
     public string? Content { get; set; }
