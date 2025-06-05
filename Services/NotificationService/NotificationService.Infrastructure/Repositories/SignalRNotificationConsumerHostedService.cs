@@ -26,10 +26,10 @@ public class SignalRNotificationConsumerHostedService : BackgroundService
         await _rabbitMqConsumer.StartConsumingAsync("noti_realtime_queue", async message =>
         {
             // Gửi notification tới đúng user qua SignalR
-            // await _hubContext.Clients.User(message.UserId.ToString())
-            //     .SendAsync("ReceiveNotification", message);
+            await _hubContext.Clients.User(message.UserId.ToString())
+                .SendAsync("ReceiveNotification", message);
             
-            await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
+            // await _hubContext.Clients.All.SendAsync("ReceiveNotification", message);
 
 
             Console.WriteLine($"[RealtimeService] Sent realtime notification to user {message.UserId}");
