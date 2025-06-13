@@ -2,6 +2,7 @@ using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Domain.Enums;
+using BuildingBlocks.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
@@ -16,7 +17,8 @@ public class AuthRepository(
     IMapper mapper,
     IKeyRepository<Guid> keyRepository,
     IHttpContextAccessor accessor,
-    IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
+    IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher,
+    IAuthorizeExtension authorizeExtension)
     : IAuthRepository
 {
     private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)
@@ -158,15 +160,9 @@ public class AuthRepository(
     {
         string token = "";
         string uid = "";
-        if (accessor.HttpContext!.Request.Headers.TryGetValue("Authorization", out var accessToken))
-        {
-            token = accessToken.ToString().Split(" ").Last();
-        }
+        token = authorizeExtension.GetToken();
 
-        if (accessor.HttpContext!.Request.Headers.TryGetValue("x-client-id", out var userIdRequest))
-        {
-            uid = userIdRequest.ToString();
-        }
+        uid = authorizeExtension.GetUserFromClaimToken().Id.ToString();
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(uid))
         {
@@ -260,13 +256,15 @@ public class AuthRepository(
             {
                 return false;
             }
+
             return true;
         }
         catch (Exception e)
         {
             throw new BadRequestException(e.Message);
         }
-    }    
+    }
+
     public async Task<bool> UnlockUserByAdminAsync(Guid userId)
     {
         try
@@ -280,6 +278,7 @@ public class AuthRepository(
             {
                 return false;
             }
+
             return true;
         }
         catch (Exception e)
