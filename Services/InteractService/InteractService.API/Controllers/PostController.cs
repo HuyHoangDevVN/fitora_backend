@@ -31,7 +31,7 @@ public class PostController : Controller
         _authorizeExtension = authorizeExtension;
     }
 
-    [HttpPost("create-post")]
+    [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreatePostFromBody req)
     {
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
@@ -51,7 +51,7 @@ public class PostController : Controller
         return Ok(response);
     }
 
-    [HttpPut("update-post/{id}")]
+    [HttpPut("update/{id}")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePostRequest updatePostRequest)
     {
         if (!ModelState.IsValid)
@@ -88,7 +88,7 @@ public class PostController : Controller
         return Ok(response);
     }
 
-    [HttpDelete("delete-post/{id}")]
+    [HttpDelete("delete/{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
         var post = await _mediator.Send(new DeletePostCommand(id));
