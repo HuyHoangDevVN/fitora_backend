@@ -91,12 +91,7 @@ public class PostController : Controller
     [HttpDelete("delete/{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var post = await _mediator.Send(new DeletePostCommand(id));
-        if (!post)
-        {
-            return BadRequest(new { Message = "Failed to delete post." });
-        }
-
+        await _mediator.Send(new DeletePostCommand(id));
         var response = new ResponseDto(Message: "Delete Successful");
         return Ok(response);
     }
