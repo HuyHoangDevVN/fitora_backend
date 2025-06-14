@@ -66,10 +66,9 @@ public class PostRepository : IPostRepository
 
         return saved;
     }
-
     public async Task<Post> GetByIdAsync(Guid id)
     {
-        return (await _postRepo.GetAsync(x => x.Id == id))!;
+        return (await _postRepo.GetAsync(x => x.Id == id && !x.IsDeleted))!;
     }
 
     public async Task<bool> UpdateAsync(Post post)
@@ -647,11 +646,12 @@ public class PostRepository : IPostRepository
         {
             query = query.Where(p => p.CategoryId == request.CategoryId.Value);
         }
-
         query = query.Where(p =>
-            !p.IsDeleted && p.Privacy == PrivacyPost.Public ||
-            (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
-            (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
+            !p.IsDeleted && (
+                p.Privacy == PrivacyPost.Public ||
+                (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
+                (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
+            )
         ); (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
         if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
@@ -867,16 +867,19 @@ public class PostRepository : IPostRepository
             postDtos,
             nextCursor
         );
-    }
-
-    /// Đồng bộ toàn bộ dữ liệu Post từ database sang Elasticsearch, chia batch nếu quá lớn
+    }    /// Đồng bộ toàn bộ dữ liệu Post từ database sang Elasticsearch, chia batch nếu quá lớn
     public async Task<bool> SyncAllPostsToElasticsearchAsync(int batchSize = 1000)
     {
-        var totalPosts = await _dbSetPosts.CountAsync();
+        var totalPosts = await _dbSetPosts.Where(p => !p.IsDeleted).CountAsync();
         bool success = true;
         for (int i = 0; i < totalPosts; i += batchSize)
         {
-            var batch = await _dbSetPosts.OrderBy(p => p.Id).Skip(i).Take(batchSize).ToListAsync();
+            var batch = await _dbSetPosts
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.Id)
+                .Skip(i)
+                .Take(batchSize)
+                .ToListAsync();
             if (batch.Count > 0)
             {
                 await _elasticsearchPostService.BulkIndexPostsAsync(batch);
@@ -884,7 +887,7 @@ public class PostRepository : IPostRepository
         }
 
         return success;
-    }    // Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
+    }// Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
     private (double? score, DateTime? createdAt, Guid? postId) ParseCursor(string? cursor)
     {
         if (string.IsNullOrEmpty(cursor)) return (null, null, null);
