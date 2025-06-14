@@ -649,7 +649,7 @@ public class PostRepository : IPostRepository
         }
 
         query = query.Where(p =>
-            p.Privacy == PrivacyPost.Public ||
+            !p.IsDeleted && p.Privacy == PrivacyPost.Public ||
             (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
             (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
         ); (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
