@@ -1,6 +1,8 @@
 using BuildingBlocks.Exceptions;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Category.Response;
 using InteractService.Application.DTOs.Post.Requests;
 using InteractService.Application.DTOs.Post.Responses;
@@ -26,11 +28,15 @@ public class PostRepository : IPostRepository
     private readonly DbSet<FollowCategory> _dbSetFollowCategories;
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
+    private readonly IAuthorizeExtension _authorizeExtension;
+    private readonly IElasticsearchPostService _elasticsearchPostService;
 
     public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
         IRepositoryBase<UserSaved> userSavedRepo,
         IUserApiService userApiService,
-        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
+        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
+        IAuthorizeExtension authorizeExtension,
+        IElasticsearchPostService elasticsearchPostService)
     {
         _postRepo = postRepo;
         _userSavedRepo = userSavedRepo;
@@ -43,6 +49,8 @@ public class PostRepository : IPostRepository
         _userApiService = userApiService;
         _userClient = userClient;
         _dbContext = dbContext;
+        _authorizeExtension = authorizeExtension;
+        _elasticsearchPostService = elasticsearchPostService;
     }
 
     public async Task<bool> CreateAsync(Post post)
@@ -50,28 +58,37 @@ public class PostRepository : IPostRepository
         post.CreatedAt = DateTime.Now;
         post.CreatedBy = post.UserId;
         await _postRepo.AddAsync(post);
-        return await _postRepo.SaveChangesAsync() > 0;
-    }
+        var saved = await _postRepo.SaveChangesAsync() > 0;
+        if (saved)
+        {
+            await _elasticsearchPostService.IndexPostAsync(post);
+        }
 
+        return saved;
+    }
     public async Task<Post> GetByIdAsync(Guid id)
     {
-        return (await _postRepo.GetAsync(x => x.Id == id))!;
+        return (await _postRepo.GetAsync(x => x.Id == id && !x.IsDeleted))!;
     }
 
     public async Task<bool> UpdateAsync(Post post)
     {
         await _postRepo.UpdateAsync(p => p.Id == post.Id, post);
-        return await _postRepo.SaveChangesAsync() > 0;
+        var saved = await _postRepo.SaveChangesAsync() > 0;
+        if (saved)
+        {
+            await _elasticsearchPostService.UpdatePostAsync(post);
+        }
+
+        return saved;
     }
 
     public async Task<bool> VoteAsync(VotePostRequest request)
     {
-        using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-        try
+        using var transaction = await _dbContext.Database.BeginTransactionAsync(); try
         {
             var post = await _postRepo.GetAsync(p => p.Id == request.PostId)
-                       ?? throw new Exception("Post not found");
+                       ?? throw new NotFoundException("Post not found");
 
             var userVote = await _userVotedRepo.GetAsync(uv =>
                 uv.UserId == request.UserId && uv.PostId == request.PostId);
@@ -154,14 +171,12 @@ public class PostRepository : IPostRepository
         else if (oldVote == VoteType.DownVote && newVote == VoteType.UpVote)
             post.VotesCount += 2;
     }
-
-
     public async Task<bool> SavePostAsync(SavePostRequest request)
     {
         var post = await _postRepo.GetAsync(p => p.Id == request.PostId);
         if (post == null)
         {
-            throw new Exception("Post not found");
+            throw new NotFoundException("Post not found");
         }
 
         var existingVote =
@@ -169,7 +184,7 @@ public class PostRepository : IPostRepository
 
         if (existingVote != null)
         {
-            throw new Exception("Post is already saved");
+            throw new BadRequestException("Post is already saved");
         }
 
         await _userSavedRepo.AddAsync(new UserSaved
@@ -186,43 +201,52 @@ public class PostRepository : IPostRepository
         var post = await _postRepo.GetAsync(p => p.Id == request.PostId);
         if (post == null)
         {
-            throw new Exception("Post not found");
+            throw new NotFoundException("Post not found");
         }
 
         await _userSavedRepo.DeleteAsync(us => us.UserId == request.UserId && us.PostId == request.PostId);
         return await _userSavedRepo.SaveChangesAsync() > 0;
     }
-
     public async Task<bool> DeleteAsync(Guid id)
     {
         try
         {
-            await _postRepo.DeleteAsync(p => p.Id == id);
-            return await _postRepo.SaveChangesAsync() > 0;
+            var post = await _postRepo.GetAsync(p => p.Id == id);
+            if (post == null) return false;
+
+            post.IsDeleted = true;
+            await _postRepo.UpdateAsync(p => p.Id == id, post);
+            var saved = await _postRepo.SaveChangesAsync() > 0;
+
+            if (saved)
+            {
+                await _elasticsearchPostService.DeletePostAsync(id);
+            }
+
+            return saved;
         }
         catch (Exception e)
         {
-            throw new BadRequestException(e.Message);
+            throw new InternalServerException($"Delete failed: {e.Message}");
         }
     }
-
     public async Task<PaginatedCursorResult<PostResponseDto>> GetSavedPosts(GetSavedPostsRequest request)
     {
         var now = DateTime.UtcNow;
         var savedPost = await _userSavedRepo.FindAsync(us => us.UserId == request.Id);
         var savedPostId = savedPost.Select(sp => sp.PostId).ToList();
-        IQueryable<Post> query = _dbSetPosts.Where(p => savedPostId.Contains(p.Id));
+        IQueryable<Post> query = _dbSetPosts.Where(p => savedPostId.Contains(p.Id) && !p.IsDeleted);
 
-        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor!);
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor ?? string.Empty);
+        if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
             query = query
                 .Select(p => new
                 {
                     Post = p,
-                    Score = (p.VotesCount +
+                    Score = (p.VotesCount * 2 +
                              p.CommentsCount) /
-                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now)! / 60.0 + 2)
+                            ((double)(EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2)
                 })
                 .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
@@ -237,10 +261,14 @@ public class PostRepository : IPostRepository
                 Post = p,
                 p.VotesCount,
                 p.CommentsCount,
-                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                HoursSinceCreation = (EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2,
                 CategoryName = _dbSetCategories
                     .Where(cat => cat.Id == p.CategoryId)
                     .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                CategoryColor = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Color)
                     .FirstOrDefault(),
                 IsCategoryFollowed = p.CategoryId.HasValue &&
                                      _dbSetFollowCategories
@@ -252,6 +280,7 @@ public class PostRepository : IPostRepository
                 x.VotesCount,
                 x.CommentsCount,
                 x.CategoryName,
+                x.CategoryColor,
                 x.IsCategoryFollowed,
                 Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
@@ -261,11 +290,11 @@ public class PostRepository : IPostRepository
             .ToListAsync();
 
         // Xử lý con trỏ (cursor) cho trang tiếp theo
-        string nextCursor = null;
+        string? nextCursor = null;
         if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}|{lastItem.Post.Id}";
+            nextCursor = $"{lastItem.Score}|{(lastItem.Post.CreatedAt?.Ticks ?? 0)}|{lastItem.Post.Id}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
@@ -288,7 +317,7 @@ public class PostRepository : IPostRepository
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt!,
+            CreatedAt = (DateTimeOffset)(x.Post.CreatedAt ?? DateTime.UtcNow),
             VotesCount = x.VotesCount,
             CommentsCount = x.CommentsCount,
             Score = x.Score,
@@ -297,6 +326,7 @@ public class PostRepository : IPostRepository
             GroupId = x.Post.GroupId,
             CategoryId = x.Post.CategoryId,
             CategoryName = x.CategoryName,
+            CategoryColor = x.CategoryColor,
             IsCategoryFollowed = x.IsCategoryFollowed,
             IsDeleted = x.Post.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
@@ -312,14 +342,16 @@ public class PostRepository : IPostRepository
             nextCursor
         );
     }
-
     public async Task<PaginatedCursorResult<PostResponseDto>> GetPersonal(GetPostRequest request)
     {
-        var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSetPosts.Where(p => p.UserId == request.Id);
+        var privacy = _authorizeExtension.GetUserFromClaimToken().Id == request.Id ? 0 :
+            request.IsFriend == true ? 1 : 2;
 
-        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        var now = DateTime.UtcNow;
+        IQueryable<Post> query = _dbSetPosts.Where(p => p.Privacy >= (PrivacyPost)privacy && p.UserId == request.Id && !p.IsDeleted);
+
+        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor ?? string.Empty);
+        if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
             query = query
                 .Select(p => new
@@ -327,7 +359,7 @@ public class PostRepository : IPostRepository
                     Post = p,
                     Score = (p.VotesCount * 2 +
                              p.CommentsCount) /
-                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                            ((double)(EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2)
                 })
                 .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
@@ -342,10 +374,14 @@ public class PostRepository : IPostRepository
                 Post = p,
                 p.VotesCount,
                 p.CommentsCount,
-                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                HoursSinceCreation = (EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2,
                 CategoryName = _dbSetCategories
                     .Where(cat => cat.Id == p.CategoryId)
                     .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                CategoryColor = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Color)
                     .FirstOrDefault(),
                 IsCategoryFollowed = p.CategoryId.HasValue &&
                                      _dbSetFollowCategories
@@ -357,6 +393,7 @@ public class PostRepository : IPostRepository
                 x.VotesCount,
                 x.CommentsCount,
                 x.CategoryName,
+                x.CategoryColor,
                 x.IsCategoryFollowed,
                 Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
@@ -365,11 +402,11 @@ public class PostRepository : IPostRepository
             .Take(request.Limit + 1)
             .ToListAsync();
 
-        string nextCursor = null;
+        string? nextCursor = null;
         if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}|{lastItem.Post.Id}";
+            nextCursor = $"{lastItem.Score}|{(lastItem.Post.CreatedAt?.Ticks ?? 0)}|{lastItem.Post.Id}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
@@ -389,7 +426,7 @@ public class PostRepository : IPostRepository
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt!,
+            CreatedAt = (DateTimeOffset)(x.Post.CreatedAt ?? DateTime.UtcNow),
             VotesCount = x.VotesCount,
             CommentsCount = x.CommentsCount,
             Score = x.Score,
@@ -398,6 +435,7 @@ public class PostRepository : IPostRepository
             GroupId = x.Post.GroupId,
             CategoryId = x.Post.CategoryId,
             CategoryName = x.CategoryName,
+            CategoryColor = x.CategoryColor,
             IsCategoryFollowed = x.IsCategoryFollowed,
             IsDeleted = x.Post.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
@@ -413,16 +451,13 @@ public class PostRepository : IPostRepository
             nextCursor
         );
     }
-
     public async Task<PaginatedCursorResult<PostResponseDto>> GetExploreFeed(GetExplorePostRequest request)
     {
         var now = DateTime.UtcNow;
-        IQueryable<Post> query = _dbSetPosts;
+        IQueryable<Post> query = _dbSetPosts.Where(p => p.Privacy == PrivacyPost.Public && !p.IsDeleted);
 
-        query = query.Where(p => p.Privacy == PrivacyPost.Public);
-
-        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor ?? string.Empty);
+        if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
             query = query
                 .Select(p => new
@@ -430,7 +465,7 @@ public class PostRepository : IPostRepository
                     Post = p,
                     Score = (p.VotesCount * 2 +
                              p.CommentsCount) /
-                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                            ((double)(EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2)
                 })
                 .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
@@ -445,10 +480,14 @@ public class PostRepository : IPostRepository
                 Post = p,
                 p.VotesCount,
                 p.CommentsCount,
-                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                HoursSinceCreation = (EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2,
                 CategoryName = _dbSetCategories
                     .Where(cat => cat.Id == p.CategoryId)
                     .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                CategoryColor = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Color)
                     .FirstOrDefault(),
                 IsCategoryFollowed = p.CategoryId.HasValue &&
                                      _dbSetFollowCategories
@@ -460,6 +499,7 @@ public class PostRepository : IPostRepository
                 x.VotesCount,
                 x.CommentsCount,
                 x.CategoryName,
+                x.CategoryColor,
                 x.IsCategoryFollowed,
                 Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
@@ -468,11 +508,11 @@ public class PostRepository : IPostRepository
             .Take(request.Limit + 1)
             .ToListAsync();
 
-        string nextCursor = null;
+        string? nextCursor = null;
         if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}|{lastItem.Post.Id}";
+            nextCursor = $"{lastItem.Score}|{(lastItem.Post.CreatedAt?.Ticks ?? 0)}|{lastItem.Post.Id}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
@@ -492,7 +532,7 @@ public class PostRepository : IPostRepository
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt!,
+            CreatedAt = (DateTimeOffset)(x.Post.CreatedAt ?? DateTime.UtcNow),
             VotesCount = x.VotesCount,
             CommentsCount = x.CommentsCount,
             Score = x.Score,
@@ -501,6 +541,7 @@ public class PostRepository : IPostRepository
             GroupId = x.Post.GroupId,
             CategoryId = x.Post.CategoryId,
             CategoryName = x.CategoryName,
+            CategoryColor = x.CategoryColor,
             IsCategoryFollowed = x.IsCategoryFollowed,
             IsDeleted = x.Post.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
@@ -518,12 +559,82 @@ public class PostRepository : IPostRepository
         );
     }
 
+    public async Task<PaginatedResult<PostResponseDto>> GetListPost(GetListPostRequest request)
+    {
+        var posts = await _postRepo.GetPageAsync(request, CancellationToken.None, p =>
+            (!request.UserId.HasValue || p.UserId == request.UserId) &&
+            (!request.GroupId.HasValue || p.GroupId == request.GroupId) &&
+            (!request.CategoryId.HasValue || p.CategoryId == request.CategoryId) &&
+            !p.IsDeleted);
+        var totalCount = posts.Data.Count();
+        var postDto = posts.Data.Select(p => new PostResponseDto
+        {
+            Id = p.Id,
+            Content = p.Content,
+            CreatedAt = (DateTimeOffset)p.CreatedAt!,
+            VotesCount = p.VotesCount,
+            CommentsCount = p.CommentsCount,
+            Score = p.Score,
+            MediaUrl = p.MediaUrl,
+            Privacy = p.Privacy,
+            GroupId = p.GroupId,
+            CategoryId = p.CategoryId,
+            IsDeleted = p.IsDeleted
+        }).ToList();
+        return new PaginatedResult<PostResponseDto>(
+            posts.PageIndex,
+            posts.PageSize,
+            totalCount,
+            postDto
+        );
+    }
+
     public async Task<PaginatedCursorResult<PostResponseDto>> GetNewfeed(GetPostRequest request)
     {
+        if (!string.IsNullOrEmpty(request.KeySearch))
+        {
+            var esPosts = await _elasticsearchPostService.SearchByContentAsync(request.KeySearch, request.Limit);
+            var esPostIds = esPosts.Select(p => p.Id).ToList();
+            var posts = await _dbSetPosts.Where(p =>
+                esPostIds.Contains(p.Id) && !p.IsDeleted &&
+                (p.UserId == request.Id || p.Privacy > PrivacyPost.FriendsOnly)).ToListAsync();
+            var esUserIds = posts.Select(x => x.UserId.ToString("D")).Distinct().ToList();
+            var esUserInfos = await GetUserInfos(esUserIds, request.Id);
+            var esPostDtos = posts.Select(p => new PostResponseDto
+            {
+                Id = p.Id,
+                Content = p.Content,
+                CreatedAt = (DateTimeOffset)p.CreatedAt!,
+                VotesCount = p.VotesCount,
+                CommentsCount = p.CommentsCount,
+                Score = null, // Không tính score khi search
+                MediaUrl = p.MediaUrl,
+                Privacy = p.Privacy,
+                GroupId = p.GroupId,
+                CategoryId = p.CategoryId,
+                CategoryName = _dbSetCategories.FirstOrDefault(c => c.Id == p.CategoryId)?.Name,
+                CategoryColor = _dbSetCategories.FirstOrDefault(c => c.Id == p.CategoryId)?.Color,
+                IsCategoryFollowed = p.CategoryId.HasValue &&
+                                     _dbSetFollowCategories.Any(fc =>
+                                         fc.UserId == request.Id && fc.CategoryId == p.CategoryId.Value),
+                IsDeleted = p.IsDeleted,
+                User = esUserInfos.GetValueOrDefault(p.UserId.ToString("D")),
+                UserVoteType = _dbSetUserVoteds.FirstOrDefault(uv => uv.UserId == request.Id && uv.PostId == p.Id)
+                    ?.VoteType
+            }).ToList();
+            return new PaginatedCursorResult<PostResponseDto>(
+                request.Cursor,
+                request.Limit,
+                esPostDtos.Count,
+                esPostDtos,
+                null // Không phân trang khi search
+            );
+        }
+
         var now = DateTime.UtcNow;
         IQueryable<Post> query = _dbSetPosts;
 
-        var friendResponse = await _userApiService.GetFriend(String.Empty, 0, 20, CancellationToken.None);
+        var friendResponse = await _userApiService.GetFriend(String.Empty, 0, 100, CancellationToken.None);
 
         var friendIds = friendResponse.Data.Data.Select(f => f.Id).ToList();
 
@@ -531,21 +642,18 @@ public class PostRepository : IPostRepository
         {
             query = query.Where(x => x.GroupId == request.GroupId.Value);
         }
-
-        if (request.FeedType == FeedType.Category)
+        if (request.CategoryId.HasValue)
         {
             query = query.Where(p => p.CategoryId == request.CategoryId.Value);
         }
-
         query = query.Where(p =>
-            p.Privacy == PrivacyPost.Public ||
-            (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
-            (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
-        );
-
-
-        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
+            !p.IsDeleted && (
+                p.Privacy == PrivacyPost.Public ||
+                (p.Privacy == PrivacyPost.FriendsOnly && friendIds.Contains(p.UserId)) ||
+                (p.Privacy != PrivacyPost.Private && p.UserId == request.Id)
+            )
+        ); (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
+        if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
             query = query
                 .Select(p => new
@@ -553,7 +661,7 @@ public class PostRepository : IPostRepository
                     Post = p,
                     Score = (p.VotesCount * 2 +
                              p.CommentsCount) /
-                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                            ((double)(EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2)
                 })
                 .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
@@ -569,10 +677,14 @@ public class PostRepository : IPostRepository
                 Post = p,
                 p.VotesCount,
                 p.CommentsCount,
-                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                HoursSinceCreation = (EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2,
                 CategoryName = _dbSetCategories
                     .Where(cat => cat.Id == p.CategoryId)
                     .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                CategoryColor = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Color)
                     .FirstOrDefault(),
                 IsCategoryFollowed = p.CategoryId.HasValue &&
                                      _dbSetFollowCategories
@@ -584,6 +696,7 @@ public class PostRepository : IPostRepository
                 x.VotesCount,
                 x.CommentsCount,
                 x.CategoryName,
+                x.CategoryColor,
                 x.IsCategoryFollowed,
                 Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
@@ -593,11 +706,10 @@ public class PostRepository : IPostRepository
             .ToListAsync();
 
 
-        string nextCursor = null;
-        if (postsWithScore.Count > request.Limit)
+        string? nextCursor = null; if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}|{lastItem.Post.Id}";
+            nextCursor = $"{lastItem.Score}|{(lastItem.Post.CreatedAt?.Ticks ?? 0)}|{lastItem.Post.Id}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
@@ -611,13 +723,11 @@ public class PostRepository : IPostRepository
             .Distinct()
             .ToList();
 
-        var userInfos = await GetUserInfos(userIds, request.Id);
-
-        var postDtos = postsWithScore.Select(x => new PostResponseDto
+        var userInfos = await GetUserInfos(userIds, request.Id); var postDtos = postsWithScore.Select(x => new PostResponseDto
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt!,
+            CreatedAt = (DateTimeOffset)(x.Post.CreatedAt ?? DateTime.UtcNow),
             VotesCount = x.VotesCount,
             CommentsCount = x.CommentsCount,
             Score = x.Score,
@@ -626,6 +736,7 @@ public class PostRepository : IPostRepository
             GroupId = x.Post.GroupId,
             CategoryId = x.Post.CategoryId,
             CategoryName = x.CategoryName,
+            CategoryColor = x.CategoryColor,
             IsCategoryFollowed = x.IsCategoryFollowed,
             IsDeleted = x.Post.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
@@ -642,8 +753,6 @@ public class PostRepository : IPostRepository
             nextCursor
         );
     }
-
-
     public async Task<PaginatedCursorResult<PostResponseDto>> GetTrendingFeed(GetTrendingPostRequest request,
         IEnumerable<CategoryResponseDto> trendingCategories)
     {
@@ -652,10 +761,12 @@ public class PostRepository : IPostRepository
 
         var trendingCategoryIds = trendingCategories.Select(c => c.Id).ToList();
 
-        query = query.Where(p => p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value));
+        query = query.Where(p =>
+            p.CategoryId.HasValue && trendingCategoryIds.Contains(p.CategoryId.Value) &&
+            p.Privacy >= PrivacyPost.FriendsOnly && !p.IsDeleted);
 
-        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor);
-        if (lastScore.HasValue && lastCreatedAt.HasValue)
+        (double? lastScore, DateTime? lastCreatedAt, Guid? lastPostId) = ParseCursor(request.Cursor ?? string.Empty);
+        if (lastScore.HasValue && lastCreatedAt.HasValue && lastPostId.HasValue)
         {
             query = query
                 .Select(p => new
@@ -663,7 +774,7 @@ public class PostRepository : IPostRepository
                     Post = p,
                     Score = (p.VotesCount * 2 +
                              p.CommentsCount) /
-                            ((double)EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2)
+                            ((double)(EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2)
                 })
                 .Where(x => x.Score < lastScore.Value ||
                             (x.Score == lastScore.Value && x.Post.CreatedAt < lastCreatedAt.Value) ||
@@ -678,10 +789,14 @@ public class PostRepository : IPostRepository
                 Post = p,
                 p.VotesCount,
                 p.CommentsCount,
-                HoursSinceCreation = EF.Functions.DateDiffMinute(p.CreatedAt, now) / 60.0 + 2,
+                HoursSinceCreation = (EF.Functions.DateDiffMinute(p.CreatedAt, now) ?? 0) / 60.0 + 2,
                 CategoryName = _dbSetCategories
                     .Where(cat => cat.Id == p.CategoryId)
                     .Select(cat => cat.Name)
+                    .FirstOrDefault(),
+                CategoryColor = _dbSetCategories
+                    .Where(cat => cat.Id == p.CategoryId)
+                    .Select(cat => cat.Color)
                     .FirstOrDefault(),
                 IsCategoryFollowed = p.CategoryId.HasValue &&
                                      _dbSetFollowCategories
@@ -693,6 +808,7 @@ public class PostRepository : IPostRepository
                 x.VotesCount,
                 x.CommentsCount,
                 x.CategoryName,
+                x.CategoryColor,
                 x.IsCategoryFollowed,
                 Score = (x.VotesCount * 2 + x.CommentsCount) / x.HoursSinceCreation
             })
@@ -701,11 +817,11 @@ public class PostRepository : IPostRepository
             .Take(request.Limit + 1)
             .ToListAsync();
 
-        string nextCursor = null;
+        string? nextCursor = null;
         if (postsWithScore.Count > request.Limit)
         {
             var lastItem = postsWithScore[request.Limit];
-            nextCursor = $"{lastItem.Score}|{((DateTime)lastItem.Post.CreatedAt).Ticks}|{lastItem.Post.Id}";
+            nextCursor = $"{lastItem.Score}|{(lastItem.Post.CreatedAt?.Ticks ?? 0)}|{lastItem.Post.Id}";
             postsWithScore = postsWithScore.Take(request.Limit).ToList();
         }
 
@@ -726,7 +842,7 @@ public class PostRepository : IPostRepository
         {
             Id = x.Post.Id,
             Content = x.Post.Content,
-            CreatedAt = (DateTimeOffset)x.Post.CreatedAt!,
+            CreatedAt = (DateTimeOffset)(x.Post.CreatedAt ?? DateTime.UtcNow),
             VotesCount = x.VotesCount,
             CommentsCount = x.CommentsCount,
             Score = x.Score,
@@ -735,6 +851,7 @@ public class PostRepository : IPostRepository
             GroupId = x.Post.GroupId,
             CategoryId = x.Post.CategoryId,
             CategoryName = x.CategoryName,
+            CategoryColor = x.CategoryColor,
             IsCategoryFollowed = x.IsCategoryFollowed,
             IsDeleted = x.Post.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Post.UserId.ToString("D")),
@@ -750,10 +867,28 @@ public class PostRepository : IPostRepository
             postDtos,
             nextCursor
         );
-    }
+    }    /// Đồng bộ toàn bộ dữ liệu Post từ database sang Elasticsearch, chia batch nếu quá lớn
+    public async Task<bool> SyncAllPostsToElasticsearchAsync(int batchSize = 1000)
+    {
+        var totalPosts = await _dbSetPosts.Where(p => !p.IsDeleted).CountAsync();
+        bool success = true;
+        for (int i = 0; i < totalPosts; i += batchSize)
+        {
+            var batch = await _dbSetPosts
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.Id)
+                .Skip(i)
+                .Take(batchSize)
+                .ToListAsync();
+            if (batch.Count > 0)
+            {
+                await _elasticsearchPostService.BulkIndexPostsAsync(batch);
+            }
+        }
 
-    // Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
-    private (double? score, DateTime? createdAt, Guid? postId) ParseCursor(string cursor)
+        return success;
+    }// Hàm phụ xử lý cursor: chuyển đổi string cursor sang (lastScore, lastCreatedAt)
+    private (double? score, DateTime? createdAt, Guid? postId) ParseCursor(string? cursor)
     {
         if (string.IsNullOrEmpty(cursor)) return (null, null, null);
         var parts = cursor.Split('|');

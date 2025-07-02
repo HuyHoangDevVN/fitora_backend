@@ -1,0 +1,136 @@
+name: Deploy Microservices to Staging
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  build-and-deploy:
+    runs-on: [self-hosted, windows]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # ===== gRPC Services (Kestrel standalone) =====
+      - name: Stop Windows Services (User/Interact)
+        run: |
+          $services = @("userservice", "interactservice")
+          foreach ($service in $services) {
+            $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -eq 'Running') {
+              Stop-Service -Name $service -Force
+              Write-Host "Stopped $service"
+            }
+          }
+          Start-Sleep -Seconds 5
+        shell: powershell
+
+      - name: Build & Publish UserService (gRPC)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\userservice --no-restore --no-build
+        working-directory: ./Services/UserService/UserService.API
+        shell: powershell
+
+      - name: Build & Publish InteractService (gRPC)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\interactservice --no-restore --no-build
+        working-directory: ./Services/InteractService/InteractService.API
+        shell: powershell
+
+      - name: Start Windows Services (User/Interact)
+        run: |
+          function Start-ServiceSafe {
+              param (
+                  [Parameter(Mandatory=$true)]
+                  [string]$Name,
+                  [int]$TimeoutSeconds = 30
+              )
+              $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
+              if (-not $svc) {
+                  Write-Error "Service $Name does not exist"
+                  exit 1
+              }
+              if ($svc.Status -ne 'Running') {
+                  Start-Service -Name $Name -ErrorAction Stop
+                  $timeout = $TimeoutSeconds
+                  while ($svc.Status -ne 'Running' -and $timeout -gt 0) {
+                      Start-Sleep -Seconds 1
+                      $timeout--
+                      $svc.Refresh()
+                  }
+                  if ($svc.Status -ne 'Running') {
+                      Write-Error "Service $Name failed to start within $TimeoutSeconds seconds"
+                      exit 1
+                  }
+                  Write-Host "Service $Name is now running"
+              }
+              else {
+                  Write-Host "Service $Name is already running"
+              }
+          }
+
+          Start-ServiceSafe -Name "userservice" -TimeoutSeconds 30
+          Start-ServiceSafe -Name "interactservice" -TimeoutSeconds 30
+        shell: powershell
+
+      # ===== Web API Services (IIS) =====
+      - name: Build & Publish AuthService (IIS)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\authservice --no-restore --no-build
+        working-directory: ./Services/AuthService/AuthService.API
+        shell: powershell
+
+      - name: Build & Publish ChatService (IIS)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\chatservice --no-restore --no-build
+        working-directory: ./Services/ChatService/ChatService.API
+        shell: powershell
+
+      - name: Build & Publish NotificationService (IIS)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\notificationservice --no-restore --no-build
+        working-directory: ./Services/NotificationService/NotificationService.API
+        shell: powershell
+
+      - name: Build & Publish ApiGateway (IIS)
+        run: |
+          dotnet restore
+          dotnet build --configuration Release --no-restore
+          dotnet publish --configuration Release --output C:\publish\apigateway --no-restore --no-build
+        working-directory: ./ApiGateways/ApiGateway
+        shell: powershell
+
+      - name: Deploy Web APIs to IIS
+        run: |
+          $services = @("authservice", "chatservice", "apigateway", 'notificationservice')
+
+          net stop w3svc
+
+          foreach ($service in $services) {
+            $target = "C:\inetpub\wwwroot\$service"
+            Remove-Item "$target\*" -Recurse -Force -ErrorAction SilentlyContinue
+            Copy-Item "C:\publish\$service\*" -Destination $target -Recurse
+          }
+
+          net start w3svc
+        shell: powershell

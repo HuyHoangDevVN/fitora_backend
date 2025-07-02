@@ -8,4 +8,6 @@ public record GetUserResult(
     string Username,
     string FullName,
     string PhoneNumber,
-    string Avatar);
+    string Avatar,
+    int Status = 0,
+    IList<string> Roles = null!);

@@ -1,3 +1,4 @@
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using InteractService.Application.DTOs.Comment.Requests;
 using InteractService.Application.DTOs.Comment.Responses;
@@ -13,4 +14,5 @@ public interface ICommentRepository
     Task<bool> DeleteAsync(Guid id);
     Task<PaginatedCursorResult<CommentResponseDto>> GetByPost(GetPostCommentsRequest request);
     Task<PaginatedCursorResult<CommentResponseDto>> GetReplies(GetCommentRepliesRequest request);
+    Task<PaginatedResult<CommentResponseDto>> GetListAsync(GetListCommentRequest request);
 }

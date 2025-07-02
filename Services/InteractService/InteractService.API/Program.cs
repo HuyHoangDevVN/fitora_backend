@@ -6,20 +6,29 @@ using InteractService.Infrastructure;
 using InteractService.Infrastructure.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var certPath = builder.Environment.IsDevelopment()
+    ? builder.Configuration["CertificateSettings:DevPath"]
+    : builder.Configuration["CertificateSettings:ProdPath"];
+
+var certPassword = builder.Configuration["CertificateSettings:Password"];
+
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5005, listenOptions =>
+    options.ListenLocalhost(5006, listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("./certificate.pfx", "123456@Aa");
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+        listenOptions.UseHttps(certPath!, certPassword);
     });
 });
+
+builder.Host.UseWindowsService();
 
 builder.Services.AddSingleton<UserGrpcClient>(sp =>
 {
@@ -27,11 +36,11 @@ builder.Services.AddSingleton<UserGrpcClient>(sp =>
     {
         ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
     };
-    var channel = GrpcChannel.ForAddress("https://localhost:5003", new GrpcChannelOptions
+    var channel = GrpcChannel.ForAddress("https://localhost:5004", new GrpcChannelOptions
     {
         HttpHandler = handler
     });
-    
+
     var grpcClient = new UserService.Infrastructure.Grpc.UserService.UserServiceClient(channel);
     return new UserGrpcClient(grpcClient);
 });
@@ -56,36 +65,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"],
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-        ClockSkew = TimeSpan.Zero
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            if (context.Request.Cookies.ContainsKey("accessToken"))
-            {
-                context.Token = context.Request.Cookies["accessToken"];
-            }
-            return Task.CompletedTask;
-        }
-    };
-});
 
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -112,20 +91,22 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration);
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationAuthentication(builder.Configuration);
 
 builder.Services.AddGrpc();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(@"C:\AppUploads\InteractFiles"),
+    RequestPath = "/api/interact/upload/file"
+});
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();

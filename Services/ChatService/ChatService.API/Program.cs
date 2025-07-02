@@ -10,18 +10,31 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddSignalR().AddStackExchangeRedis(builder.Configuration["ConnectionStrings:Redis"]!);
+builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration["ConnectionStrings:Redis"]!);
+
+builder.Services.Configure<Microsoft.AspNetCore.SignalR.HubOptions>(options =>
+{
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15); // Ping every 15s
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30); // Timeout after 30s without ping
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+var certPath = builder.Environment.IsDevelopment()
+    ? builder.Configuration["CertificateSettings:DevPath"]
+    : builder.Configuration["CertificateSettings:ProdPath"];
+
+var certPassword = builder.Configuration["CertificateSettings:Password"];
+
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.ListenLocalhost(5007, listenOptions =>
+    options.ListenLocalhost(5008, listenOptions =>
     {
-        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps("./certificate.pfx", "123456@Aa");
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+        listenOptions.UseHttps(certPath!, certPassword);
     });
 });
 
@@ -29,43 +42,13 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins("http://localhost:5173", "https://fitora-api.aiotlab.edu.vn")
             .AllowCredentials()
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
 
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"],
-        ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-        ClockSkew = TimeSpan.Zero
-    };
-    options.Events = new JwtBearerEvents
-    {
-        OnMessageReceived = context =>
-        {
-            if (context.Request.Cookies.ContainsKey("accessToken"))
-            {
-                context.Token = context.Request.Cookies["accessToken"];
-            }
-            return Task.CompletedTask;
-        }
-    };
-});
 
 builder.Services.AddSwaggerGen(opt =>
 {
@@ -86,23 +69,20 @@ builder.Services.AddSwaggerGen(opt =>
 
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration);
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseWebSockets();
 // Map SignalR Hub
 app.MapHub<ChatHub>("/hubs/chat");
 

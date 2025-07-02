@@ -56,6 +56,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatService.Domain", "Servi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChatService.Infrastructure", "Services\ChatService\ChatService.Infrastructure\ChatService.Infrastructure.csproj", "{AFA026C6-A731-4192-970F-869A2C7D3982}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NotificationService", "NotificationService", "{25B84F07-9E2E-4576-9E36-407FE15EA1AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.API", "Services\NotificationService\NotificationService.API\NotificationService.API.csproj", "{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Application", "Services\NotificationService\NotificationService.Application\NotificationService.Application.csproj", "{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Domain", "Services\NotificationService\NotificationService.Domain\NotificationService.Domain.csproj", "{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Infrastructure", "Services\NotificationService\NotificationService.Infrastructure\NotificationService.Infrastructure.csproj", "{83B45487-1597-4D5B-BAFF-60AAECE21320}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -137,6 +147,22 @@ Global
 		{AFA026C6-A731-4192-970F-869A2C7D3982}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AFA026C6-A731-4192-970F-869A2C7D3982}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AFA026C6-A731-4192-970F-869A2C7D3982}.Release|Any CPU.Build.0 = Release|Any CPU
+		{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389}.Release|Any CPU.Build.0 = Release|Any CPU
+		{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83B45487-1597-4D5B-BAFF-60AAECE21320}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83B45487-1597-4D5B-BAFF-60AAECE21320}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83B45487-1597-4D5B-BAFF-60AAECE21320}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83B45487-1597-4D5B-BAFF-60AAECE21320}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9AA4F59B-91AC-415A-8A2C-3939A5C284E6} = {842F3043-BCA6-4A42-9207-7B47D3B56241}
@@ -161,5 +187,10 @@ Global
 		{A95D4C1C-9D59-44FB-89F6-1A544D85466E} = {0EB7B917-384A-463B-8C09-9DAD748A5D8A}
 		{6801AFB6-6CF6-43AC-B6C0-C1B4479E83E9} = {0EB7B917-384A-463B-8C09-9DAD748A5D8A}
 		{AFA026C6-A731-4192-970F-869A2C7D3982} = {0EB7B917-384A-463B-8C09-9DAD748A5D8A}
+		{25B84F07-9E2E-4576-9E36-407FE15EA1AE} = {842F3043-BCA6-4A42-9207-7B47D3B56241}
+		{11A82D0C-F4D7-4BD5-82E1-9C51FA1A51C7} = {25B84F07-9E2E-4576-9E36-407FE15EA1AE}
+		{66ED0503-F67C-48FC-BEEA-FEBB7A0E6389} = {25B84F07-9E2E-4576-9E36-407FE15EA1AE}
+		{910558EA-BD16-4C5B-BFF5-2D6F5BC3B866} = {25B84F07-9E2E-4576-9E36-407FE15EA1AE}
+		{83B45487-1597-4D5B-BAFF-60AAECE21320} = {25B84F07-9E2E-4576-9E36-407FE15EA1AE}
 	EndGlobalSection
 EndGlobal

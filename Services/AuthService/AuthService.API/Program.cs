@@ -3,6 +3,7 @@ using AuthService.API.Middleware;
 using AuthService.Application;
 using AuthService.Application.Helpers;
 using AuthService.Infrastructure;
+using BuildingBlocks.Abstractions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -27,42 +28,26 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
-// Configure JWT Bearer Authentication
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["ApiSettings:JwtOptions:Issuer"]!,
-            ValidAudience = builder.Configuration["ApiSettings:JwtOptions:Audience"]!,
-            IssuerSigningKey =
-                new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(builder.Configuration["ApiSettings:JwtOptions:Secret"]!)),
-            ClockSkew = TimeSpan.Zero
-        };
 
-        // Lấy token từ cookie 
-        options.Events = new JwtBearerEvents
-        {
-            OnMessageReceived = context =>
-            {
-                if (context.Request.Cookies.ContainsKey("accessToken"))
-                {
-                    context.Token = context.Request.Cookies["accessToken"];
-                }
+var certPath = builder.Environment.IsDevelopment()
+    ? builder.Configuration["CertificateSettings:DevPath"]
+    : builder.Configuration["CertificateSettings:ProdPath"];
 
-                return Task.CompletedTask;
-            }
-        };
+var certPassword = builder.Configuration["CertificateSettings:Password"];
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.ListenLocalhost(5002, listenOptions =>
+    {
+        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
+        listenOptions.UseHttps(certPath!, certPassword);
     });
+});
+
+
+builder.Services.Configure<JwtConfiguration>(
+    builder.Configuration.GetSection("ApiSettings:JwtOptions")
+);
 
 builder.Services.Configure<JwtOptionsSetting>(
     builder.Configuration.GetSection("ApiSettings:JwtOptions")
@@ -86,74 +71,39 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 
 // Configure Swagger 
-builder.Services.AddSwaggerGen(options =>
+builder.Services.AddSwaggerGen(opt =>
 {
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "MyAPI",
-        Version = "v1",
-        Description = "API documentation for MyAPI with JWT authentication."
-    });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    opt.SwaggerDoc("v1", new OpenApiInfo { Title = "MyAPI", Version = "v1" });
+    opt.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
         Type = SecuritySchemeType.Http,
         Scheme = "Bearer",
         BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Nhập token JWT theo định dạng: Bearer {your token}"
+        In = ParameterLocation.Header
     });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    opt.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = ParameterLocation.Header
-            },
-            new List<string>() // Không yêu cầu phạm vi cụ thể
-        }
+        { new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, Array.Empty<string>() }
     });
 });
 
 // Đăng ký các service
 builder.Services
     .AddApplicationServices(builder.Configuration)
-    .AddInfrastructureServices(builder.Configuration);
-
-// Cấu hình Cookie
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.Cookie.SameSite = SameSiteMode.None;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.HttpOnly = true;
-});
+    .AddInfrastructureServices(builder.Configuration)
+    .AddApplicationAuthentication(builder.Configuration);
 
 var app = builder.Build();
 
-// Middleware pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowSpecificOrigin");
-
-app.UseAuthentication();
 app.UseMiddleware<HybridAuthMiddleware>();
+app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

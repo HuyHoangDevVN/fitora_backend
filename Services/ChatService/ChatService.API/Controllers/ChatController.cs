@@ -9,7 +9,7 @@ namespace ChatService.API.Controllers
 {
     [Authorize]
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/chat")]
     public class ChatController : ControllerBase
     {
         private readonly IChatService _chatService;

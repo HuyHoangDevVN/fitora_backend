@@ -1,4 +1,4 @@
-﻿namespace Auth.Domain.Enums;
+﻿namespace AuthService.Domain.Enums;
 
 public enum UserStatus
 {
@@ -6,5 +6,4 @@ public enum UserStatus
     Blocked = 2,
     Locked = 3,
     Removed = 4,
-    
 }

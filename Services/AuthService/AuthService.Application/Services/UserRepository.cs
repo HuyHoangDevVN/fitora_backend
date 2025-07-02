@@ -14,7 +14,8 @@ public class UserRepository(UserManager<ApplicationUser> userManager,RoleManager
         {
             var userFound = await userManager.FindByIdAsync(dto.UserId) ?? throw new NotFoundException("User NotFound");
             logger.LogInformation("Get user repo: {id}", userFound.Id);
-            return AuthExtensions.ApplicationUserToUserInFo(userFound);
+            var roles = userManager.GetRolesAsync(userFound).GetAwaiter().GetResult();
+            return AuthExtensions.ApplicationUserToUserInFo(userFound, roles);
         }
         catch (Exception e)
         {
@@ -55,7 +56,7 @@ public class UserRepository(UserManager<ApplicationUser> userManager,RoleManager
             long totalCount = await userManager.Users.LongCountAsync(cancellationToken);
             var users = await userManager.Users.Skip(pageSize * pageIndex).Take(pageSize)
                 .ToListAsync(cancellationToken);
-            var userRoles = users.Select(x => new GetUsersResponseDto(x.Email ?? "", x.FullName, x.PhoneNumber ?? "",
+            var userRoles = users.Select(x => new GetUsersResponseDto(x.Id, x.Email ?? "", x.FullName, x.PhoneNumber ?? "",
                 x.Avatar, x.Status, Roles: userManager.GetRolesAsync(x).GetAwaiter().GetResult()));
             return new PaginatedResult<GetUsersResponseDto>(pageIndex, pageSize, totalCount, userRoles);
 

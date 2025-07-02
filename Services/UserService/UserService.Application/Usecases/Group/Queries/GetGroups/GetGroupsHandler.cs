@@ -4,12 +4,11 @@ using UserService.Application.DTOs.Group.Responses;
 namespace UserService.Application.Usecases.Group.Queries.GetGroups;
 
 public class GetGroupsHandler(IGroupRepository groupRepo, IMapper mapper)
-    : IQueryHandler<GetGroupsQuery, PaginatedResult<GroupDto>>
+    : IQueryHandler<GetGroupsQuery, PaginatedResult<Domain.Models.Group>>
 {
-    public async Task<PaginatedResult<GroupDto>> Handle(GetGroupsQuery query, CancellationToken cancellationToken)
+    public async Task<PaginatedResult<Domain.Models.Group>> Handle(GetGroupsQuery query, CancellationToken cancellationToken)
     {
         var groups = await groupRepo.GetGroupsAsync(query.Request);
-        var groupDtos = mapper.Map<PaginatedResult<GroupDto>>(groups);
-        return groupDtos;
+        return groups;
     }
 }

@@ -1,10 +1,12 @@
 using System.Linq.Expressions;
 using BuildingBlocks.Exceptions;
+using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.Pagination.Cursor;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using InteractService.Application.DTOs.Comment.Requests;
 using InteractService.Application.DTOs.Comment.Responses;
 using InteractService.Application.DTOs.Post.Responses;
+using InteractService.Application.DTOs.RabbitMQ.Requests;
 using InteractService.Application.Services.IServices;
 using InteractService.Domain.Enums;
 using InteractService.Infrastructure.Data;
@@ -24,11 +26,13 @@ public class CommentRepository : ICommentRepository
     private readonly IDatabase _redis;
     private readonly UserGrpcClient _userClient;
     private readonly ApplicationDbContext _dbContext;
+    private readonly IRabbitMqPublisher<NotificationMessageDto> _publisher;
 
 
     public CommentRepository(IRepositoryBase<Comment> commentRepo, IRepositoryBase<CommentVotes> commentVotesRepo,
         IRepositoryBase<Post> postRepo,
-        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient)
+        ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
+        IRabbitMqPublisher<NotificationMessageDto> publisher)
     {
         _commentRepo = commentRepo;
         _commentVotesRepo = commentVotesRepo;
@@ -38,6 +42,7 @@ public class CommentRepository : ICommentRepository
         _redis = redis.GetDatabase();
         _userClient = userClient;
         _dbContext = dbContext;
+        _publisher = publisher;
     }
 
     public async Task<bool> CreateAsync(Comment comment)
@@ -49,7 +54,7 @@ public class CommentRepository : ICommentRepository
             comment.CreatedAt = DateTime.Now;
             await _commentRepo.AddAsync(comment);
             var result = await _commentRepo.SaveChangesAsync() > 0;
-            
+
             if (!result)
                 throw new Exception("Failed to create comment");
 
@@ -62,6 +67,25 @@ public class CommentRepository : ICommentRepository
             var isUpdate = await _postRepo.SaveChangesAsync() > 0;
 
             await transaction.CommitAsync();
+
+            var userInfo =
+                await GetUserInfos(new List<string> { comment.UserId.ToString("D"), comment.Post.UserId.ToString("D") },
+                    comment.UserId);
+
+            var username = userInfo.Values.First().FirstName;
+            var message = new NotificationMessageDto
+            {
+                SenderId = comment.UserId,
+                UserId = comment.ParentCommentId ?? comment.Post.UserId,
+                NotificationTypeId = 1,
+                ObjectId = comment.Id,
+                Title = "Bình luận mới:",
+                Content = comment.ParentCommentId.HasValue
+                    ? $"{username} đã trả lời bình luận của bạn!"
+                    : $"{username} đã bình luận vào bài viết của bạn!",
+                Channel = NotificationChannel.Web
+            };
+            await _publisher.PublishMessageAsync(message, "noti_queue");
 
             return result && isUpdate;
         }
@@ -178,9 +202,9 @@ public class CommentRepository : ICommentRepository
                        ?? throw new Exception("Post not found");
 
             await _commentRepo.DeleteAsync(c => c.Id == id);
-            
+
             var commentDeleted = await _commentRepo.SaveChangesAsync() > 0;
-            
+
             if (!commentDeleted)
                 throw new Exception("Failed to delete comment");
             post.CommentsCount--;
@@ -381,6 +405,37 @@ public class CommentRepository : ICommentRepository
             totalCount,
             commentDtos,
             nextCursor
+        );
+    }
+
+    public async Task<PaginatedResult<CommentResponseDto>> GetListAsync(GetListCommentRequest request)
+    {
+        var comments = await _commentRepo.GetPageAsync(request, CancellationToken.None, c =>
+            (!request.UserId.HasValue || c.UserId == request.UserId) &&
+            (!request.PostId.HasValue || c.PostId == request.PostId) &&
+            (!request.ParentCommentId.HasValue || c.ParentCommentId == request.ParentCommentId) &&
+            (string.IsNullOrWhiteSpace(request.Keysearch) ||
+             EF.Functions.Like(c.Content.ToLower(), $"%{request.Keysearch.ToLower()}%"))
+        );
+        var totalCount = comments.Data.Count();
+        var commentDtos = comments.Data.Select(c => new CommentResponseDto
+        {
+            Id = c.Id,
+            UserId = c.UserId,
+            PostId = c.PostId,
+            ParentCommentId = c.ParentCommentId,
+            Content = c.Content,
+            MediaUrl = c.MediaUrl,
+            Votes = c.VotesCont,
+            ReplyCount = c.ReplyCount,
+            IsDeleted = c.IsDeleted,
+            UserVoteType = null
+        }).ToList();
+        return new PaginatedResult<CommentResponseDto>(
+            comments.PageIndex,
+            comments.PageSize,
+            totalCount,
+            commentDtos
         );
     }
 

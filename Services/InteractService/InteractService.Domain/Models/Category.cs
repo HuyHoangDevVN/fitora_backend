@@ -8,6 +8,7 @@ public class Category : Entity<Guid>, ISoftDelete
     public string Name { get; set; }
     public string Slug { get; set; }
     public string Description { get; set; }
+    public string Color { get; set; } = "#2196F3";
     
     public ICollection<Post> Posts { get; set; }
 

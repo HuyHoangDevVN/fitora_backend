@@ -51,49 +51,50 @@ public static class DependencyInjection
         return services;
     }
 
-    public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services,
-        IConfiguration configuration)
+    public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        
         var jwtOptions = configuration.GetSection("ApiSettings:JwtOptions");
         var secret = jwtOptions["Secret"]!;
         var audience = jwtOptions["Audience"]!;
         var issuer = jwtOptions["Issuer"]!;
 
-// config authentication jwt
         var key = Encoding.UTF8.GetBytes(secret);
+
         services.Configure<JwtOptionsSetting>(configuration.GetSection("ApiSettings:JwtOptions"));
-        services.AddAuthentication(x =>
+
+        services.AddAuthentication(options =>
         {
-            x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-            x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-        }).AddJwtBearer(x =>
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
         {
-            x.TokenValidationParameters = new TokenValidationParameters
+            options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(key),
                 ValidateIssuer = true,
                 ValidateAudience = true,
-                ValidAudience = audience,
                 ValidIssuer = issuer,
-                ClockSkew = TimeSpan.Zero
+                ValidAudience = audience,
+                RequireExpirationTime = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero,
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    // Đọc accessToken từ Cookie nếu có
+                    if (context.Request.Cookies.ContainsKey("accessToken"))
+                    {
+                        context.Token = context.Request.Cookies["accessToken"];
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 
-        var tokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidAudience = audience,
-            ValidIssuer = issuer,
-            RequireExpirationTime = true,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
-        };
-        services.AddSingleton(tokenValidationParameters);
         return services;
     }
 }

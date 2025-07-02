@@ -15,6 +15,7 @@
   <ItemGroup>
     <Folder Include="DTOs\GroupJoinRequest\Responses\" />
     <Folder Include="Helpers\" />
+    <Folder Include="Usecases\Group\Queries\GetListGroup\" />
   </ItemGroup>
   
   <PropertyGroup>

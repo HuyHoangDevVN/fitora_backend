@@ -31,7 +31,7 @@ public class PostController : Controller
         _authorizeExtension = authorizeExtension;
     }
 
-    [HttpPost("create-post")]
+    [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreatePostFromBody req)
     {
         var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
@@ -51,7 +51,7 @@ public class PostController : Controller
         return Ok(response);
     }
 
-    [HttpPut("update-post/{id}")]
+    [HttpPut("update/{id}")]
     public async Task<IActionResult> Update([FromRoute] Guid id, [FromBody] UpdatePostRequest updatePostRequest)
     {
         if (!ModelState.IsValid)
@@ -88,15 +88,10 @@ public class PostController : Controller
         return Ok(response);
     }
 
-    [HttpDelete("delete-post/{id}")]
+    [HttpDelete("delete/{id}")]
     public async Task<IActionResult> Delete([FromRoute] Guid id)
     {
-        var post = await _mediator.Send(new DeletePostCommand(id));
-        if (!post)
-        {
-            return BadRequest(new { Message = "Failed to delete post." });
-        }
-
+        await _mediator.Send(new DeletePostCommand(id));
         var response = new ResponseDto(Message: "Delete Successful");
         return Ok(response);
     }
@@ -107,7 +102,8 @@ public class PostController : Controller
         var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
-            new GetNewfeedQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.Cursor,
+            new GetNewfeedQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.IsFriend, request.KeySearch,
+                request.Cursor,
                 request.Limit, request.GroupId))
         );
 
@@ -163,7 +159,8 @@ public class PostController : Controller
         var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
-            new GetPersonalQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.Cursor,
+            new GetPersonalQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.IsFriend, request.KeySearch,
+                request.Cursor,
                 request.Limit, request.GroupId))
         );
 

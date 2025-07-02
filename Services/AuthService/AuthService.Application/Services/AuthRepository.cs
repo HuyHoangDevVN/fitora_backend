@@ -1,7 +1,8 @@
-using Auth.Domain.Enums;
 using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
+using AuthService.Domain.Enums;
+using BuildingBlocks.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.IdentityModel.Tokens;
@@ -16,7 +17,8 @@ public class AuthRepository(
     IMapper mapper,
     IKeyRepository<Guid> keyRepository,
     IHttpContextAccessor accessor,
-    IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher)
+    IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher,
+    IAuthorizeExtension authorizeExtension)
     : IAuthRepository
 {
     private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)
@@ -158,15 +160,9 @@ public class AuthRepository(
     {
         string token = "";
         string uid = "";
-        if (accessor.HttpContext!.Request.Headers.TryGetValue("Authorization", out var accessToken))
-        {
-            token = accessToken.ToString().Split(" ").Last();
-        }
+        token = authorizeExtension.GetToken();
 
-        if (accessor.HttpContext!.Request.Headers.TryGetValue("x-client-id", out var userIdRequest))
-        {
-            uid = userIdRequest.ToString();
-        }
+        uid = authorizeExtension.GetUserFromClaimToken().Id.ToString();
 
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(uid))
         {
@@ -208,6 +204,7 @@ public class AuthRepository(
         }
     }
 
+
     public async Task<bool> LockUserAsync(LockUserRequestDto dto)
     {
         try
@@ -239,6 +236,50 @@ public class AuthRepository(
             }
 
             throw new BadRequestException("Invalid Token");
+        }
+        catch (Exception e)
+        {
+            throw new BadRequestException(e.Message);
+        }
+    }
+
+    public async Task<bool> LockUserByAdminAsync(Guid userId)
+    {
+        try
+        {
+            var userFound = await userManager.FindByIdAsync(userId.ToString()) ??
+                            throw new NotFoundException("User NotFound");
+            userFound.Status = (int)UserStatus.Locked;
+            userFound.LockoutEnabled = true;
+            var userUpdate = await userManager.UpdateAsync(userFound);
+            if (!userUpdate.Succeeded)
+            {
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            throw new BadRequestException(e.Message);
+        }
+    }
+
+    public async Task<bool> UnlockUserByAdminAsync(Guid userId)
+    {
+        try
+        {
+            var userFound = await userManager.FindByIdAsync(userId.ToString()) ??
+                            throw new NotFoundException("User NotFound");
+            userFound.Status = (int)UserStatus.Active;
+            userFound.LockoutEnabled = false;
+            var userUpdate = await userManager.UpdateAsync(userFound);
+            if (!userUpdate.Succeeded)
+            {
+                return false;
+            }
+
+            return true;
         }
         catch (Exception e)
         {

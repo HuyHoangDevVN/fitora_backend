@@ -16,8 +16,8 @@ public class UserApiService : IUserApiService
     private readonly ILogger<UserApiService> _logger;
 
     public UserApiService(
-        IHttpClientFactory httpClientFactory, 
-        IHttpContextAccessor httpContextAccessor, 
+        IHttpClientFactory httpClientFactory,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<UserApiService> logger)
     {
         _httpClient = httpClientFactory.CreateClient("UserService");
@@ -44,7 +44,7 @@ public class UserApiService : IUserApiService
                 "application/json"
             );
 
-            var response = await _httpClient.PostAsync("api/group/create-group-post/", payload, cancellationToken);
+            var response = await _httpClient.PostAsync("api/user/group/create-group-post/", payload, cancellationToken);
 
             if (response.IsSuccessStatusCode)
             {
@@ -69,7 +69,7 @@ public class UserApiService : IUserApiService
         {
             _logger.LogInformation("Calling GetFriend API with KeySearch: {KeySearch}, PageIndex: {PageIndex}, PageSize: {PageSize}", keySearch, pageIndex, pageSize);
 
-            var url = $"api/friendship/get-friends?KeySearch={Uri.EscapeDataString(keySearch)}&PageIndex={pageIndex}&PageSize={pageSize}";
+            var url = $"api/user/friendship/get-friends?KeySearch={Uri.EscapeDataString(keySearch)}&PageIndex={pageIndex}&PageSize={pageSize}";
 
             var response = await _httpClient.GetAsync(url, cancellationToken);
 
@@ -90,5 +90,5 @@ public class UserApiService : IUserApiService
             throw;
         }
     }
-    
+
 }
