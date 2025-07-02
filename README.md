@@ -9,7 +9,7 @@ Fitora Backend is a modern social network and technology platform for IT student
 ## System Architecture
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/HuyHoangFSDev/fitora_backend/product/image.png" align="center" style="width: 100%" />
+  <img src="https://raw.githubusercontent.com/HuyHoangDevVN/fitora_backend/product/image.png" align="center" style="width: 100%" />
 </div>
 
 **Architecture Overview:**
@@ -208,7 +208,7 @@ Fitora Backend là hệ thống mạng xã hội, không gian công nghệ dành
 ### Kiến trúc hệ thống
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/HuyHoangFSDev/fitora_backend/product/image.png" align="center" style="width: 100%" />
+  <img src="https://raw.githubusercontent.com/HuyHoangDevVN/fitora_backend/product/image.png" align="center" style="width: 100%" />
 </div>
 
 
