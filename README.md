@@ -8,7 +8,9 @@ Fitora Backend is a modern social network and technology platform for IT student
 
 ## System Architecture
 
-![Project Architecture](image)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/HuyHoangFSDev/fitora_backend/product/image.png" align="center" style="width: 100%" />
+</div>
 
 **Architecture Overview:**
 - **Frontend:** ReactJS application communicates with the system through an API Gateway.
@@ -205,7 +207,10 @@ Fitora Backend là hệ thống mạng xã hội, không gian công nghệ dành
 
 ### Kiến trúc hệ thống
 
-![Sơ đồ kiến trúc hệ thống](image)
+<div align="center">
+  <img src="https://raw.githubusercontent.com/HuyHoangFSDev/fitora_backend/product/image.png" align="center" style="width: 100%" />
+</div>
+
 
 - **Frontend:** Ứng dụng ReactJS
 - **API Gateway:** Cổng kết nối giữa frontend và backend
