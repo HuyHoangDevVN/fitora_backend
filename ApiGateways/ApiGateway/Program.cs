@@ -53,11 +53,20 @@ app.UseHttpsRedirection();
 app.UseWebSockets();
 
 // Dùng await cho UseOcelot vì nó trả về Task
-await app.UseOcelot();
-
-
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        context.Response.Redirect("/swagger");
+        return;
+    }
+
+    await next();
+});
+
+await app.UseOcelot();
 
 app.Run();
