@@ -27,17 +27,31 @@ function Ensure-RabbitQueue {
         declare queue name=$Name durable=true | Out-Null
 }
 
+function Test-DockerImage {
+    param([string] $Image)
+
+    docker image inspect $Image *> $null
+    return $LASTEXITCODE -eq 0
+}
+
 Push-Location $root
 try {
     docker compose -f "Services\docker-compose.yml" up -d | Out-Null
     Ensure-DockerContainer -Name "fitora-redis" -Image "redis:7-alpine" -RunArgs @("-p", "6379:6379")
     Ensure-DockerContainer -Name "fitora-rabbitmq" -Image "rabbitmq:3-management" -RunArgs @("-p", "5672:5672", "-p", "15672:15672")
-    Ensure-DockerContainer -Name "fitora-elasticsearch" -Image "docker.elastic.co/elasticsearch/elasticsearch:8.15.3" -RunArgs @(
-        "-p", "9200:9200",
-        "-e", "discovery.type=single-node",
-        "-e", "xpack.security.enabled=false",
-        "-e", "ES_JAVA_OPTS=-Xms512m` -Xmx512m"
-    )
+
+    $elasticImage = "docker.elastic.co/elasticsearch/elasticsearch:8.15.3"
+    if (Test-DockerImage -Image $elasticImage) {
+        Ensure-DockerContainer -Name "fitora-elasticsearch" -Image $elasticImage -RunArgs @(
+            "-p", "9200:9200",
+            "-e", "discovery.type=single-node",
+            "-e", "xpack.security.enabled=false",
+            "-e", "ES_JAVA_OPTS=-Xms512m` -Xmx512m"
+        )
+    } else {
+        Write-Host "Elasticsearch image is not available locally; skipping optional search dependency."
+        Write-Host "Post create/update/delete still works. Pull the image separately if search indexing is required."
+    }
 
     Ensure-RabbitQueue -Name "user_registration_queue"
     Ensure-RabbitQueue -Name "noti_queue"

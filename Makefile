@@ -1,7 +1,7 @@
 SHELL := powershell.exe
 .SHELLFLAGS := -NoProfile -ExecutionPolicy Bypass -Command
 
-.PHONY: help urls logs deps-start deps-stop start-full stop-full \
+.PHONY: help urls logs renew-certs deps-start deps-stop start-full stop-full \
 	start-auth start-user start-interact start-chat start-notification start-gateway \
 	stop-auth stop-user stop-interact stop-chat stop-notification stop-gateway
 
@@ -29,6 +29,10 @@ help:
 	@Write-Host ""
 	@Write-Host "make urls                Print service URLs"
 	@Write-Host "make logs                List service log files"
+	@Write-Host "make renew-certs         Export trusted localhost dev cert to service PFX files"
+
+renew-certs:
+	@rtk powershell -ExecutionPolicy Bypass -File scripts\renew-dev-certs.ps1
 
 urls:
 	@Write-Host "Gateway:       http://localhost:4469/swagger/index.html"
@@ -46,7 +50,7 @@ deps-start:
 	@rtk powershell -ExecutionPolicy Bypass -File scripts\start-deps.ps1
 
 deps-stop:
-	@rtk docker stop mongodb fitora-redis fitora-rabbitmq
+	@rtk docker stop mongodb fitora-redis fitora-rabbitmq fitora-elasticsearch
 
 start-full:
 	@rtk powershell -ExecutionPolicy Bypass -File scripts\start-full-services.ps1

@@ -11,6 +11,7 @@ using InteractService.Domain.Enums;
 using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Grpc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace InteractService.Infrastructure.Repositories;
@@ -30,13 +31,15 @@ public class PostRepository : IPostRepository
     private readonly UserGrpcClient _userClient;
     private readonly IAuthorizeExtension _authorizeExtension;
     private readonly IElasticsearchPostService _elasticsearchPostService;
+    private readonly ILogger<PostRepository> _logger;
 
     public PostRepository(IRepositoryBase<Post> postRepo, IRepositoryBase<UserVoted> userVotedRepo,
         IRepositoryBase<UserSaved> userSavedRepo,
         IUserApiService userApiService,
         ApplicationDbContext dbContext, IConnectionMultiplexer redis, UserGrpcClient userClient,
         IAuthorizeExtension authorizeExtension,
-        IElasticsearchPostService elasticsearchPostService)
+        IElasticsearchPostService elasticsearchPostService,
+        ILogger<PostRepository> logger)
     {
         _postRepo = postRepo;
         _userSavedRepo = userSavedRepo;
@@ -51,6 +54,7 @@ public class PostRepository : IPostRepository
         _dbContext = dbContext;
         _authorizeExtension = authorizeExtension;
         _elasticsearchPostService = elasticsearchPostService;
+        _logger = logger;
     }
 
     public async Task<bool> CreateAsync(Post post)
@@ -61,7 +65,7 @@ public class PostRepository : IPostRepository
         var saved = await _postRepo.SaveChangesAsync() > 0;
         if (saved)
         {
-            await _elasticsearchPostService.IndexPostAsync(post);
+            await TryIndexPostAsync(post);
         }
 
         return saved;
@@ -77,7 +81,7 @@ public class PostRepository : IPostRepository
         var saved = await _postRepo.SaveChangesAsync() > 0;
         if (saved)
         {
-            await _elasticsearchPostService.UpdatePostAsync(post);
+            await TryIndexPostAsync(post);
         }
 
         return saved;
@@ -220,7 +224,7 @@ public class PostRepository : IPostRepository
 
             if (saved)
             {
-                await _elasticsearchPostService.DeletePostAsync(id);
+                await TryDeletePostFromIndexAsync(id);
             }
 
             return saved;
@@ -987,5 +991,29 @@ public class PostRepository : IPostRepository
     private bool? ParseBoolFromRedis(RedisValue value)
     {
         return bool.TryParse(value.ToString(), out bool parsed) ? parsed : (bool?)null;
+    }
+
+    private async Task TryIndexPostAsync(Post post)
+    {
+        try
+        {
+            await _elasticsearchPostService.IndexPostAsync(post);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Post {PostId} was saved but Elasticsearch indexing failed.", post.Id);
+        }
+    }
+
+    private async Task TryDeletePostFromIndexAsync(Guid id)
+    {
+        try
+        {
+            await _elasticsearchPostService.DeletePostAsync(id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Post {PostId} was deleted but Elasticsearch index cleanup failed.", id);
+        }
     }
 }
