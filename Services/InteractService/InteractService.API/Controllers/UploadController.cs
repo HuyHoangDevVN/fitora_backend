@@ -51,7 +51,7 @@ namespace InteractService.API.Controllers
                 await file.CopyToAsync(stream);
             }
 
-            var fileUrl = $"https://fitora-api.aiotlab.edu.vn/interact/upload/file/{uniqueFileName}";
+            var fileUrl = $"/api/interact/upload/file/{uniqueFileName}";
             return Ok(new { url = fileUrl });
         }
 

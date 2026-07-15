@@ -1,5 +1,6 @@
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,15 +15,28 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins(
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+        [
             "http://localhost:5173",
             "http://192.168.161.84:5173",
-            "https://fitora.aiotlab.edu.vn"
-        )
+            "https://fitora.fitdnu.id.vn"
+        ];
+
+        policy.WithOrigins(allowedOrigins)
         .AllowCredentials()
         .AllowAnyHeader()
         .AllowAnyMethod();
     });
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto |
+        ForwardedHeaders.XForwardedHost;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 // Thêm Swagger cho kiểm tra API
@@ -31,6 +45,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build(); // Build sau khi đăng ký xong
 
+app.UseForwardedHeaders();
 app.UseCors("AllowSpecificOrigin");
 
 app.Use(async (context, next) =>
@@ -53,11 +68,20 @@ app.UseHttpsRedirection();
 app.UseWebSockets();
 
 // Dùng await cho UseOcelot vì nó trả về Task
-await app.UseOcelot();
-
-
 app.UseSwagger();
 app.UseSwaggerUI();
 
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path == "/")
+    {
+        context.Response.Redirect("/swagger");
+        return;
+    }
+
+    await next();
+});
+
+await app.UseOcelot();
 
 app.Run();

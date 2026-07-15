@@ -25,8 +25,12 @@ Thumbs.db
 desktop.ini
 
 # Ignore build outputs and generated files for .NET
-bin/
-obj/
+[Bb]in/
+[Oo]bj/
+**/[Bb]in/
+**/[Oo]bj/
+**/[Dd]ebug/
+**/[Rr]elease/
 *.user
 *.suo
 *.userosscache
