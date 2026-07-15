@@ -175,6 +175,21 @@ dotnet ef database update --project .\Services\NotificationService\NotificationS
 | `/chat`, `/chat/negotiate` | SignalR ChatHub                                |
 | `/noti`, `/noti/negotiate` | SignalR NotificationHub                        |
 
+### Cấu hình domain production
+
+Production dùng một public domain:
+
+| Thành phần | URL công khai |
+| --- | --- |
+| Frontend | `https://fitora.fitdnu.id.vn/` |
+| API Gateway | `https://fitora.fitdnu.id.vn/api/` |
+| SignalR chat | `https://fitora.fitdnu.id.vn/api/chat` |
+| SignalR notification | `https://fitora.fitdnu.id.vn/api/noti` |
+
+Reverse proxy/IIS của frontend chịu trách nhiệm strip prefix `/api` trước khi chuyển tiếp đến API Gateway nội bộ `http://127.0.0.1:4469`. Các địa chỉ downstream trong `ApiGateways/ApiGateway/ocelot.json` vẫn là địa chỉ nội bộ `localhost:5002`, `5004`, `5006`, `5008`, `5010` và không được đổi sang public domain.
+
+Gateway và các service cho phép CORS từ `https://fitora.fitdnu.id.vn` cùng các origin phát triển cục bộ. Nếu triển khai thêm staging/dev domain, cấu hình qua `Cors:AllowedOrigins` thay vì hard-code trong mã nguồn.
+
 Ví dụ endpoint đã thấy trong controller:
 
 | Nhóm          | Endpoint                                                                                                                                                     |

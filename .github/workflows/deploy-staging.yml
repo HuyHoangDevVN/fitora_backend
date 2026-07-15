@@ -1,136 +1,164 @@
-name: Deploy Microservices to Staging
+name: Fitora Backend CI/CD
 
 on:
+  workflow_dispatch:
+  pull_request:
+    branches: [develop, staging]
   push:
-    branches:
-      - staging
+    branches: [staging]
+    paths-ignore:
+      - "report/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitora-backend-staging-deploy
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: [self-hosted, windows]
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: powershell
+        working-directory: .
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          dotnet-version: "8.0.x"
 
-      # ===== gRPC Services (Kestrel standalone) =====
-      - name: Stop Windows Services (User/Interact)
+      - name: Validate JSON configuration
         run: |
-          $services = @("userservice", "interactservice")
-          foreach ($service in $services) {
-            $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
-            if ($svc -and $svc.Status -eq 'Running') {
-              Stop-Service -Name $service -Force
-              Write-Host "Stopped $service"
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          $jsonFiles = @(
+            "ApiGateways\ApiGateway\ocelot.json",
+            "ApiGateways\ApiGateway\appsettings.json",
+            "ApiGateways\ApiGateway\appsettings.Development.json",
+            "Services\AuthService\AuthService.API\appsettings.json",
+            "Services\UserService\UserService.API\appsettings.json",
+            "Services\InteractService\InteractService.API\appsettings.json",
+            "Services\ChatService\ChatService.API\appsettings.json",
+            "Services\NotificationService\NotificationService.API\appsettings.json"
+          )
+          foreach ($file in $jsonFiles) {
+            if (-not (Test-Path $file)) { throw "JSON file missing: $file" }
+            Get-Content $file -Raw | ConvertFrom-Json | Out-Null
+          }
+
+      - name: Validate Ocelot routes
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          $ocelot = Get-Content "ApiGateways\ApiGateway\ocelot.json" -Raw | ConvertFrom-Json
+          $requiredPorts = @(5002, 5004, 5006, 5008, 5010)
+          foreach ($port in $requiredPorts) {
+            $match = $ocelot.Routes | Where-Object { $_.DownstreamHostAndPorts.Port -contains $port }
+            if (-not $match) { throw "Ocelot route for downstream port $port was not found." }
+          }
+          $selfRoute = $ocelot.Routes | Where-Object { $_.DownstreamHostAndPorts.Port -contains 4469 }
+          if ($selfRoute) { throw "Ocelot must not route downstream to gateway port 4469." }
+
+      - name: Restore
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          dotnet restore .\fitora_backend.sln
+          if ($LASTEXITCODE -ne 0) { throw "dotnet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          dotnet build .\fitora_backend.sln --configuration Release --no-restore
+          if ($LASTEXITCODE -ne 0) { throw "dotnet build failed with exit code $LASTEXITCODE" }
+
+      - name: Test
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          $testProjects = Get-ChildItem -Recurse -Filter "*.csproj" |
+            Where-Object { $_.FullName -match "\\(test|tests)\\" -or $_.BaseName -match "(?i)test" }
+          if ($testProjects.Count -eq 0) {
+            Write-Host "No .NET test projects found."
+            exit 0
+          }
+          foreach ($project in $testProjects) {
+            dotnet test $project.FullName --configuration Release --no-build
+            if ($LASTEXITCODE -ne 0) { throw "dotnet test failed for $($project.FullName) with exit code $LASTEXITCODE" }
+          }
+
+      - name: Publish deployables
+        run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          $artifactRoot = "C:\fitora_backend_artifacts"
+          if (Test-Path $artifactRoot) { Remove-Item $artifactRoot -Recurse -Force }
+          New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+
+          $projects = @(
+            @{ Name = "userservice"; Project = "Services\UserService\UserService.API\UserService.API.csproj"; Dll = "UserService.API.dll" },
+            @{ Name = "interactservice"; Project = "Services\InteractService\InteractService.API\InteractService.API.csproj"; Dll = "InteractService.API.dll" },
+            @{ Name = "authservice"; Project = "Services\AuthService\AuthService.API\AuthService.API.csproj"; Dll = "AuthService.API.dll" },
+            @{ Name = "chatservice"; Project = "Services\ChatService\ChatService.API\ChatService.API.csproj"; Dll = "ChatService.API.dll" },
+            @{ Name = "notificationservice"; Project = "Services\NotificationService\NotificationService.API\NotificationService.API.csproj"; Dll = "NotificationService.API.dll" },
+            @{ Name = "apigateway"; Project = "ApiGateways\ApiGateway\ApiGateway.csproj"; Dll = "ApiGateway.dll" }
+          )
+
+          foreach ($item in $projects) {
+            $output = Join-Path $artifactRoot $item.Name
+            dotnet publish $item.Project --configuration Release --no-build --output $output
+            if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed for $($item.Project) with exit code $LASTEXITCODE" }
+            foreach ($required in @($item.Dll, "$([System.IO.Path]::GetFileNameWithoutExtension($item.Dll)).deps.json", "$([System.IO.Path]::GetFileNameWithoutExtension($item.Dll)).runtimeconfig.json")) {
+              if (-not (Test-Path (Join-Path $output $required))) { throw "Publish output missing $required for $($item.Name)" }
             }
           }
-          Start-Sleep -Seconds 5
-        shell: powershell
 
-      - name: Build & Publish UserService (gRPC)
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\userservice --no-restore --no-build
-        working-directory: ./Services/UserService/UserService.API
-        shell: powershell
-
-      - name: Build & Publish InteractService (gRPC)
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\interactservice --no-restore --no-build
-        working-directory: ./Services/InteractService/InteractService.API
-        shell: powershell
-
-      - name: Start Windows Services (User/Interact)
-        run: |
-          function Start-ServiceSafe {
-              param (
-                  [Parameter(Mandatory=$true)]
-                  [string]$Name,
-                  [int]$TimeoutSeconds = 30
-              )
-              $svc = Get-Service -Name $Name -ErrorAction SilentlyContinue
-              if (-not $svc) {
-                  Write-Error "Service $Name does not exist"
-                  exit 1
-              }
-              if ($svc.Status -ne 'Running') {
-                  Start-Service -Name $Name -ErrorAction Stop
-                  $timeout = $TimeoutSeconds
-                  while ($svc.Status -ne 'Running' -and $timeout -gt 0) {
-                      Start-Sleep -Seconds 1
-                      $timeout--
-                      $svc.Refresh()
-                  }
-                  if ($svc.Status -ne 'Running') {
-                      Write-Error "Service $Name failed to start within $TimeoutSeconds seconds"
-                      exit 1
-                  }
-                  Write-Host "Service $Name is now running"
-              }
-              else {
-                  Write-Host "Service $Name is already running"
-              }
+          if (-not (Test-Path (Join-Path $artifactRoot "apigateway\ocelot.json"))) {
+            throw "ApiGateway publish output does not contain ocelot.json."
           }
 
-          Start-ServiceSafe -Name "userservice" -TimeoutSeconds 30
-          Start-ServiceSafe -Name "interactservice" -TimeoutSeconds 30
-        shell: powershell
+      - name: Upload backend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fitora-backend-publish
+          path: C:\fitora_backend_artifacts
+          if-no-files-found: error
 
-      # ===== Web API Services (IIS) =====
-      - name: Build & Publish AuthService (IIS)
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
+    runs-on: [self-hosted, windows]
+    timeout-minutes: 45
+    environment: staging
+    defaults:
+      run:
+        shell: powershell
+        working-directory: .
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download backend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: fitora-backend-publish
+          path: C:\fitora_backend_artifacts
+
+      - name: Deploy backend components
         run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\authservice --no-restore --no-build
-        working-directory: ./Services/AuthService/AuthService.API
-        shell: powershell
-
-      - name: Build & Publish ChatService (IIS)
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\chatservice --no-restore --no-build
-        working-directory: ./Services/ChatService/ChatService.API
-        shell: powershell
-
-      - name: Build & Publish NotificationService (IIS)
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\notificationservice --no-restore --no-build
-        working-directory: ./Services/NotificationService/NotificationService.API
-        shell: powershell
-
-      - name: Build & Publish ApiGateway (IIS)
-        run: |
-          dotnet restore
-          dotnet build --configuration Release --no-restore
-          dotnet publish --configuration Release --output C:\publish\apigateway --no-restore --no-build
-        working-directory: ./ApiGateways/ApiGateway
-        shell: powershell
-
-      - name: Deploy Web APIs to IIS
-        run: |
-          $services = @("authservice", "chatservice", "apigateway", 'notificationservice')
-
-          net stop w3svc
-
-          foreach ($service in $services) {
-            $target = "C:\inetpub\wwwroot\$service"
-            Remove-Item "$target\*" -Recurse -Force -ErrorAction SilentlyContinue
-            Copy-Item "C:\publish\$service\*" -Destination $target -Recurse
-          }
-
-          net start w3svc
-        shell: powershell
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          .\scripts\deploy-backend-staging.ps1 `
+            -ArtifactRoot "C:\fitora_backend_artifacts" `
+            -IisRoot "C:\inetpub\wwwroot" `
+            -ServiceRoot "C:\publish" `
+            -BackupRoot "C:\fitora_backend_backups"

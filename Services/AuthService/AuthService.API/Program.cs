@@ -18,11 +18,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173",
-                "http://192.168.161.84:5173",
-                "https://fitora.aiotlab.edu.vn"
-            )
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ??
+        [
+            "http://localhost:5173",
+            "http://192.168.161.84:5173",
+            "https://fitora.fitdnu.id.vn"
+        ];
+
+        policy.WithOrigins(allowedOrigins)
             .AllowCredentials()
             .AllowAnyHeader()
             .AllowAnyMethod();

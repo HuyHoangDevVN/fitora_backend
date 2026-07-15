@@ -15,7 +15,8 @@
         "Post",
         "Put",
         "Delete",
-        "Patch"
+        "Patch",
+        "Options"
       ]
     },
     {
@@ -33,7 +34,8 @@
         "Post",
         "Put",
         "Delete",
-        "Patch"
+        "Patch",
+        "Options"
       ]
     },
     {
@@ -51,7 +53,8 @@
         "Post",
         "Put",
         "Delete",
-        "Patch"
+        "Patch",
+        "Options"
       ]
     },
     {
@@ -65,7 +68,8 @@
       ],
       "UpstreamPathTemplate": "/chat/negotiate",
       "UpstreamHttpMethod": [
-        "Post"
+        "Post",
+        "Options"
       ],
       "UseWebSockets": true
     },
@@ -81,7 +85,8 @@
       "UpstreamPathTemplate": "/chat",
       "UpstreamHttpMethod": [
         "Get",
-        "Post"
+        "Post",
+        "Options"
       ]
     },
     {
@@ -99,7 +104,8 @@
         "Post",
         "Put",
         "Delete",
-        "Patch"
+        "Patch",
+        "Options"
       ]
     },
     {
@@ -113,7 +119,8 @@
       ],
       "UpstreamPathTemplate": "/noti/negotiate",
       "UpstreamHttpMethod": [
-        "Post"
+        "Post",
+        "Options"
       ],
       "UseWebSockets": true
     },
@@ -129,7 +136,8 @@
       "UpstreamPathTemplate": "/noti",
       "UpstreamHttpMethod": [
         "Get",
-        "Post"
+        "Post",
+        "Options"
       ]
     },
     {
@@ -147,7 +155,8 @@
         "Post",
         "Put",
         "Delete",
-        "Patch"
+        "Patch",
+        "Options"
       ]
     },
     {
@@ -161,21 +170,8 @@
       ],
       "UpstreamPathTemplate": "/interact/upload/{everything}",
       "UpstreamHttpMethod": [
-        "Get"
-      ]
-    },
-    {
-      "DownstreamPathTemplate": "/swagger{everything}",
-      "DownstreamScheme": "http",
-      "DownstreamHostAndPorts": [
-        {
-          "Host": "localhost",
-          "Port": 4469
-        }
-      ],
-      "UpstreamPathTemplate": "/swagger{everything}",
-      "UpstreamHttpMethod": [
-        "GET"
+        "Get",
+        "Options"
       ]
     }
   ],
