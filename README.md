@@ -1,4 +1,4 @@
-# Fitora Backend — Đồ án học phần Các hệ thống phân tán
+# Fitora Backend — Bài tập lớn học phần Các hệ thống phân tán
 
 Backend của Fitora là phần hệ thống phân tán viết bằng C#/.NET cho đề tài “Thiết kế và phát triển không gian học tập trên nền tảng Web và kiến trúc Microservice”. Mã nguồn trong repository này cung cấp API Gateway, các service nghiệp vụ, cấu hình giao tiếp đồng bộ/bất đồng bộ và script hỗ trợ chạy môi trường cục bộ.
 
