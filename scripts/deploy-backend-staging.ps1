@@ -11,9 +11,9 @@ Set-StrictMode -Version Latest
 Import-Module WebAdministration -ErrorAction Stop
 
 $components = @(
+    @{ Name = "authservice"; Type = "IIS"; TargetPath = (Join-Path $IisRoot "authservice"); ArtifactPath = (Join-Path $ArtifactRoot "authservice"); Dll = "AuthService.API.dll"; Port = 5002 },
     @{ Name = "userservice"; Type = "WindowsService"; TargetPath = (Join-Path $ServiceRoot "userservice"); ArtifactPath = (Join-Path $ArtifactRoot "userservice"); Dll = "UserService.API.dll"; Port = 5004 },
     @{ Name = "interactservice"; Type = "WindowsService"; TargetPath = (Join-Path $ServiceRoot "interactservice"); ArtifactPath = (Join-Path $ArtifactRoot "interactservice"); Dll = "InteractService.API.dll"; Port = 5006 },
-    @{ Name = "authservice"; Type = "IIS"; TargetPath = (Join-Path $IisRoot "authservice"); ArtifactPath = (Join-Path $ArtifactRoot "authservice"); Dll = "AuthService.API.dll"; Port = 5002 },
     @{ Name = "chatservice"; Type = "IIS"; TargetPath = (Join-Path $IisRoot "chatservice"); ArtifactPath = (Join-Path $ArtifactRoot "chatservice"); Dll = "ChatService.API.dll"; Port = 5008 },
     @{ Name = "notificationservice"; Type = "IIS"; TargetPath = (Join-Path $IisRoot "notificationservice"); ArtifactPath = (Join-Path $ArtifactRoot "notificationservice"); Dll = "NotificationService.API.dll"; Port = 5010 },
     @{ Name = "apigateway"; Type = "IIS"; TargetPath = (Join-Path $IisRoot "apigateway"); ArtifactPath = (Join-Path $ArtifactRoot "apigateway"); Dll = "ApiGateway.dll"; Port = 4469 }
