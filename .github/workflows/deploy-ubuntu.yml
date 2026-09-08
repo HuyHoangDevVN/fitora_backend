@@ -77,7 +77,7 @@ jobs:
           ssh -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p "$FITORA_DEPLOY_PORT" "$target" 'bash -s' <<'REMOTE'
           set -euo pipefail
           root=/home/fitdnu/fitora
-          [[ "$(id -un)" == "fitdnu" ]]
+          [[ "$(id -un)" == "fitora-deploy" ]]
           [[ "$(hostname)" == "aiotlab-server2" ]]
           [[ -d "$root/fitora_backend/deploy/ubuntu" && -d "$root/fitora_ui" && -f "$root/fitora_backend/deploy/ubuntu/.env" ]]
           docker compose version >/dev/null
