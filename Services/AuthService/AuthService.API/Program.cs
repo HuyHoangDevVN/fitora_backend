@@ -32,20 +32,12 @@ builder.Services.AddCors(options =>
     });
 });
 
-var certPath = builder.Environment.IsDevelopment()
-    ? builder.Configuration["CertificateSettings:DevPath"]
-    : builder.Configuration["CertificateSettings:ProdPath"];
-
-var certPassword = builder.Configuration["CertificateSettings:Password"];
-
-builder.WebHost.ConfigureKestrel(options =>
+if (builder.Environment.IsProduction())
 {
-    options.ListenLocalhost(5002, listenOptions =>
-    {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps(certPath!, certPassword);
-    });
-});
+    builder.WebHost.ConfigureKestrel(options =>
+        options.ListenAnyIP(8080, listenOptions =>
+            listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1));
+}
 
 
 builder.Services.Configure<JwtConfiguration>(
@@ -102,7 +94,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();

@@ -1,0 +1,5 @@
+[Unit]
+Description=Renew Fitora TLS certificate
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/fitora-cert-renew

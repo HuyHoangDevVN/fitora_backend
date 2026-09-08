@@ -1,0 +1,112 @@
+name: Deploy backend to Ubuntu
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run a non-mutating connection preflight, or deploy this exact SHA"
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fitora-backend-production
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: 8.0.408
+      - run: |
+          jq empty ApiGateways/ApiGateway/ocelot.json
+          jq empty ApiGateways/ApiGateway/appsettings.json
+      - run: dotnet restore fitora_backend.sln
+      - run: dotnet build fitora_backend.sln -c Release --no-restore
+      - run: dotnet test fitora_backend.sln -c Release --no-build --no-restore
+
+  preflight:
+    needs: verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify Ubuntu deployment target without mutation
+        env:
+          FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
+          FITORA_DEPLOY_PORT: ${{ vars.FITORA_DEPLOY_PORT }}
+          FITORA_DEPLOY_USER: ${{ vars.FITORA_DEPLOY_USER }}
+          FITORA_DEPLOY_SSH_KEY: ${{ secrets.FITORA_DEPLOY_SSH_KEY }}
+          FITORA_DEPLOY_KNOWN_HOSTS: ${{ secrets.FITORA_DEPLOY_KNOWN_HOSTS }}
+          FITORA_DEPLOY_ROOT: ${{ vars.FITORA_DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          [[ -n "$FITORA_DEPLOY_HOST" && -n "$FITORA_DEPLOY_USER" && -n "$FITORA_DEPLOY_SSH_KEY" && -n "$FITORA_DEPLOY_KNOWN_HOSTS" ]] || { echo "Missing Fitora deployment secrets." >&2; exit 1; }
+          [[ "$FITORA_DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "FITORA_DEPLOY_PORT must be numeric." >&2; exit 1; }
+          [[ "$FITORA_DEPLOY_ROOT" == "/home/fitdnu/fitora" ]] || { echo "Unexpected FITORA_DEPLOY_ROOT." >&2; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$FITORA_DEPLOY_SSH_KEY" > ~/.ssh/id_fitora
+          printf '%s\n' "$FITORA_DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_fitora ~/.ssh/known_hosts
+          target="${FITORA_DEPLOY_USER}@${FITORA_DEPLOY_HOST}"
+          ssh -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p "$FITORA_DEPLOY_PORT" "$target" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          root=/home/fitdnu/fitora
+          [[ "$(id -un)" == "fitdnu" ]]
+          [[ "$(hostname)" == "aiotlab-server2" ]]
+          [[ -d "$root/fitora_backend/deploy/ubuntu" && -d "$root/fitora_ui" && -f "$root/fitora_backend/deploy/ubuntu/.env" ]]
+          docker compose version >/dev/null
+          cd "$root/fitora_backend"
+          docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet
+          for service in rabbitmq elasticsearch redis mariadb user interact notification auth mongodb chat gateway frontend; do
+            docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services | grep -Fxq "$service"
+          done
+          for volume in elasticsearch-data mariadb-data mongodb-data rabbitmq-data redis-data uploads-data; do
+            docker volume inspect "fitora_${volume}" >/dev/null
+          done
+          [[ -d "$root/incoming" && -w "$root/incoming" && -d "$root/releases" && -w "$root/releases" ]]
+          [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]]
+          [[ -x deploy/ubuntu/ci-deploy.sh && -x deploy/ubuntu/deploy.sh ]]
+          grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh
+          REMOTE
+
+  deploy:
+    if: ${{ inputs.mode == 'deploy' }}
+    needs: [verify, preflight]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Upload source and run backend deployment
+        env:
+          FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
+          FITORA_DEPLOY_PORT: ${{ vars.FITORA_DEPLOY_PORT }}
+          FITORA_DEPLOY_USER: ${{ vars.FITORA_DEPLOY_USER }}
+          FITORA_DEPLOY_SSH_KEY: ${{ secrets.FITORA_DEPLOY_SSH_KEY }}
+          FITORA_DEPLOY_KNOWN_HOSTS: ${{ secrets.FITORA_DEPLOY_KNOWN_HOSTS }}
+          FITORA_DEPLOY_ROOT: ${{ vars.FITORA_DEPLOY_ROOT }}
+        run: |
+          set -euo pipefail
+          [[ -n "$FITORA_DEPLOY_HOST" && -n "$FITORA_DEPLOY_USER" && -n "$FITORA_DEPLOY_SSH_KEY" && -n "$FITORA_DEPLOY_KNOWN_HOSTS" ]] || { echo "Missing Fitora deployment secrets." >&2; exit 1; }
+          [[ "$FITORA_DEPLOY_PORT" =~ ^[0-9]{1,5}$ ]] || { echo "FITORA_DEPLOY_PORT must be numeric." >&2; exit 1; }
+          [[ "$FITORA_DEPLOY_ROOT" == "/home/fitdnu/fitora" ]] || { echo "Unexpected FITORA_DEPLOY_ROOT." >&2; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$FITORA_DEPLOY_SSH_KEY" > ~/.ssh/id_fitora
+          printf '%s\n' "$FITORA_DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_fitora ~/.ssh/known_hosts
+          tar -czf "/tmp/backend-${GITHUB_SHA}.tar.gz" --exclude-vcs --exclude='bin' --exclude='obj' --exclude='deploy/ubuntu/.env' --exclude='deploy/ubuntu/graphify-out' .
+          target="${FITORA_DEPLOY_USER}@${FITORA_DEPLOY_HOST}"
+          remote_archive="${FITORA_DEPLOY_ROOT}/incoming/backend-${GITHUB_SHA}.tar.gz"
+          scp -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -P "$FITORA_DEPLOY_PORT" "/tmp/backend-${GITHUB_SHA}.tar.gz" "${target}:${remote_archive}"
+          ssh -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p "$FITORA_DEPLOY_PORT" "$target" "bash '${FITORA_DEPLOY_ROOT}/fitora_backend/deploy/ubuntu/ci-deploy.sh' --component backend --sha '${GITHUB_SHA}' --archive '${remote_archive}'"

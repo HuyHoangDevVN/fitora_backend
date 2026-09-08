@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+docker run --rm -v /etc/letsencrypt:/etc/letsencrypt -v /var/www/fitora-acme:/var/www/fitora-acme certbot/certbot:v2.11.0 renew --webroot -w /var/www/fitora-acme --quiet
+nginx -s reload
