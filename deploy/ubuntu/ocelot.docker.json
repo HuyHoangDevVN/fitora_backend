@@ -1,0 +1,14 @@
+{
+  "Routes": [
+    { "DownstreamPathTemplate": "/api/auth/{everything}", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "auth", "Port": 8080 }], "UpstreamPathTemplate": "/auth/{everything}", "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete", "Patch", "Options"] },
+    { "DownstreamPathTemplate": "/api/user/{everything}", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "user", "Port": 8080 }], "UpstreamPathTemplate": "/user/{everything}", "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete", "Patch", "Options"] },
+    { "DownstreamPathTemplate": "/api/interact/{everything}", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "interact", "Port": 8080 }], "UpstreamPathTemplate": "/interact/{everything}", "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete", "Patch", "Options"] },
+    { "DownstreamPathTemplate": "/hubs/chat/negotiate", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "chat", "Port": 8080 }], "UpstreamPathTemplate": "/chat/negotiate", "UpstreamHttpMethod": ["Post", "Options"] },
+    { "DownstreamPathTemplate": "/hubs/chat", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "chat", "Port": 8080 }], "UpstreamPathTemplate": "/chat", "UpstreamHttpMethod": ["Get", "Post", "Options"], "UseWebSockets": true },
+    { "DownstreamPathTemplate": "/api/chat/{everything}", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "chat", "Port": 8080 }], "UpstreamPathTemplate": "/chat/{everything}", "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete", "Patch", "Options"] },
+    { "DownstreamPathTemplate": "/hubs/noti/negotiate", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "notification", "Port": 8080 }], "UpstreamPathTemplate": "/noti/negotiate", "UpstreamHttpMethod": ["Post", "Options"] },
+    { "DownstreamPathTemplate": "/hubs/noti", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "notification", "Port": 8080 }], "UpstreamPathTemplate": "/noti", "UpstreamHttpMethod": ["Get", "Post", "Options"], "UseWebSockets": true },
+    { "DownstreamPathTemplate": "/api/notification/{everything}", "DownstreamScheme": "http", "DownstreamHostAndPorts": [{ "Host": "notification", "Port": 8080 }], "UpstreamPathTemplate": "/notification/{everything}", "UpstreamHttpMethod": ["Get", "Post", "Put", "Delete", "Patch", "Options"] }
+  ],
+  "GlobalConfiguration": { "BaseUrl": "https://fitora.fitdnu.id.vn/api" }
+}

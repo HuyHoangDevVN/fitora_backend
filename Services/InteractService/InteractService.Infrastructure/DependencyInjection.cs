@@ -6,6 +6,7 @@ using InteractService.Application.DTOs.RabbitMQ.Requests;
 using InteractService.Application.Helpers;
 using InteractService.Application.Messaging;
 using InteractService.Application.Services.IServices;
+using InteractService.Domain.Abstractions;
 using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         }
 
         services.AddTransient(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
+        services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
         services.AddTransient(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.AddSingleton<IRabbitMqPublisher<NotificationMessageDto>, RabbitMqPublisher<NotificationMessageDto>>();
         services.AddTransient<BearerTokenHandler>();
@@ -55,7 +57,7 @@ public static class DependencyInjection
         // Call api
         services.AddHttpClient("UserService", client =>
         {
-            client.BaseAddress = new Uri("https://localhost:5004/");
+            client.BaseAddress = new Uri(configuration["UserService:BaseUrl"] ?? "https://localhost:5004/");
             client.DefaultRequestHeaders.Add("Accept", "application/json");
         }).AddHttpMessageHandler<BearerTokenHandler>();
 

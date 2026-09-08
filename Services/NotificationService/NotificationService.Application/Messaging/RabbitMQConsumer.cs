@@ -43,6 +43,8 @@ namespace NotificationService.Application.Messaging
             if (messageHandler == null)
                 throw new ArgumentNullException(nameof(messageHandler));
 
+            _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+
             var consumer = new EventingBasicConsumer(_channel);
 
             consumer.Received += async (model, ea) =>

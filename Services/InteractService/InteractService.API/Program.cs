@@ -13,22 +13,13 @@ using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var certPath = builder.Environment.IsDevelopment()
-    ? builder.Configuration["CertificateSettings:DevPath"]
-    : builder.Configuration["CertificateSettings:ProdPath"];
-
-var certPassword = builder.Configuration["CertificateSettings:Password"];
-
-builder.WebHost.ConfigureKestrel(options =>
+if (builder.Environment.IsProduction())
 {
-    options.ListenLocalhost(5006, listenOptions =>
-    {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps(certPath!, certPassword);
-    });
-});
-
-builder.Host.UseWindowsService();
+    builder.WebHost.ConfigureKestrel(options =>
+        options.ListenAnyIP(8080, listenOptions =>
+            listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1));
+    AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+}
 
 builder.Services.AddSingleton<UserGrpcClient>(sp =>
 {
@@ -36,7 +27,8 @@ builder.Services.AddSingleton<UserGrpcClient>(sp =>
     {
         ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
     };
-    var channel = GrpcChannel.ForAddress("https://localhost:5004", new GrpcChannelOptions
+    var channel = GrpcChannel.ForAddress(
+        builder.Configuration["UserService:GrpcUrl"] ?? "https://localhost:5004", new GrpcChannelOptions
     {
         HttpHandler = handler
     });
@@ -104,10 +96,11 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(@"C:\AppUploads\InteractFiles"),
+    FileProvider = new PhysicalFileProvider(builder.Configuration["UploadSettings:ExternalFolder"]
+        ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads")),
     RequestPath = "/api/interact/upload/file"
 });
 app.UseCors("AllowSpecificOrigin");

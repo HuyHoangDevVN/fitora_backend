@@ -43,5 +43,10 @@ desktop.ini
 .vs/
 .vscode/
 
+# Deployment secrets and generated TLS/proxy configuration
+deploy/ubuntu/.env
+deploy/ubuntu/nginx.conf
+deploy/ubuntu/graphify-out/
+
 # Ignore Rider settings backups
 .idea/**/idea_settings.xml

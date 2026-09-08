@@ -1,0 +1,7 @@
+.git
+.idea
+**/bin
+**/obj
+deploy/ubuntu/.env
+deploy/ubuntu/nginx.conf
+*.log

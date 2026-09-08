@@ -1,0 +1,26 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [develop, staging, product]
+  push:
+    branches: [develop, staging, product]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: 8.0.408
+      - run: |
+          jq empty ApiGateways/ApiGateway/ocelot.json
+          jq empty ApiGateways/ApiGateway/appsettings.json
+      - run: dotnet restore fitora_backend.sln
+      - run: dotnet build fitora_backend.sln -c Release --no-restore
+      - run: dotnet test fitora_backend.sln -c Release --no-build --no-restore

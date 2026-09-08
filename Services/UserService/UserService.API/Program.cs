@@ -16,22 +16,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var certPath = builder.Environment.IsDevelopment()
-    ? builder.Configuration["CertificateSettings:DevPath"]
-    : builder.Configuration["CertificateSettings:ProdPath"];
-
-var certPassword = builder.Configuration["CertificateSettings:Password"];
-
-builder.WebHost.ConfigureKestrel(options =>
+if (builder.Environment.IsProduction())
 {
-    options.ListenLocalhost(5004, listenOptions =>
+    builder.WebHost.ConfigureKestrel(options =>
     {
-        listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1AndHttp2;
-        listenOptions.UseHttps(certPath!, certPassword);
+        options.ListenAnyIP(8080, listenOptions =>
+            listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1);
+        options.ListenAnyIP(8081, listenOptions =>
+            listenOptions.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2);
     });
-});
-
-builder.Host.UseWindowsService();
+}
 
 builder.Services.AddCors(options =>
 {
@@ -80,7 +74,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
 app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();

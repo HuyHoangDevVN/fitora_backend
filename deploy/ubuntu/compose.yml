@@ -1,0 +1,259 @@
+name: fitora
+
+x-app: &app
+  image: fitora-backend:local
+  build:
+    context: ../..
+    dockerfile: deploy/ubuntu/Dockerfile
+    target: runtime
+  restart: unless-stopped
+  environment:
+    ASPNETCORE_ENVIRONMENT: Production
+    ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+    ApiSettings__JwtOptions__Issuer: fitora-client
+    ApiSettings__JwtOptions__Audience: fitora-auth-server
+    ConnectionStrings__Redis: redis:6379
+    Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+    Cors__AllowedOrigins__1: http://localhost:5173
+    Cors__AllowedOrigins__2: http://127.0.0.1:5173
+    RabbitMQ__HostName: rabbitmq
+    RabbitMQ__UserName: fitora
+    RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+    RabbitMQ__QueueName: user_registration_queue
+    RabbitMqSettings__HostName: rabbitmq
+    RabbitMqSettings__UserName: fitora
+    RabbitMqSettings__Password: ${RABBITMQ_PASSWORD}
+  logging:
+    driver: local
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  mariadb:
+    image: mariadb:11.5.2
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MARIADB_USER: fitora
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_DATABASE: fitora_auth
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./mysql-init.sql:/docker-entrypoint-initdb.d/01-databases.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u fitora -p$${MYSQL_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+  mongodb:
+    image: mongo:7.0.14
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: fitora
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes: [mongodb-data:/data/db]
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --username fitora --password $${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval 'db.runCommand({ ping: 1 }).ok' | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+  redis:
+    image: redis:7.4.2-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redis-data:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+  rabbitmq:
+    image: rabbitmq:3.13.7-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: fitora
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes: [rabbitmq-data:/var/lib/rabbitmq]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    restart: unless-stopped
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.enabled: "false"
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes: [elasticsearch-data:/usr/share/elasticsearch/data]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS -u elastic:$${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health >/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+  migrate:
+    image: fitora-migrator:local
+    build:
+      context: ../..
+      dockerfile: deploy/ubuntu/Dockerfile
+      target: migrator
+    env_file: .env
+    environment:
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    depends_on:
+      mariadb: { condition: service_healthy }
+    profiles: [tools]
+
+  volume-init:
+    image: alpine:3.20.3
+    user: "0:0"
+    command: ["sh", "-c", "mkdir -p /uploads && chown -R 1654:1654 /uploads"]
+    volumes: [uploads-data:/uploads]
+    profiles: [tools]
+
+  auth:
+    <<: *app
+    command: ["dotnet", "/app/auth/AuthService.API.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+      ApiSettings__JwtOptions__Issuer: fitora-client
+      ApiSettings__JwtOptions__Audience: fitora-auth-server
+      ConnectionStrings__Database: Server=mariadb;Port=3306;Database=fitora_auth;User=fitora;Password=${MYSQL_PASSWORD};
+      ConnectionStrings__Redis: redis:6379
+      Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+      RabbitMQ__HostName: rabbitmq
+      RabbitMQ__UserName: fitora
+      RabbitMQ__Password: ${RABBITMQ_PASSWORD}
+      RabbitMQ__QueueName: user_registration_queue
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  user:
+    <<: *app
+    command: ["dotnet", "/app/user/UserService.API.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+      ApiSettings__JwtOptions__Issuer: fitora-client
+      ApiSettings__JwtOptions__Audience: fitora-auth-server
+      ConnectionStrings__Database: Server=mariadb;Port=3306;Database=fitora_user;User=fitora;Password=${MYSQL_PASSWORD};
+      ConnectionStrings__Redis: redis:6379
+      Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+      RabbitMqSettings__HostName: rabbitmq
+      RabbitMqSettings__UserName: fitora
+      RabbitMqSettings__Password: ${RABBITMQ_PASSWORD}
+      RabbitMqSettings__QueueName: user_registration_queue
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  interact:
+    <<: *app
+    command: ["dotnet", "/app/interact/InteractService.API.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+      ApiSettings__JwtOptions__Issuer: fitora-client
+      ApiSettings__JwtOptions__Audience: fitora-auth-server
+      ConnectionStrings__Database: Server=mariadb;Port=3306;Database=fitora_interact;User=fitora;Password=${MYSQL_PASSWORD};
+      ConnectionStrings__Redis: redis:6379
+      Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+      UploadSettings__ExternalFolder: /uploads
+      UserService__GrpcUrl: http://user:8081
+      UserService__BaseUrl: http://user:8080/
+      ElasticsearchSettings__Uri: http://elasticsearch:9200
+      ElasticsearchSettings__Username: elastic
+      ElasticsearchSettings__Password: ${ELASTIC_PASSWORD}
+      RabbitMqSettings__HostName: rabbitmq
+      RabbitMqSettings__UserName: fitora
+      RabbitMqSettings__Password: ${RABBITMQ_PASSWORD}
+    volumes: [uploads-data:/uploads]
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+      user: { condition: service_started }
+
+  chat:
+    <<: *app
+    command: ["dotnet", "/app/chat/ChatService.API.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+      ApiSettings__JwtOptions__Issuer: fitora-client
+      ApiSettings__JwtOptions__Audience: fitora-auth-server
+      ConnectionStrings__Redis: redis:6379
+      MongoDb__ConnectionString: mongodb://fitora:${MONGO_PASSWORD}@mongodb:27017/?authSource=admin
+      MongoDb__Database: fitora_chat
+      Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+    depends_on:
+      mongodb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  notification:
+    <<: *app
+    command: ["dotnet", "/app/notification/NotificationService.API.dll"]
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ApiSettings__JwtOptions__Secret: ${JWT_SECRET}
+      ApiSettings__JwtOptions__Issuer: fitora-client
+      ApiSettings__JwtOptions__Audience: fitora-auth-server
+      ConnectionStrings__Database: Server=mariadb;Port=3306;Database=fitora_notification;User=fitora;Password=${MYSQL_PASSWORD};
+      ConnectionStrings__Redis: redis:6379
+      Cors__AllowedOrigins__0: https://fitora.fitdnu.id.vn
+      RabbitMqSettings__HostName: rabbitmq
+      RabbitMqSettings__UserName: fitora
+      RabbitMqSettings__Password: ${RABBITMQ_PASSWORD}
+    depends_on:
+      mariadb: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  gateway:
+    <<: *app
+    command: ["dotnet", "/app/gateway/ApiGateway.dll"]
+    volumes:
+      - ./ocelot.docker.json:/app/ocelot.json:ro
+    ports: ["127.0.0.1:${GATEWAY_PORT}:8080"]
+    depends_on:
+      auth: { condition: service_started }
+      user: { condition: service_started }
+      interact: { condition: service_started }
+      chat: { condition: service_started }
+      notification: { condition: service_started }
+
+  frontend:
+    image: fitora-frontend:local
+    build:
+      context: ../../../fitora_ui
+      dockerfile: ../fitora_backend/deploy/ubuntu/Dockerfile.frontend
+    restart: unless-stopped
+    ports: ["127.0.0.1:${FRONTEND_PORT}:80"]
+    logging: { driver: local, options: { max-size: 10m, max-file: "3" } }
+
+volumes:
+  mariadb-data:
+  mongodb-data:
+  redis-data:
+  rabbitmq-data:
+  elasticsearch-data:
+  uploads-data:
