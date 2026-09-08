@@ -17,7 +17,7 @@ No automatic deployment is enabled. Do not add it until a manual production depl
 
 ## GitHub configuration
 
-The `production` Environment in both repositories permits protected branches only. It has no reviewer rule because no independent reviewer was selected; this is not a substitute for the protected-branch PR review. Configure the following repository values only after a GitHub-hosted runner route has been verified:
+The `production` Environment in both repositories permits only the `develop` branch. It has no reviewer rule because no independent reviewer was selected; this is not a substitute for the protected-branch PR review. Configure the following **production Environment** values only after a GitHub-hosted runner route has been verified:
 
 | Name | Kind | Purpose | Source |
 | --- | --- | --- | --- |
@@ -27,6 +27,19 @@ The `production` Environment in both repositories permits protected branches onl
 | `FITORA_DEPLOY_SSH_KEY` | Secret | Private key for a restricted deploy user | Dedicated deploy key; never copy server `.env` here |
 | `FITORA_DEPLOY_KNOWN_HOSTS` | Secret | Verified host-key entry for the actual host/port | Existing trusted `known_hosts`, verified through an administrator session |
 | `FITORA_DEPLOY_ROOT` | Repository variable | `/home/fitdnu/fitora` | Ubuntu deployment inspection |
+| `FITORA_TAILSCALE_CLIENT_ID` | Secret | Tailscale GitHub workload-identity client ID | Tailscale Trust credentials |
+| `FITORA_TAILSCALE_AUDIENCE` | Secret | Audience for that federated identity | Tailscale Trust credentials |
+
+`FITORA_DEPLOY_HOST` is the verified Tailscale IPv4 address or MagicDNS hostname of Ubuntu, never its LAN/NAT address. The CD jobs join Tailscale only after `verify`, as ephemeral `tag:fitora-ci` nodes, using pinned `tailscale/github-action` commit `306e68a486fd2350f2bfc3b19fcd143891a4a2d8`. They request GitHub OIDC only in `preflight` and `deploy` jobs; the CI workflows receive no `id-token: write` permission. The action's post-step logs out the runner.
+
+For this GitHub account, both repositories use the default, non-immutable OIDC subject format. Because the CD jobs reference `production`, the tailnet federated-identity trust subjects must be exactly:
+
+```text
+repo:HuyHoangDevVN/fitora_backend:environment:production
+repo:HuyHoangDevVN/fitora_ui:environment:production
+```
+
+The tailnet administrator must also require `repository` to match the corresponding repository and `ref` to be `refs/heads/develop`, then verify those claims from the first successful preflight. Give the federated identities only `auth_keys` scope and `tag:fitora-ci`. The effective tailnet policy must allow only `tag:fitora-ci` to `tag:fitora-server:22`; do not rely on this rule while an older broad allow rule remains in force.
 
 The workflow refuses an unexpected deploy root, an invalid port, an absent secret, an unknown host key, or an incomplete archive. It does not use `ssh-keyscan` or disable host-key checking.
 
@@ -39,7 +52,7 @@ cd /home/fitdnu/fitora/fitora_backend
 bash deploy/ubuntu/bootstrap-ci.sh
 ```
 
-Do not create a GitHub Actions runner on the application server. The GitHub-hosted runner needs a verified route to Ubuntu; it can be public SSH, an existing bastion/VPN, or a Tailscale node temporary to the workflow. Do not expose Docker/database ports. If Tailscale is used, create and scope its auth key and ACL in the existing tailnet first, then pin the current Tailscale GitHub Action commit in both CD workflows before adding its setup step. This repository does not create a tailnet, an auth key, or a network route automatically.
+Do not create a GitHub Actions runner on the application server. Tailscale is the only GitHub-runner route: Ubuntu is a fixed `tag:fitora-server` node and each CD job is an ephemeral `tag:fitora-ci` node. Do not expose Docker/database ports, enable Tailscale SSH, advertise routes, or use an exit node. The tailnet administrator must create the tags, ACL and GitHub federated identities; this repository does not alter tailnet-wide policy automatically.
 
 ## First manual deployment
 
@@ -61,3 +74,7 @@ docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml logs -
 ```
 
 Frontend failure automatically restores the prior source/image because it has no schema migration. Backend failure after migration stops and retains the prior source under `/home/fitdnu/fitora/releases/backend/`; it does not auto-rollback application code across an unknown schema. Review compatibility, then perform an explicit rollback using that release copy and `bash deploy/ubuntu/deploy.sh --component backend`.
+
+## Deferred dependency security item
+
+AutoMapper `13.0.1` is a direct dependency of Auth, User, Notification, Interact, and Chat. NuGet reports `GHSA-rvv3-g6hj-g44x` / CVE-2026-32933 (high severity uncontrolled-recursion DoS); affected versions are `<15.1.1`, while the available patched lines are `15.1.1` and `16.1.1`. This CI/CD change does not suppress the warning or make a major package upgrade. A separate compatibility PR must inventory request/response graph mappings, select a supported patched version and license, add regression coverage for nested/cyclic input, and verify all affected services before a security sign-off.

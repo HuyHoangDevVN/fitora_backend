@@ -39,8 +39,23 @@ jobs:
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Connect ephemeral runner to Tailscale
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8
+        with:
+          oauth-client-id: ${{ secrets.FITORA_TAILSCALE_CLIENT_ID }}
+          audience: ${{ secrets.FITORA_TAILSCALE_AUDIENCE }}
+          tags: tag:fitora-ci
+          hostname: fitora-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          version: 1.102.3
+          timeout: 2m
+          use-cache: false
+          ping: ${{ vars.FITORA_DEPLOY_HOST }}
       - name: Verify Ubuntu deployment target without mutation
         env:
           FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
@@ -86,8 +101,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Connect ephemeral runner to Tailscale
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8
+        with:
+          oauth-client-id: ${{ secrets.FITORA_TAILSCALE_CLIENT_ID }}
+          audience: ${{ secrets.FITORA_TAILSCALE_AUDIENCE }}
+          tags: tag:fitora-ci
+          hostname: fitora-ci-${{ github.run_id }}-${{ github.run_attempt }}
+          version: 1.102.3
+          timeout: 2m
+          use-cache: false
+          ping: ${{ vars.FITORA_DEPLOY_HOST }}
       - name: Upload source and run backend deployment
         env:
           FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
