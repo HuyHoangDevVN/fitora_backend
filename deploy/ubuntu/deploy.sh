@@ -15,6 +15,15 @@ fi
 [[ "$component" == "all" || "$component" == "backend" || "$component" == "frontend" ]] || { printf 'Unknown component: %s\n' "$component" >&2; exit 2; }
 
 fail() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
+wait_for_status() {
+  local url="$1" expected="$2" status=""
+  for _ in {1..30}; do
+    status="$(curl --silent --output /dev/null --write-out '%{http_code}' "$url" || true)"
+    [[ "$status" == "$expected" ]] && return 0
+    sleep 2
+  done
+  fail "Expected ${url} to return ${expected}, got ${status:-no response}."
+}
 command -v docker >/dev/null || fail "Docker is not installed. Install Docker Engine and the Docker Compose plugin, then run again."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose plugin is unavailable. Install it, then run again."
 [[ -f "$ui_dir/package-lock.json" ]] || fail "Expected sibling frontend repository at $ui_dir."
@@ -78,11 +87,10 @@ if [[ "$component" == "all" ]]; then
 fi
 
 if [[ "$component" == "all" || "$component" == "frontend" ]]; then
-  curl --fail --silent --show-error "https://${domain}/login" >/dev/null
+  wait_for_status "https://${domain}/login" 200
 fi
 if [[ "$component" == "all" || "$component" == "backend" ]]; then
-  curl --fail --silent --show-error "https://${domain}/api/auth/auth/check-cookie" >/dev/null
-  status="$(curl --silent --output /dev/null --write-out '%{http_code}' "https://${domain}/api/auth/admin/is-authorized")"
-  [[ "$status" == "401" ]] || fail "Expected unauthenticated admin endpoint to return 401, got $status."
+  wait_for_status "https://${domain}/api/auth/auth/check-cookie" 200
+  wait_for_status "https://${domain}/api/auth/admin/is-authorized" 401
 fi
 printf 'Fitora is available at https://%s\n' "$domain"
