@@ -83,8 +83,9 @@ jobs:
           docker compose version >/dev/null
           cd "$root/fitora_backend"
           docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet
+          services="$(docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services)"
           for service in rabbitmq elasticsearch redis mariadb user interact notification auth mongodb chat gateway frontend; do
-            docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services | grep -Fxq "$service"
+            grep -Fxq "$service" <<< "$services"
           done
           for volume in elasticsearch-data mariadb-data mongodb-data rabbitmq-data redis-data uploads-data; do
             docker volume inspect "fitora_${volume}" >/dev/null
