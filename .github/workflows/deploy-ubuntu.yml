@@ -20,7 +20,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  production-branch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    steps:
+      - run: |
+          [[ "$GITHUB_REF" == "refs/heads/main" ]] || {
+            echo "Production deployment must be dispatched from main." >&2
+            exit 1
+          }
+
   verify:
+    needs: production-branch
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
