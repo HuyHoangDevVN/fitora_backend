@@ -43,7 +43,9 @@ cd "$deploy_dir"
 compose=(docker compose --env-file "$env_file" -f compose.yml)
 "${compose[@]}" config --quiet
 
-sudo -n true || fail "Passwordless sudo is required only to add the Fitora Nginx vhost and TLS renewal timer."
+if [[ "$component" == "all" ]]; then
+  sudo -n true || fail "Passwordless sudo is required only to add the Fitora Nginx vhost and TLS renewal timer."
+fi
 
 if [[ "$component" == "all" || "$component" == "backend" ]]; then
   "${compose[@]}" build auth

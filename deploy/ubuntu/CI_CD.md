@@ -54,6 +54,8 @@ bash deploy/ubuntu/bootstrap-ci.sh
 
 Do not create a GitHub Actions runner on the application server. Tailscale is the only GitHub-runner route: Ubuntu is a fixed `tag:fitora-server` node and each CD job is an ephemeral `tag:fitora-ci` node. Do not expose Docker/database ports, enable Tailscale SSH, advertise routes, or use an exit node. The tailnet administrator must create the tags, ACL and GitHub federated identities; this repository does not alter tailnet-wide policy automatically.
 
+Ubuntu accepts the dedicated `fitora-deploy` account/key for CI. It has no sudo permission, has Docker access required by the existing Compose deployment, and receives ACLs only for the Fitora source root, `incoming`, `releases`, the runtime `.env`, and deployment entrypoints. Its SSH key disables agent, port and X11 forwarding plus PTY allocation. Component deployments do not require sudo; only the one-time `--component all` bootstrap of the host Nginx/TLS integration does.
+
 ## First manual deployment
 
 1. Push the reviewed workflow/script changes to the intended branch.
