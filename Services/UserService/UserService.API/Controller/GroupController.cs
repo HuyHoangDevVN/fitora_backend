@@ -9,11 +9,17 @@ using UserService.Application.DTOs.GroupMember.Requests;
 using UserService.Application.DTOs.GroupPost.Requests;
 using UserService.Application.Usecases.Group.Commands.CreateGroup;
 using UserService.Application.Usecases.Group.Commands.DeleteGroup;
+using UserService.Application.Usecases.Group.Commands.DissolveGroup;
+using UserService.Application.Usecases.Group.Commands.TransferOwner;
 using UserService.Application.Usecases.Group.Commands.UpdateGroup;
+using UserService.Application.Usecases.Group.Commands.UpdatePrivacy;
 using UserService.Application.Usecases.Group.Queries.GetGroupById;
 using UserService.Application.Usecases.Group.Queries.GetGroups;
 using UserService.Application.Usecases.Group.Queries.GetJoinedGroups;
 using UserService.Application.Usecases.Group.Queries.GetManagedGroups;
+using UserService.Application.Usecases.GroupPost.Commands.ApproveGroupPost;
+using UserService.Application.Usecases.GroupPost.Commands.RejectGroupPost;
+using UserService.Application.Usecases.GroupPost.Queries.GetPendingGroupPosts;
 using UserService.Application.Usecases.GroupInvite.Commands.AcceptGroupInvite;
 using UserService.Application.Usecases.GroupInvite.Commands.CreateGroupInvite;
 using UserService.Application.Usecases.GroupInvite.Commands.CreateGroupInvites;
@@ -348,6 +354,68 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
             )
         ));
         return Ok(groups);
+    }
+
+    // ==============================
+    // Group Post Moderation (26.3)
+    // ==============================
+
+    /// <summary>Pending posts of a group (paginated).</summary>
+    [HttpGet("{groupId:guid}/pending-posts")]
+    public async Task<IActionResult> GetPendingGroupPosts(
+        [FromRoute] Guid groupId, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    {
+        var result = await _sender.Send(new GetPendingGroupPostsQuery(groupId, pageIndex, pageSize));
+        return Ok(new ResponseDto(result));
+    }
+
+    public record RejectBody(string? Reason);
+
+    /// <summary>Approve a pending group post (Owner/Admin/Moderator).</summary>
+    [HttpPost("posts/{postId:guid}/approve")]
+    public async Task<IActionResult> ApproveGroupPost([FromRoute] Guid postId)
+    {
+        var result = await _sender.Send(new ApproveGroupPostCommand(postId));
+        return Ok(result);
+    }
+
+    /// <summary>Reject a pending group post (Owner/Admin/Moderator).</summary>
+    [HttpPost("posts/{postId:guid}/reject")]
+    public async Task<IActionResult> RejectGroupPost([FromRoute] Guid postId, [FromBody] RejectBody body)
+    {
+        var result = await _sender.Send(new RejectGroupPostCommand(postId, body?.Reason));
+        return Ok(result);
+    }
+
+    // ==============================
+    // Ownership & Dissolve (26.2)
+    // ==============================
+
+    public record TransferOwnerBody(Guid NewOwnerId);
+    public record UpdatePrivacyBody(GroupPrivacy Privacy);
+
+    /// <summary>Transfer group ownership (Owner only).</summary>
+    [HttpPost("{groupId:guid}/transfer-owner")]
+    public async Task<IActionResult> TransferOwner([FromRoute] Guid groupId, [FromBody] TransferOwnerBody body)
+    {
+        var result = await _sender.Send(new TransferOwnerCommand(groupId, body.NewOwnerId));
+        return Ok(result);
+    }
+
+    /// <summary>Dissolve group (Owner only).</summary>
+    [HttpDelete("{groupId:guid}/dissolve")]
+    public async Task<IActionResult> DissolveGroup([FromRoute] Guid groupId)
+    {
+        var result = await _sender.Send(new DissolveGroupCommand(groupId));
+        return Ok(result);
+    }
+
+    /// <summary>Update group privacy (Owner/Admin only).</summary>
+    [HttpPut("{groupId:guid}/privacy")]
+    public async Task<IActionResult> UpdatePrivacy([FromRoute] Guid groupId, [FromBody] UpdatePrivacyBody body)
+    {
+        var result = await _sender.Send(new UpdatePrivacyCommand(groupId, body.Privacy));
+        return Ok(result);
     }
 
     // ==============================

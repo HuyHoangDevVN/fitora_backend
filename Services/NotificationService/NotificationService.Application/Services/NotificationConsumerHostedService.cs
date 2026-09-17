@@ -31,6 +31,14 @@ namespace NotificationService.Application.Services
                     using var scope = _serviceProvider.CreateScope();
                     var notificationRepo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
 
+                    var settingRepo = scope.ServiceProvider.GetRequiredService<INotificationSettingRepository>();
+                    var enabled = await settingRepo.IsEnabledAsync(message.UserId, message.NotificationTypeId);
+                    if (!enabled)
+                    {
+                        Console.WriteLine($"[NotificationService] Skipped type {message.NotificationTypeId} for user {message.UserId} (disabled)");
+                        return;
+                    }
+
                     var notification = new Notification
                     {
                         UserId = message.UserId,

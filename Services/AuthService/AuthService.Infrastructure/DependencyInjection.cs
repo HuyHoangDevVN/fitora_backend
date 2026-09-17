@@ -1,4 +1,4 @@
-﻿using AuthService.Application.Data;
+using AuthService.Application.Data;
 using AuthService.Infrastructure.Data;
 using AuthService.Infrastructure.Data.Interceptors;
 using Microsoft.AspNetCore.Identity;
@@ -31,6 +31,7 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+        services.AddScoped<AuthService.Application.Services.IServices.IEmailSender, Services.ConsoleEmailSender>();
         return services;
     }
 }

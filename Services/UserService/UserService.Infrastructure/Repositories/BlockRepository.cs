@@ -99,6 +99,18 @@ public class BlockRepository : IBlockRepository
         return new ResponseDto(null, ok, ok ? "Đã bỏ chặn nhóm." : "Bỏ chặn thất bại.");
     }
 
+    public async Task<IReadOnlySet<Guid>> GetBlockedUserIdsAsync(Guid blockerId, CancellationToken ct = default)
+    {
+        var blocks = await _blockRepo.FindAsync(b => b.BlockerUserId == blockerId, ct);
+        return blocks.Select(b => b.BlockedUserId).ToHashSet();
+    }
+
+    public async Task<IReadOnlySet<Guid>> GetBlockedGroupIdsAsync(Guid blockerId, CancellationToken ct = default)
+    {
+        var blocks = await _blockedGroupRepo.FindAsync(b => b.BlockerUserId == blockerId, ct);
+        return blocks.Select(b => b.GroupId).ToHashSet();
+    }
+
     public async Task<PaginatedResult<BlockedGroup>> GetBlockedGroupsAsync(Guid blockerId, int pageIndex, int pageSize)
     {
         var includes = new List<Expression<Func<BlockedGroup, object>>>

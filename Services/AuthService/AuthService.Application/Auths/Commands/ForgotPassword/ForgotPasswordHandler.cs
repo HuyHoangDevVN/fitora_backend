@@ -1,10 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
+using AuthService.Application.Services.IServices;
 using BuildingBlocks.DTOs;
 
 namespace AuthService.Application.Auths.Commands.ForgotPassword;
 
-public class ForgotPasswordHandler(IApplicationDbContext dbContext, UserManager<ApplicationUser> userManager, ILogger<ForgotPasswordHandler> logger)
+public class ForgotPasswordHandler(IApplicationDbContext dbContext, UserManager<ApplicationUser> userManager, IEmailSender emailSender, ILogger<ForgotPasswordHandler> logger)
     : ICommandHandler<ForgotPasswordCommand, ResponseDto>
 {
     public async Task<ResponseDto> Handle(ForgotPasswordCommand command, CancellationToken cancellationToken)
@@ -24,11 +25,11 @@ public class ForgotPasswordHandler(IApplicationDbContext dbContext, UserManager<
         var otpHash = ComputeSha256(otp);
         var expiresAt = DateTime.UtcNow.AddMinutes(10);
 
-        // Invalidate previous unused tokens for this user (optional: mark expired)
+        // Invalidate previous unused tokens for this user
         var previous = await dbContext.PasswordResetTokens
             .Where(x => x.UserId == user.Id && x.UsedAt == null && x.ExpiresAt > DateTime.UtcNow)
             .ToListAsync(cancellationToken);
-        foreach (var p in previous) p.ExpiresAt = DateTime.UtcNow; // expire old
+        foreach (var p in previous) p.ExpiresAt = DateTime.UtcNow;
 
         var token = new PasswordResetToken
         {
@@ -41,9 +42,17 @@ public class ForgotPasswordHandler(IApplicationDbContext dbContext, UserManager<
         dbContext.PasswordResetTokens.Add(token);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Dev stub: log OTP to console (no SMTP)
-        logger.LogInformation("[ForgotPassword] OTP for {Email}: {Otp} (expires {ExpiresAt:u})", email, otp, expiresAt);
-        Console.WriteLine($"[ForgotPassword] OTP for {email}: {otp} (expires {expiresAt:u})");
+        var body = $"Your Fitora password reset OTP is: {otp}. It expires at {expiresAt:u}. If you did not request this, ignore this email.";
+        try
+        {
+            await emailSender.SendAsync(email, "Fitora - Password Reset OTP", body, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "ForgotPassword: failed to send OTP email to {Email}", email);
+        }
+
+        logger.LogInformation("[ForgotPassword] OTP generated for {Email} (expires {ExpiresAt:u})", email, expiresAt);
 
         return new ResponseDto(Message: "If the email exists, an OTP has been sent.");
     }

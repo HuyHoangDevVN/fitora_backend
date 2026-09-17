@@ -99,4 +99,12 @@ public class NotificationRepository : INotificationRepository
         }
         await _notificationRepo.SaveChangesAsync();
     }
+
+    public async Task<bool> DeleteAllAsync(Guid userId)
+    {
+        var notifications = await _notificationDbSet.Where(n => n.UserId == userId).ToListAsync();
+        if (!notifications.Any()) return true;
+        _notificationDbSet.RemoveRange(notifications);
+        return await _notificationRepo.SaveChangesAsync() > 0 || true;
+    }
 }

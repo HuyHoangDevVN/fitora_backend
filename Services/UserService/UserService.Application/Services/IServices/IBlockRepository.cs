@@ -14,4 +14,7 @@ public interface IBlockRepository
     Task<ResponseDto> BlockGroupAsync(Guid blockerId, Guid groupId);
     Task<ResponseDto> UnblockGroupAsync(Guid blockerId, Guid groupId);
     Task<PaginatedResult<UserService.Domain.Models.BlockedGroup>> GetBlockedGroupsAsync(Guid blockerId, int pageIndex, int pageSize);
+
+    Task<IReadOnlySet<Guid>> GetBlockedUserIdsAsync(Guid blockerId, CancellationToken ct = default);
+    Task<IReadOnlySet<Guid>> GetBlockedGroupIdsAsync(Guid blockerId, CancellationToken ct = default);
 }

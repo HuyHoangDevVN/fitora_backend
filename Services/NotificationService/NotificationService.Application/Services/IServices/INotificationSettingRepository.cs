@@ -10,4 +10,6 @@ public interface INotificationSettingRepository
     Task<bool> UpdateSettingAsync(UpdateNotificationSettingRequest request);
 
     Task<bool> UpdateSettingsAsync(Guid userId, IEnumerable<UpdateNotificationSettingRequest> requests);
+
+    Task<bool> IsEnabledAsync(Guid userId, int notificationTypeId);
 }
