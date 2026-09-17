@@ -54,13 +54,7 @@ public class ChatService : IChatService
             Type = type,
             Timestamp = DateTime.UtcNow
         };
-
-        // Lưu tin nhắn vào MongoDB
         await _messageRepository.AddAsync(message);
-
-        // Gửi tin nhắn qua SignalR đến tất cả client trong conversation
-        await _hubContext.Clients.Group(conversationId)
-            .SendAsync("ReceiveMessage", senderId, conversationId, content, type);
         return message;
     }
 
@@ -92,6 +86,8 @@ public class ChatService : IChatService
             {
                 message.IsRecalled = true;
                 await _messageRepository.UpdateAsync(message);
+                await _hubContext.Clients.Group(message.GroupId ?? request.ConversationId)
+                    .SendAsync("MessageRecalled", message.Id, message.GroupId ?? request.ConversationId);
                 return true;
             }
             return false;
@@ -108,6 +104,10 @@ public class ChatService : IChatService
         {
             var reaction = new Reaction { UserId = userId, Emoji = emoji };
             await _messageRepository.AddReactionAsync(messageId, reaction);
+            // Phát reaction real-time cho mọi client trong hội thoại
+            var msg = (await _messageRepository.GetByConversationIdAsync(new GetHistoryChatRequest(messageId, 0, 1))).FirstOrDefault();
+            // Fallback: gửi theo messageId nếu không tìm thấy conversationId
+            await _hubContext.Clients.All.SendAsync("MessageReaction", messageId, userId, emoji);
             return true;
         }
         catch
@@ -121,6 +121,7 @@ public class ChatService : IChatService
         try
         {
             await _messageRepository.MarkAsReadAsync(messageId, isRead);
+            await _hubContext.Clients.All.SendAsync("MessageRead", messageId, isRead);
             return true;
         }
         catch

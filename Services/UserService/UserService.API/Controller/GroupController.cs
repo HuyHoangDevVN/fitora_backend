@@ -27,6 +27,10 @@ using UserService.Application.Usecases.GroupMember.Queries.GetById;
 using UserService.Application.Usecases.GroupPost.Commands.CreateGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.DeleteGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.UpdateGroupPost;
+using UserService.Application.Usecases.GroupEvent.Commands.CreateGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.RsvpEvent;
+using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEvents;
+using UserService.Domain.Enums;
 
 namespace UserService.API.Controller;
 
@@ -325,5 +329,38 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
             )
         ));
         return Ok(groups);
+    }
+
+    // ==============================
+    // Group Events (27.2 / 26.16)
+    // ==============================
+
+    public record CreateEventBody(string Title, string Description, DateTime EventDate, string? Location);
+    public record RsvpBody(RsvpStatus Status);
+
+    /// <summary>Tạo sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpPost("{idGroup:guid}/events")]
+    public async Task<IActionResult> CreateGroupEvent([FromRoute] Guid idGroup, [FromBody] CreateEventBody body)
+    {
+        var result = await _sender.Send(new CreateGroupEventCommand(
+            idGroup, body.Title, body.Description, body.EventDate, body.Location));
+        return Ok(result);
+    }
+
+    /// <summary>Danh sách sự kiện của nhóm.</summary>
+    [HttpGet("{idGroup:guid}/events")]
+    public async Task<IActionResult> GetGroupEvents(
+        [FromRoute] Guid idGroup, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    {
+        var result = await _sender.Send(new GetGroupEventsQuery(idGroup, pageIndex, pageSize));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>RSVP đi/không thể/không (member).</summary>
+    [HttpPost("events/{eventId:guid}/rsvp")]
+    public async Task<IActionResult> RsvpGroupEvent([FromRoute] Guid eventId, [FromBody] RsvpBody body)
+    {
+        var result = await _sender.Send(new RsvpEventCommand(eventId, body.Status));
+        return Ok(result);
     }
 }

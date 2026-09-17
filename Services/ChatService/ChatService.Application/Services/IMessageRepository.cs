@@ -6,6 +6,7 @@ public interface IMessageRepository
 {
     Task AddAsync(Message message);
     Task<List<Message>> GetByConversationIdAsync(GetHistoryChatRequest request);
+    Task<Message?> GetByIdAsync(string messageId);
     Task UpdateAsync(Message message);
     Task DeleteAsync(string messageId);
     Task MarkAsReadAsync(string messageId, bool isRead);

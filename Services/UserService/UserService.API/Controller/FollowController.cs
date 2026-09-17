@@ -50,9 +50,9 @@ public class FollowController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpGet("get-followers")]
-    public async Task<IActionResult> GetFollowers([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetFollowers([FromQuery] PaginationRequest request, [FromQuery] Guid? userId)
     {
-        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = userId ?? _authorizeExtension.GetUserFromClaimToken().Id;
 
         var sended = new GetFollowersRequest(userGuid, request.PageIndex, request.PageSize);
 
@@ -68,9 +68,9 @@ public class FollowController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     [HttpGet("get-followees")]
-    public async Task<IActionResult> GetFollowees([FromQuery] PaginationRequest request)
+    public async Task<IActionResult> GetFollowees([FromQuery] PaginationRequest request, [FromQuery] Guid? userId)
     {
-        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = userId ?? _authorizeExtension.GetUserFromClaimToken().Id;
 
         var sended = new GetFollowersRequest(userGuid, request.PageIndex, request.PageSize);
 

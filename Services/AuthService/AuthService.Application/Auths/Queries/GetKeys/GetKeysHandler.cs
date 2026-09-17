@@ -6,7 +6,7 @@ public class GetKeysHandler
 {
     public async Task<GetKeysResult> Handle(GetKeysQuery request, CancellationToken cancellationToken)
     {
-        var result = await keyRepository.GetKeysAsync(request.PaginationRequest, cancellationToken);
+        var result = await keyRepository.GetKeysAsync(request.UserId, request.PaginationRequest, cancellationToken);
         return new GetKeysResult(result);
     }
 }

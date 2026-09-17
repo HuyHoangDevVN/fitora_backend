@@ -7,6 +7,10 @@ public record AuthRegisterCommand(string Email, string Password, string FullName
 public record AuthRegisterResult(LoginResponseDto LoginResponseDto);
 public class AuthRegisterCommandValidator : AbstractValidator<AuthRegisterCommand>
 {
+    // Đồng bộ với FE src/utils/passwordPolicy.ts (13.6.4): 8+ ký tự, hoa, thường, số, ký tự đặc biệt.
+    public const string PasswordPolicyMessage =
+        "Password must be at least 8 characters and contain an uppercase letter, a lowercase letter, a digit and a special character.";
+
     public AuthRegisterCommandValidator()
     {
         RuleFor(x => x.FullName)
@@ -20,6 +24,8 @@ public class AuthRegisterCommandValidator : AbstractValidator<AuthRegisterComman
 
         RuleFor(x => x.Password)
             .NotEmpty()
-            .WithMessage("Password is required");
+            .WithMessage("Password is required")
+            .Must(AuthPasswordPolicy.Matches)
+            .WithMessage(PasswordPolicyMessage);
     }
 }

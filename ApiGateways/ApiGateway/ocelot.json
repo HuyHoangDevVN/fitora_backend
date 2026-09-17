@@ -141,7 +141,7 @@
       ]
     },
     {
-      "DownstreamPathTemplate": "/api/notification/{everything}",
+      "DownstreamPathTemplate": "/api/noti/{everything}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -150,6 +150,82 @@
         }
       ],
       "UpstreamPathTemplate": "/notification/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete",
+        "Patch",
+        "Options"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/noti/notification/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti/notification/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete",
+        "Patch",
+        "Options"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/noti/notification-settings/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti/notification-settings/{everything}",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete",
+        "Patch",
+        "Options"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/noti/notification-settings",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti/notification-settings",
+      "UpstreamHttpMethod": [
+        "Get",
+        "Post",
+        "Put",
+        "Delete",
+        "Patch",
+        "Options"
+      ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/noti-notification-type/{everything}",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 5010
+        }
+      ],
+      "UpstreamPathTemplate": "/noti-notification-type/{everything}",
       "UpstreamHttpMethod": [
         "Get",
         "Post",
@@ -171,6 +247,9 @@
       "UpstreamPathTemplate": "/interact/upload/{everything}",
       "UpstreamHttpMethod": [
         "Get",
+        "Post",
+        "Put",
+        "Delete",
         "Options"
       ]
     }

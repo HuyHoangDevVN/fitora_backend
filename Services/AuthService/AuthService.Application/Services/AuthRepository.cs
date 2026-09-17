@@ -21,21 +21,8 @@ public class AuthRepository(
     IAuthorizeExtension authorizeExtension)
     : IAuthRepository
 {
-    private static bool CheckKeyExpire(IEnumerable<KeyDto> keys)
-    {
-        if (keys?.Count() > 0)
-        {
-            var keyLast = keys.Last();
-            if (keyLast.IsUsed == true || keyLast.IsRevoked == true || keyLast.Expire < DateTime.Now)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
+    private static bool IsKeyValid(KeyDto k)
+        => !k.IsUsed && !k.IsRevoked && k.Expire > DateTime.Now;
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto)
     {
@@ -45,7 +32,6 @@ public class AuthRepository(
             return new LoginResponseDto(false, null, null, $"Tài khoản với email: {dto.Email} không tồn tại");
         }
 
-        var keys = await keyRepository.GetKeysByUserIdAsync(checkExitUser.Id);
         var isPasswordValid = await userManager.CheckPasswordAsync(checkExitUser, dto.Password);
         if (!isPasswordValid)
         {
@@ -79,11 +65,11 @@ public class AuthRepository(
         await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken,
             new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
 
-        bool isCheckKey = CheckKeyExpire(keys);
-        string refreshToken =
-            isCheckKey ? keys.Last().Token : jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
+        // Lấy refresh-token thật nội bộ — KHÔNG dùng GetKeysByUserIdAsync (đã mask token cho response ngoài).
+        var existingRefreshToken = await keyRepository.GetLastValidRefreshTokenAsync(checkExitUser.Id);
+        string refreshToken = existingRefreshToken ?? jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
 
-        if (!isCheckKey)
+        if (string.IsNullOrEmpty(existingRefreshToken))
         {
             await keyRepository.CreateKeyAsync(new CreateKeyRequestDto(refreshToken, checkExitUser.Id));
         }
