@@ -3,8 +3,11 @@ using BuildingBlocks.Security;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using UserService.Application.Usecases.Blocks.Commands.BlockGroup;
 using UserService.Application.Usecases.Blocks.Commands.BlockUser;
+using UserService.Application.Usecases.Blocks.Commands.UnblockGroup;
 using UserService.Application.Usecases.Blocks.Commands.UnblockUser;
+using UserService.Application.Usecases.Blocks.Queries.GetBlockedGroups;
 using UserService.Application.Usecases.Blocks.Queries.GetBlockedUsers;
 
 namespace UserService.API.Controller;
@@ -42,6 +45,32 @@ public class BlockController : Microsoft.AspNetCore.Mvc.Controller
     {
         var blockerId = _auth.GetUserFromClaimToken().Id;
         var result = await _sender.Send(new UnblockUserCommand(blockerId, userId));
+        return Ok(result);
+    }
+
+    [HttpPost("groups/{groupId:guid}")]
+    public async Task<IActionResult> BlockGroup([FromRoute] Guid groupId)
+    {
+        var blockerId = _auth.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new BlockGroupCommand(blockerId, groupId));
+        return Ok(result);
+    }
+
+    [HttpDelete("groups/{groupId:guid}")]
+    public async Task<IActionResult> UnblockGroup([FromRoute] Guid groupId)
+    {
+        var blockerId = _auth.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new UnblockGroupCommand(blockerId, groupId));
+        return Ok(result);
+    }
+
+    [HttpGet("groups")]
+    public async Task<IActionResult> GetBlockedGroups(
+        [FromQuery] int pageIndex = 0,
+        [FromQuery] int pageSize = 20)
+    {
+        var blockerId = _auth.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new GetBlockedGroupsQuery(blockerId, pageIndex, pageSize));
         return Ok(result);
     }
 

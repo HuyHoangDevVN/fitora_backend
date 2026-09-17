@@ -86,6 +86,26 @@ public class GroupRepository : IGroupRepository
         );
     }
 
+    public async Task<PaginatedResult<Group>> SearchGroupsAsync(SearchGroupsRequest request, Guid currentUserId)
+    {
+        var q = request.Query?.Trim().ToLower();
+        // Collect group ids the current user belongs to (for private/secret visibility)
+        var memberships = await _groupMemberRepo.FindAsync(gm => gm.UserId == currentUserId);
+        var memberGroupIds = memberships.Select(gm => gm.GroupId).ToList();
+
+        return await _groupRepo.GetPageAsync(
+            new PaginationRequest(request.PageIndex, request.PageSize),
+            CancellationToken.None,
+            g =>
+                // keyword filter (Name or Description contains query, case-insensitive)
+                (string.IsNullOrEmpty(q) ||
+                 g.Name.ToLower().Contains(q) ||
+                 g.Description.ToLower().Contains(q))
+                // privacy filter: public visible to all; private/secret only if caller is member
+                && (g.Privacy == GroupPrivacy.Public || memberGroupIds.Contains(g.Id))
+        );
+    }
+
     public async Task<GroupDto?> GetGroupByIdAsync(Guid id)
     {
         var group = await _groupRepo.GetAsync(g => g.Id == id);

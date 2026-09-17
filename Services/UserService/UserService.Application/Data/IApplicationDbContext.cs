@@ -10,6 +10,7 @@ public interface IApplicationDbContext
     DbSet<FriendShip> FriendShips { get; }
     DbSet<Follow> Follows { get; }
     DbSet<Block> Blocks { get; }
+    DbSet<BlockedGroup> BlockedGroups { get; }
     DbSet<Group> Groups { get; }
     DbSet<GroupInvite> GroupInvites { get; }
     DbSet<GroupMember> GroupMembers { get; }

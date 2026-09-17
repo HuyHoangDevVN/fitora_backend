@@ -3,7 +3,10 @@ using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
 using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.Auths.Commands.AuthRegister;
+using AuthService.Application.Auths.Commands.ForgotPassword;
 using AuthService.Application.Auths.Commands.RefreshToken;
+using AuthService.Application.Auths.Commands.ResetPassword;
+using AuthService.Application.Auths.Commands.VerifyResetOtp;
 using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.Services.IServices;
@@ -126,5 +129,29 @@ public class AuthController : Controller
     {
         var token = Request.Cookies["accessToken"];
         return Ok(new { accessToken = token });
+    }
+
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto req)
+    {
+        var result = await _sender.Send(new ForgotPasswordCommand(req.Email));
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("verify-reset-otp")]
+    public async Task<IActionResult> VerifyResetOtp(VerifyResetOtpRequestDto req)
+    {
+        var result = await _sender.Send(new VerifyResetOtpCommand(req.Email, req.Otp));
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto req)
+    {
+        var result = await _sender.Send(new ResetPasswordCommand(req.Email, req.Otp, req.NewPassword));
+        return Ok(result);
     }
 }

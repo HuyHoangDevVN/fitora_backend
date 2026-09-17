@@ -27,8 +27,12 @@ using UserService.Application.Usecases.GroupMember.Queries.GetById;
 using UserService.Application.Usecases.GroupPost.Commands.CreateGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.DeleteGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.UpdateGroupPost;
+using UserService.Application.Usecases.Group.Queries.SearchGroups;
 using UserService.Application.Usecases.GroupEvent.Commands.CreateGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.DeleteGroupEvent;
 using UserService.Application.Usecases.GroupEvent.Commands.RsvpEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.UpdateGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEventById;
 using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEvents;
 using UserService.Domain.Enums;
 
@@ -117,6 +121,21 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> GetList([FromQuery] GetGroupsRequest request)
     {
         var result = await _sender.Send(new GetGroupsQuery(request));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>
+    /// Privacy-aware group search: public groups visible to everyone;
+    /// private/secret groups only when the caller is a member.
+    /// Keyword matches Name/Description (case-insensitive contains).
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchGroups(
+        [FromQuery] string? query, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 10)
+    {
+        var userId = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new SearchGroupsQuery(
+            new SearchGroupsRequest(query, pageIndex, pageSize), userId));
         return Ok(new ResponseDto(result));
     }
 
@@ -336,6 +355,7 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     // ==============================
 
     public record CreateEventBody(string Title, string Description, DateTime EventDate, string? Location);
+    public record UpdateEventBody(string Title, string Description, DateTime EventDate, string? Location);
     public record RsvpBody(RsvpStatus Status);
 
     /// <summary>Tạo sự kiện (Owner/Admin/Moderator).</summary>
@@ -354,6 +374,31 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     {
         var result = await _sender.Send(new GetGroupEventsQuery(idGroup, pageIndex, pageSize));
         return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>Chi tiết một sự kiện.</summary>
+    [HttpGet("events/{eventId:guid}")]
+    public async Task<IActionResult> GetGroupEventById([FromRoute] Guid eventId)
+    {
+        var result = await _sender.Send(new GetGroupEventByIdQuery(eventId));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>Cập nhật sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpPut("events/{eventId:guid}")]
+    public async Task<IActionResult> UpdateGroupEvent([FromRoute] Guid eventId, [FromBody] UpdateEventBody body)
+    {
+        var result = await _sender.Send(new UpdateGroupEventCommand(
+            eventId, body.Title, body.Description, body.EventDate, body.Location));
+        return Ok(result);
+    }
+
+    /// <summary>Xóa sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpDelete("events/{eventId:guid}")]
+    public async Task<IActionResult> DeleteGroupEvent([FromRoute] Guid eventId)
+    {
+        var result = await _sender.Send(new DeleteGroupEventCommand(eventId));
+        return Ok(result);
     }
 
     /// <summary>RSVP đi/không thể/không (member).</summary>
