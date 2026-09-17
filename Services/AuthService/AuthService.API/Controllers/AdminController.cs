@@ -155,7 +155,7 @@ public class AdminController : Controller
     }
 
     [HttpGet("get-role")]
-    public async Task<IActionResult> GetRoles([FromQuery] string id)
+    public async Task<IActionResult> GetRole([FromQuery] string id)
     {
         var result = await _sender.Send(new GetRoleQuery(id));
         var response = new ResponseDto(Data: result, Message: "Get Role Successful");

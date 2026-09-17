@@ -168,23 +168,6 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     }
 
     /// <summary>
-    /// Invites a single member to a group.
-    /// </summary>
-    [HttpPost("invite-new-member")]
-    public async Task<IActionResult> InviteNewMemberAsync([FromBody] CreateGroupInviteFormBody body)
-    {
-        var userId = _authorizeExtension.GetUserFromClaimToken().Id;
-        var result = await _sender.Send(new CreateGroupInviteCommand(
-            new CreateGroupInviteRequest(
-                body.GroupId,
-                userId,
-                body.ReceiverUserId
-            )
-        ));
-        return Ok(result);
-    }
-
-    /// <summary>
     /// Invites multiple members to a group.
     /// </summary>
     [HttpPost("invite-new-members")]
