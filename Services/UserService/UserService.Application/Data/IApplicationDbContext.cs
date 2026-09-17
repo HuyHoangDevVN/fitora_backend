@@ -20,6 +20,7 @@ public interface IApplicationDbContext
     DbSet<GroupLog> GroupLogs { get; }
     DbSet<GroupNotification> GroupNotifications { get; }
     DbSet<EventRsvp> EventRsvps { get; }
-    
+    DbSet<RecentSearch> RecentSearches { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

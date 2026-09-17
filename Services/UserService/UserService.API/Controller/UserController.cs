@@ -10,6 +10,7 @@ using UserService.Application.Usecases.Users.Commands.CreateUser;
 using UserService.Application.Usecases.Users.Commands.UpdateUser;
 using UserService.Application.Usecases.Users.Queries.GetUser;
 using UserService.Application.Usecases.Users.Queries.GetUsers;
+using UserService.Application.Usecases.Users.Queries.SearchUsers;
 
 namespace UserService.API.Controller;
 
@@ -77,6 +78,13 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> GetUsers([FromQuery] GetUsersRequest getUsersRequest)
     {
         var result = await _sender.Send(new GetUsersQuery(getUsersRequest));
+        return Ok(result);
+    }
+
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchUsers([FromQuery] string? query, [FromQuery] int pageIndex = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _sender.Send(new SearchUsersQuery(query ?? string.Empty, pageIndex, pageSize));
         return Ok(result);
     }
 }

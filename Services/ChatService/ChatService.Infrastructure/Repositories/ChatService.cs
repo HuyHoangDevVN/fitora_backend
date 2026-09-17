@@ -9,13 +9,15 @@ public class ChatService : IChatService
 {
     private readonly IMessageRepository _messageRepository;
     private readonly IConversationRepository _conversationRepository;
+    private readonly IGroupChatMappingRepository _mappingRepository;
     private readonly IHubContext<ChatHub> _hubContext;
 
     public ChatService(IMessageRepository messageRepository, IConversationRepository conversationRepository,
-        IHubContext<ChatHub> hubContext)
+        IGroupChatMappingRepository mappingRepository, IHubContext<ChatHub> hubContext)
     {
         _messageRepository = messageRepository;
         _conversationRepository = conversationRepository;
+        _mappingRepository = mappingRepository;
         _hubContext = hubContext;
     }
 
@@ -186,5 +188,64 @@ public class ChatService : IChatService
         {
             return false;
         }
+    }
+
+    public async Task<Conversation> CreateOrGetGroupConversationAsync(string groupId, string userId, string? groupName = null, List<string>? memberIds = null)
+    {
+        var existing = await _mappingRepository.GetByGroupIdAsync(groupId);
+        if (existing != null)
+        {
+            var conv = await _conversationRepository.GetByIdAsync(existing.ConversationId);
+            if (conv != null) return conv;
+        }
+
+        var participants = memberIds != null && memberIds.Count > 0
+            ? memberIds.Distinct().ToList()
+            : new List<string> { userId };
+
+        if (!participants.Contains(userId)) participants.Add(userId);
+
+        var conversation = new Conversation
+        {
+            Id = Guid.NewGuid().ToString(),
+            ParticipantIds = participants,
+            CreatedAt = DateTime.UtcNow,
+            IsGroup = true,
+            GroupInfo = new Group
+            {
+                Name = groupName ?? $"Group {groupId[..Math.Min(8, groupId.Length)]}",
+                AvatarUrl = string.Empty,
+                AdminIds = new List<string> { userId },
+                MemberIds = participants
+            }
+        };
+
+        await _conversationRepository.AddAsync(conversation);
+        await _mappingRepository.AddAsync(new GroupChatMapping
+        {
+            Id = Guid.NewGuid().ToString(),
+            CommunityGroupId = groupId,
+            ConversationId = conversation.Id,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        return conversation;
+    }
+
+    public async Task<Conversation> SyncGroupMembersAsync(string groupId, List<string> memberIds)
+    {
+        var mapping = await _mappingRepository.GetByGroupIdAsync(groupId);
+        if (mapping == null) throw new InvalidOperationException($"No chat mapping for group {groupId}. Create conversation first.");
+
+        var conv = await _conversationRepository.GetByIdAsync(mapping.ConversationId);
+        if (conv == null) throw new InvalidOperationException("Conversation not found.");
+
+        var distinct = memberIds.Distinct().ToList();
+        conv.ParticipantIds = distinct;
+        conv.GroupInfo.MemberIds = distinct;
+        // Keep AdminIds as subset of members
+        conv.GroupInfo.AdminIds = conv.GroupInfo.AdminIds.Where(distinct.Contains).ToList();
+        await _conversationRepository.UpdateAsync(conv);
+        return conv;
     }
 }

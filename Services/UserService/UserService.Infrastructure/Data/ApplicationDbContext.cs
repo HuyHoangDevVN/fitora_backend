@@ -26,6 +26,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<GroupLog> GroupLogs => Set<GroupLog>();
     public DbSet<GroupNotification> GroupNotifications => Set<GroupNotification>();
     public DbSet<EventRsvp> EventRsvps => Set<EventRsvp>();
+    public DbSet<RecentSearch> RecentSearches => Set<RecentSearch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
