@@ -12,6 +12,7 @@ using UserService.Application.Usecases.Group.Commands.DeleteGroup;
 using UserService.Application.Usecases.Group.Commands.DissolveGroup;
 using UserService.Application.Usecases.Group.Commands.TransferOwner;
 using UserService.Application.Usecases.Group.Commands.UpdateGroup;
+using UserService.Application.Usecases.Group.Commands.UpdateJoinApproval;
 using UserService.Application.Usecases.Group.Commands.UpdatePrivacy;
 using UserService.Application.Usecases.Group.Queries.GetGroupById;
 using UserService.Application.Usecases.Group.Queries.GetGroups;
@@ -40,6 +41,11 @@ using UserService.Application.Usecases.GroupEvent.Commands.RsvpEvent;
 using UserService.Application.Usecases.GroupEvent.Commands.UpdateGroupEvent;
 using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEventById;
 using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEvents;
+using UserService.Application.Usecases.GroupMember.Commands.JoinGroup;
+using UserService.Application.Usecases.GroupMember.Commands.LeaveGroup;
+using UserService.Application.Usecases.GroupJoinRequest.Commands.ApproveJoinRequest;
+using UserService.Application.Usecases.GroupJoinRequest.Commands.RejectJoinRequest;
+using UserService.Application.Usecases.GroupJoinRequest.Queries.GetJoinRequests;
 using UserService.Domain.Enums;
 
 namespace UserService.API.Controller;
@@ -62,9 +68,7 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     // Group Management
     // ==============================
 
-    /// <summary>
-    /// Creates a new group.
-    /// </summary>
+    /// <summary>Creates a new group.</summary>
     [HttpPost("create")]
     public async Task<IActionResult> CreateGroupAsync([FromBody] CreateGroupFromBody body)
     {
@@ -76,6 +80,7 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
                 body.Description,
                 body.Privacy,
                 body.RequirePostApproval,
+                body.RequireJoinApproval,
                 body.CoverImageUrl,
                 body.AvatarUrl
             )
@@ -376,6 +381,7 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
 
     public record TransferOwnerBody(Guid NewOwnerId);
     public record UpdatePrivacyBody(GroupPrivacy Privacy);
+    public record UpdateJoinApprovalBody(bool RequireJoinApproval);
 
     /// <summary>Transfer group ownership (Owner only).</summary>
     [HttpPost("{groupId:guid}/transfer-owner")]
@@ -398,6 +404,14 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> UpdatePrivacy([FromRoute] Guid groupId, [FromBody] UpdatePrivacyBody body)
     {
         var result = await _sender.Send(new UpdatePrivacyCommand(groupId, body.Privacy));
+        return Ok(result);
+    }
+
+    /// <summary>Update join approval mode (Owner/Admin only): RequireJoinApproval=true → vào nhóm cần duyệt.</summary>
+    [HttpPut("{groupId:guid}/join-approval")]
+    public async Task<IActionResult> UpdateJoinApproval([FromRoute] Guid groupId, [FromBody] UpdateJoinApprovalBody body)
+    {
+        var result = await _sender.Send(new UpdateJoinApprovalCommand(groupId, body.RequireJoinApproval));
         return Ok(result);
     }
 
@@ -457,6 +471,54 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> RsvpGroupEvent([FromRoute] Guid eventId, [FromBody] RsvpBody body)
     {
         var result = await _sender.Send(new RsvpEventCommand(eventId, body.Status));
+        return Ok(result);
+    }
+
+    // ==============================
+    // Group Join / Leave
+    // ==============================
+
+    public record RejectJoinRequestBody(string? Reason);
+
+    /// <summary>Tham gia nhóm: Public vào ngay, Private/Secret tạo yêu cầu chờ duyệt.</summary>
+    [HttpPost("{groupId:guid}/join")]
+    public async Task<IActionResult> JoinGroup([FromRoute] Guid groupId)
+    {
+        var result = await _sender.Send(new JoinGroupCommand(groupId));
+        return Ok(result);
+    }
+
+    /// <summary>Rời nhóm (Owner phải chuyển quyền trước).</summary>
+    [HttpDelete("{groupId:guid}/leave")]
+    public async Task<IActionResult> LeaveGroup([FromRoute] Guid groupId)
+    {
+        var result = await _sender.Send(new LeaveGroupCommand(groupId));
+        return Ok(result);
+    }
+
+    /// <summary>Danh sách yêu cầu tham gia đang chờ duyệt (Owner/Admin/Moderator).</summary>
+    [HttpGet("{groupId:guid}/join-requests")]
+    public async Task<IActionResult> GetJoinRequests(
+        [FromRoute] Guid groupId, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    {
+        var result = await _sender.Send(new GetJoinRequestsQuery(groupId, pageIndex, pageSize));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>Duyệt yêu cầu tham gia (Owner/Admin/Moderator).</summary>
+    [HttpPost("join-requests/{requestId:guid}/approve")]
+    public async Task<IActionResult> ApproveJoinRequest([FromRoute] Guid requestId)
+    {
+        var result = await _sender.Send(new ApproveJoinRequestCommand(requestId));
+        return Ok(result);
+    }
+
+    /// <summary>Từ chối yêu cầu tham gia (Owner/Admin/Moderator).</summary>
+    [HttpPost("join-requests/{requestId:guid}/reject")]
+    public async Task<IActionResult> RejectJoinRequest(
+        [FromRoute] Guid requestId, [FromBody] RejectJoinRequestBody body)
+    {
+        var result = await _sender.Send(new RejectJoinRequestCommand(requestId, body?.Reason));
         return Ok(result);
     }
 }

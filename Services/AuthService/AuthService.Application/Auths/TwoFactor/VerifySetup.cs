@@ -7,7 +7,7 @@ namespace AuthService.Application.Auths.TwoFactor;
 public record VerifySetupCommand(string Code) : ICommand<VerifySetupResult>;
 public record VerifySetupResult(bool IsSuccess, string Message, List<string>? RecoveryCodes);
 
-public class VerifySetupHandler(IApplicationDbContext db, IAuthorizeExtension auth)
+public class VerifySetupHandler(IApplicationDbContext db, IAuthorizeExtension auth, ITotpSecretProtector protector)
     : ICommandHandler<VerifySetupCommand, VerifySetupResult>
 {
     public async Task<VerifySetupResult> Handle(VerifySetupCommand cmd, CancellationToken ct)
@@ -15,7 +15,8 @@ public class VerifySetupHandler(IApplicationDbContext db, IAuthorizeExtension au
         var userId = auth.GetUserFromClaimToken().Id.ToString();
         var secret = await db.TotpSecrets.FirstOrDefaultAsync(x => x.UserId == userId, ct);
         if (secret == null) return new(false, "No setup found. Call setup first.", null);
-        if (!TotpHelper.Verify(secret.SecretKey, cmd.Code))
+        var plain = protector.Unprotect(secret.SecretKey);
+        if (!TotpHelper.Verify(plain, cmd.Code))
             return new(false, "Invalid code", null);
 
         secret.IsVerified = true;

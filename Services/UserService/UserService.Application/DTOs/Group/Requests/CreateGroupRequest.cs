@@ -8,6 +8,7 @@ public record CreateGroupRequest(
     string Description,
     GroupPrivacy Privacy,
     bool RequirePostApproval,
+    bool RequireJoinApproval,
     string? CoverImageUrl,
     string? AvatarUrl
 );
@@ -17,6 +18,7 @@ public record CreateGroupFromBody(
     string Description,
     GroupPrivacy Privacy,
     bool RequirePostApproval,
+    bool RequireJoinApproval,
     string? CoverImageUrl,
     string? AvatarUrl
 );

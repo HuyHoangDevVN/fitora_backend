@@ -8,6 +8,7 @@ public record UpdateGroupRequest(
     string Description,
     GroupPrivacy Privacy,
     bool RequirePostApproval,
+    bool RequireJoinApproval,
     string? CoverImageUrl,
     string? AvatarUrl
 );

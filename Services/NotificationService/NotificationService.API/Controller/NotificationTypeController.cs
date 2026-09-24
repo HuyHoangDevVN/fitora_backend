@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using NotificationService.Application.DTOs.NotificationType.Requests;
 using NotificationService.Application.Usecases.NotificationType.Commands.Create;
 using NotificationService.Application.Usecases.NotificationType.Commands.Delete;
+using NotificationService.Application.Usecases.NotificationType.Commands.Update;
 using NotificationService.Application.Usecases.NotificationType.Queries.GetNotificationType;
 using NotificationService.Application.Usecases.NotificationType.Queries.GetNotificationTypes;
 
@@ -43,10 +44,9 @@ namespace NotificationService.API.Controller
         }
 
         [HttpPut("update")]
-        public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationTypeRequest request)
+        public async Task<IActionResult> UpdateNotiType([FromBody] UpdateNotificationTypeRequest request)
         {
-
-            var result = await _sender.Send(new CreateNotiTypeCommand(request));
+            var result = await _sender.Send(new UpdateNotiTypeCommand(request));
             return Ok(result);
         }
 

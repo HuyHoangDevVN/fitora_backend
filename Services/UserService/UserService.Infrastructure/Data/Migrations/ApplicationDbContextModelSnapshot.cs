@@ -228,6 +228,9 @@ namespace UserService.Infrastructure.Data.Migrations
                     b.Property<int>("Privacy")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequireJoinApproval")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("RequirePostApproval")
                         .HasColumnType("tinyint(1)");
 

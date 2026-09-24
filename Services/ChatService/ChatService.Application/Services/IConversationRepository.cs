@@ -8,6 +8,7 @@ public interface IConversationRepository
     Task<List<Conversation>> GetGroupConversationsByUserIdAsync(string userId);
 
     Task<Conversation> GetPrivateConversationAsync(string userId, string otherUserId);
+    Task<List<Conversation>> GetPrivateConversationsByUserIdAsync(string userId);
     Task AddMemberAsync(string conversationId, string userId);
     Task RemoveMemberAsync(string conversationId, string userId);
     Task AssignAdminAsync(string conversationId, string userId);

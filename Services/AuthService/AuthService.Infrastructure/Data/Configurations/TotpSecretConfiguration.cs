@@ -10,7 +10,7 @@ public class TotpSecretConfiguration : IEntityTypeConfiguration<TotpSecret>
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.UserId).IsRequired().HasMaxLength(150);
-        builder.Property(x => x.SecretKey).IsRequired().HasMaxLength(128);
+        builder.Property(x => x.SecretKey).IsRequired().HasMaxLength(512);
         builder.HasIndex(x => x.UserId).IsUnique();
     }
 }

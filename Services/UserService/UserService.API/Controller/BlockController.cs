@@ -25,11 +25,13 @@ public class BlockController : Microsoft.AspNetCore.Mvc.Controller
 {
     private readonly ISender _sender;
     private readonly IAuthorizeExtension _auth;
+    private readonly UserService.Application.Services.IServices.IBlockRepository _blockRepo;
 
-    public BlockController(ISender sender, IAuthorizeExtension auth)
+    public BlockController(ISender sender, IAuthorizeExtension auth, UserService.Application.Services.IServices.IBlockRepository blockRepo)
     {
         _sender = sender;
         _auth = auth;
+        _blockRepo = blockRepo;
     }
 
     [HttpPost("users/{userId:guid}")]
@@ -78,12 +80,8 @@ public class BlockController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> GetBlockedIds()
     {
         var blockerId = _auth.GetUserFromClaimToken().Id;
-        // Resolve IBlockRepository via sender? Use direct repo via HttpContext - keep simple: use mediator query
-        // For minimal change, resolve via service locator from HttpContext
-        var repo = HttpContext.RequestServices.GetService(typeof(UserService.Application.Services.IServices.IBlockRepository)) as UserService.Application.Services.IServices.IBlockRepository;
-        if (repo == null) return Ok(new { blockedUserIds = Array.Empty<Guid>(), blockedGroupIds = Array.Empty<Guid>() });
-        var userIds = await repo.GetBlockedUserIdsAsync(blockerId);
-        var groupIds = await repo.GetBlockedGroupIdsAsync(blockerId);
+        var userIds = await _blockRepo.GetBlockedUserIdsAsync(blockerId);
+        var groupIds = await _blockRepo.GetBlockedGroupIdsAsync(blockerId);
         return Ok(new { blockedUserIds = userIds.ToArray(), blockedGroupIds = groupIds.ToArray() });
     }
 

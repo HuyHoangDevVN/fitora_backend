@@ -18,7 +18,8 @@ public record VerifyLoginResult(bool IsSuccess, string Message, LoginResponseDto
 public class VerifyLoginHandler(
     IApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
-    IAuthRepository authRepository)
+    IAuthRepository authRepository,
+    ITotpSecretProtector protector)
     : ICommandHandler<VerifyLoginCommand, VerifyLoginResult>
 {
     public async Task<VerifyLoginResult> Handle(VerifyLoginCommand cmd, CancellationToken ct)
@@ -42,7 +43,8 @@ public class VerifyLoginHandler(
 
         var secret = await db.TotpSecrets.FirstOrDefaultAsync(x => x.UserId == userId && x.IsVerified, ct);
         if (secret == null) return new(false, "2FA not enabled for user");
-        if (!TotpHelper.Verify(secret.SecretKey, code)) return new(false, "Invalid code");
+        var plain = protector.Unprotect(secret.SecretKey);
+        if (!TotpHelper.Verify(plain, code)) return new(false, "Invalid code");
 
         var loginTokens = await authRepository.IssueLoginTokensAsync(user);
         return new(true, "Verified", loginTokens);

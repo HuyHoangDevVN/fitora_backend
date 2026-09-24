@@ -13,5 +13,6 @@ public class StudyPostConfiguration : IEntityTypeConfiguration<StudyPost>
         builder.Property(x => x.Content).IsRequired();
         builder.HasIndex(x => x.AuthorId);
         builder.HasIndex(x => x.CreatedAt);
+        builder.HasIndex(x => x.CategoryId);
     }
 }

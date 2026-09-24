@@ -9,7 +9,7 @@ namespace AuthService.Application.Auths.TwoFactor;
 public record SetupTwoFactorCommand : ICommand<SetupTwoFactorResult>;
 public record SetupTwoFactorResult(string Secret, string QrCodeUrl);
 
-public class SetupTwoFactorHandler(IApplicationDbContext db, IAuthorizeExtension auth, UserManager<ApplicationUser> userManager)
+public class SetupTwoFactorHandler(IApplicationDbContext db, IAuthorizeExtension auth, UserManager<ApplicationUser> userManager, ITotpSecretProtector protector)
     : ICommandHandler<SetupTwoFactorCommand, SetupTwoFactorResult>
 {
     public async Task<SetupTwoFactorResult> Handle(SetupTwoFactorCommand cmd, CancellationToken ct)
@@ -22,7 +22,7 @@ public class SetupTwoFactorHandler(IApplicationDbContext db, IAuthorizeExtension
         string secret;
         if (existing != null)
         {
-            secret = existing.SecretKey;
+            try { secret = protector.Unprotect(existing.SecretKey); } catch { secret = existing.SecretKey; }
             existing.IsVerified = false;
             existing.VerifiedAt = null;
         }
@@ -33,7 +33,7 @@ public class SetupTwoFactorHandler(IApplicationDbContext db, IAuthorizeExtension
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                SecretKey = secret,
+                SecretKey = protector.Protect(secret),
                 IsVerified = false,
                 CreatedAt = DateTime.UtcNow
             });
