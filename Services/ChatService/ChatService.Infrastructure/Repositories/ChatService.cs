@@ -45,6 +45,11 @@ public class ChatService : IChatService
         return await _conversationRepository.GetPrivateConversationAsync(userId, otherUserId);
     }
 
+    public async Task<List<Conversation>> GetPrivateConversationsByUserIdAsync(string userId)
+    {
+        return await _conversationRepository.GetPrivateConversationsByUserIdAsync(userId);
+    }
+
     public async Task<Message> SendMessageAsync(string senderId, string conversationId, string content, string type)
     {
         var message = new Message

@@ -1,6 +1,7 @@
 using BuildingBlocks.CQRS;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Security;
+using InteractService.Application.Services.IServices;
 
 namespace InteractService.Application.Usecases.StudyPosts;
 
@@ -8,12 +9,12 @@ public record CreateStudyPostCommand(string Title, string Content, Guid? Categor
 public record UpdateStudyPostCommand(Guid Id, string Title, string Content) : ICommand<StudyPostDto>;
 public record DeleteStudyPostCommand(Guid Id) : ICommand<ResponseDto>;
 public record GetStudyPostByIdQuery(Guid Id) : IQuery<StudyPostDto>;
-public record GetStudyPostsQuery(int PageIndex = 0, int PageSize = 20) : IQuery<PaginatedDto<StudyPostDto>>;
+public record GetStudyPostsQuery(int PageIndex = 0, int PageSize = 20, Guid? CategoryId = null, string? Q = null) : IQuery<PaginatedDto<StudyPostDto>>;
 public record StudyPostDto(Guid Id, Guid AuthorId, string Title, string Content, Guid? CategoryId, List<string> AttachmentUrls, string Status, DateTime? CreatedAt, DateTime? UpdatedAt);
 public record PaginatedDto<T>(List<T> Items, int TotalCount, int PageIndex, int PageSize);
 
 public class StudyPostHandlers(
-    IApplicationDbContext db, IAuthorizeExtension auth)
+    IApplicationDbContext db, IAuthorizeExtension auth, IBlockedIdsProvider? blockedIdsProvider = null)
     : ICommandHandler<CreateStudyPostCommand, StudyPostDto>,
       ICommandHandler<UpdateStudyPostCommand, StudyPostDto>,
       ICommandHandler<DeleteStudyPostCommand, ResponseDto>,
@@ -23,6 +24,11 @@ public class StudyPostHandlers(
     public async Task<StudyPostDto> Handle(CreateStudyPostCommand c, CancellationToken ct)
     {
         var userId = auth.GetUserFromClaimToken().Id;
+        if (c.CategoryId.HasValue)
+        {
+            var exists = await db.Categories.AnyAsync(x => x.Id == c.CategoryId.Value, ct);
+            if (!exists) throw new BuildingBlocks.Exceptions.NotFoundException($"Category {c.CategoryId.Value} not found");
+        }
         var e = new StudyPost
         {
             Id = Guid.NewGuid(), AuthorId = userId, Title = c.Title, Content = c.Content,
@@ -58,8 +64,26 @@ public class StudyPostHandlers(
     }
     public async Task<PaginatedDto<StudyPostDto>> Handle(GetStudyPostsQuery q, CancellationToken ct)
     {
-        var total = await db.StudyPosts.CountAsync(ct);
-        var items = await db.StudyPosts.OrderByDescending(x => x.CreatedAt).Skip(q.PageIndex * q.PageSize).Take(q.PageSize).ToListAsync(ct);
+        IQueryable<StudyPost> query = db.StudyPosts;
+        if (q.CategoryId.HasValue)
+            query = query.Where(x => x.CategoryId == q.CategoryId.Value);
+        if (!string.IsNullOrWhiteSpace(q.Q))
+        {
+            var qq = q.Q.Trim();
+            query = query.Where(x => x.Title.Contains(qq) || x.Content.Contains(qq));
+        }
+        // Lọc bài của author đã bị chặn (nhất quán với Post feed BlockFilter)
+        Guid currentUserId = Guid.Empty;
+        try { currentUserId = auth.GetUserFromClaimToken().Id; } catch { }
+        IReadOnlySet<Guid> blockedUserIds = new HashSet<Guid>();
+        if (currentUserId != Guid.Empty && blockedIdsProvider != null)
+        {
+            try { blockedUserIds = await blockedIdsProvider.GetBlockedUserIdsAsync(currentUserId, ct); } catch { }
+            if (blockedUserIds.Count > 0)
+                query = query.Where(x => !blockedUserIds.Contains(x.AuthorId));
+        }
+        var total = await query.CountAsync(ct);
+        var items = await query.OrderByDescending(x => x.CreatedAt).Skip(q.PageIndex * q.PageSize).Take(q.PageSize).ToListAsync(ct);
         return new(items.Select(Map).ToList(), total, q.PageIndex, q.PageSize);
     }
     private static StudyPostDto Map(StudyPost e)

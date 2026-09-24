@@ -46,6 +46,16 @@ public class ConversationRepository : IConversationRepository
         return await _conversations.Find(filter).FirstOrDefaultAsync();
     }
 
+    public async Task<List<Conversation>> GetPrivateConversationsByUserIdAsync(string userId)
+    {
+        var filter = Builders<Conversation>.Filter.And(
+            Builders<Conversation>.Filter.Eq(c => c.IsGroup, false),
+            Builders<Conversation>.Filter.AnyEq(c => c.ParticipantIds, userId)
+        );
+
+        return await _conversations.Find(filter).ToListAsync();
+    }
+
     public async Task AddMemberAsync(string conversationId, string userId)
     {
         await _conversations.UpdateOneAsync(

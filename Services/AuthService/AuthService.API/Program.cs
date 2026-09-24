@@ -7,6 +7,7 @@ using AuthService.Infrastructure.Data;
 using BuildingBlocks.Abstractions;
 using BuildingBlocks.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -96,6 +97,14 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
 builder.Services.AddHealthChecks()
     .AddCheck<DbContextHealthCheck<ApplicationDbContext>>("database")
     .AddCheck<RedisHealthCheck>("redis");
+
+builder.Services.AddDataProtection()
+    .SetApplicationName("fitora")
+    .PersistKeysToStackExchangeRedis(
+        () => StackExchange.Redis.ConnectionMultiplexer.Connect(
+            builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379").GetDatabase(),
+        "DataProtection-Keys");
+builder.Services.AddScoped<AuthService.Application.Auths.TwoFactor.ITotpSecretProtector, AuthService.Application.Auths.TwoFactor.TotpSecretProtector>();
 
 // Đăng ký các service
 builder.Services

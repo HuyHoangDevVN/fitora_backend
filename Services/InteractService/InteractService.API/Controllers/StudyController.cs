@@ -22,9 +22,9 @@ public class StudyController : Controller
     }
     [AllowAnonymous]
     [HttpGet("")]
-    public async Task<IActionResult> List([FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    public async Task<IActionResult> List([FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20, [FromQuery] Guid? categoryId = null, [FromQuery] string? q = null)
     {
-        var r = await _mediator.Send(new GetStudyPostsQuery(pageIndex, pageSize));
+        var r = await _mediator.Send(new GetStudyPostsQuery(pageIndex, pageSize, categoryId, q));
         return Ok(new ResponseDto(r));
     }
     [AllowAnonymous]

@@ -41,6 +41,7 @@ public static class DependencyInjection
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IUserApiService, UserApiService>();
+        services.AddScoped<IUserInfoBatchService, UserInfoBatchService>();
         // 13.7/26.8: filter bài viết của user/group đã bị chặn ra khỏi feed — gọi cross-service sang UserService.
         services.AddScoped<IBlockedIdsProvider, HttpBlockedIdsProvider>();
         services.AddScoped<IElasticsearchPostService>(sp =>

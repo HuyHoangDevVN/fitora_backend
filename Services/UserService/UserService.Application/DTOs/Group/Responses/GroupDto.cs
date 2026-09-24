@@ -9,6 +9,7 @@ public class GroupDto
     public string Description { get; set; } = string.Empty;
     public GroupPrivacy Privacy { get; set; } = GroupPrivacy.Public;
     public bool RequirePostApproval { get; set; } = false;
+    public bool RequireJoinApproval { get; set; } = false;
     public string? CoverImageUrl { get; set; }
     public string? AvatarUrl { get; set; }
     public GroupStatus Status { get; set; } = GroupStatus.Active;

@@ -17,33 +17,30 @@ public class HttpBlockedIdsProvider : IBlockedIdsProvider
 
     public async Task<IReadOnlySet<Guid>> GetBlockedUserIdsAsync(Guid currentUserId, CancellationToken ct = default)
     {
-        try
-        {
-            var client = _factory.CreateClient("UserService");
-            var resp = await client.GetAsync("api/user/block/blocked-ids", ct);
-            if (!resp.IsSuccessStatusCode) return new HashSet<Guid>();
-            return ParseIds(await resp.Content.ReadAsStringAsync(ct), "blockedUserIds");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "HttpBlockedIdsProvider: failed to get blocked user ids for {UserId}", currentUserId);
-            return new HashSet<Guid>();
-        }
+        var (userIds, _) = await GetBlockedIdsAsync(currentUserId, ct);
+        return userIds;
     }
 
     public async Task<IReadOnlySet<Guid>> GetBlockedGroupIdsAsync(Guid currentUserId, CancellationToken ct = default)
+    {
+        var (_, groupIds) = await GetBlockedIdsAsync(currentUserId, ct);
+        return groupIds;
+    }
+
+    public async Task<(IReadOnlySet<Guid> userIds, IReadOnlySet<Guid> groupIds)> GetBlockedIdsAsync(Guid currentUserId, CancellationToken ct = default)
     {
         try
         {
             var client = _factory.CreateClient("UserService");
             var resp = await client.GetAsync("api/user/block/blocked-ids", ct);
-            if (!resp.IsSuccessStatusCode) return new HashSet<Guid>();
-            return ParseIds(await resp.Content.ReadAsStringAsync(ct), "blockedGroupIds");
+            if (!resp.IsSuccessStatusCode) return (new HashSet<Guid>(), new HashSet<Guid>());
+            var json = await resp.Content.ReadAsStringAsync(ct);
+            return (ParseIds(json, "blockedUserIds"), ParseIds(json, "blockedGroupIds"));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "HttpBlockedIdsProvider: failed to get blocked group ids for {UserId}", currentUserId);
-            return new HashSet<Guid>();
+            _logger.LogWarning(ex, "HttpBlockedIdsProvider: failed to get blocked ids for {UserId}", currentUserId);
+            return (new HashSet<Guid>(), new HashSet<Guid>());
         }
     }
 
