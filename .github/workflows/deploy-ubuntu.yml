@@ -1,6 +1,8 @@
 name: Deploy backend to Ubuntu
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       mode:
@@ -108,7 +110,7 @@ jobs:
           REMOTE
 
   deploy:
-    if: ${{ inputs.mode == 'deploy' }}
+    if: ${{ github.event_name == 'push' || inputs.mode == 'deploy' }}
     needs: [verify, preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
