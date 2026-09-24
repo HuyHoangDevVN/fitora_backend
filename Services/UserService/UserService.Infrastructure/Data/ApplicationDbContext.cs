@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<FriendShip> FriendShips => Set<FriendShip>();
     public DbSet<Follow> Follows => Set<Follow>();
     public DbSet<Block> Blocks => Set<Block>();
+    public DbSet<BlockedGroup> BlockedGroups => Set<BlockedGroup>();
     public DbSet<Group> Groups => Set<Group>();
     public DbSet<GroupInvite> GroupInvites => Set<GroupInvite>();
     public DbSet<GroupMember> GroupMembers => Set<GroupMember>();
@@ -25,6 +26,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<GroupLog> GroupLogs => Set<GroupLog>();
     public DbSet<GroupNotification> GroupNotifications => Set<GroupNotification>();
     public DbSet<EventRsvp> EventRsvps => Set<EventRsvp>();
+    public DbSet<RecentSearch> RecentSearches => Set<RecentSearch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

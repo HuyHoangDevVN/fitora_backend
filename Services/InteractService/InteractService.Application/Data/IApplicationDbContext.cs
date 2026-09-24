@@ -13,5 +13,7 @@ public interface IApplicationDbContext
     DbSet<FollowCategory> FollowCategories { get; }
     DbSet<CommentVotes> CommentVotes { get; }
     DbSet<UserSaved> UserSaveds { get; }
+    DbSet<StudyPost> StudyPosts { get; }
+    DbSet<ShortClip> ShortClips { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -5,6 +5,7 @@ using InteractService.Application.Usecases.Comments.Commands.CreateComment;
 using InteractService.Application.Usecases.Comments.Commands.DeleteComment;
 using InteractService.Application.Usecases.Comments.Commands.UpdateComment;
 using InteractService.Application.Usecases.Comments.Commands.VoteComment;
+using InteractService.Application.Usecases.Comments.Queries.GetCommentById;
 using InteractService.Application.Usecases.Comments.Queries.GetCommentReplies;
 using InteractService.Application.Usecases.Comments.Queries.GetCommentsByPost;
 using MediatR;
@@ -73,6 +74,14 @@ public class CommentController : Controller
         var comments = await _mediator.Send(new GetCommentRepliesQuery(request));
         return Ok(new ResponseDto(
             comments, IsSuccess: true, "Get Successful"));
+    }
+
+    // Dùng để điều hướng từ notification comment/reply -> đúng bài viết (chỉ trả Id/PostId, không cần toàn bộ nội dung).
+    [HttpGet("get-by-id")]
+    public async Task<IActionResult> GetCommentById([FromQuery] Guid id)
+    {
+        var result = await _mediator.Send(new GetCommentByIdQuery(id));
+        return Ok(new ResponseDto(result, IsSuccess: true, "Get Successful"));
     }
 
     private Guid GetCurrentUserId()

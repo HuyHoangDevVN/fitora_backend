@@ -1,12 +1,15 @@
 using System.Text;
+using BuildingBlocks.HealthChecks;
 using ChatService.API.Middleware;
 using ChatService.Application;
 using ChatService.Infrastructure;
+using ChatService.Infrastructure.HealthChecks;
 using ChatService.Infrastructure.Hubs;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -71,6 +74,9 @@ builder.Services
     .AddInfrastructureServices(builder.Configuration)
     .AddApplicationAuthentication(builder.Configuration);
 
+builder.Services.AddHealthChecks()
+    .AddCheck<MongoDbHealthCheck>("mongodb");
+
 var app = builder.Build();
 
 app.UseSwagger();
@@ -86,4 +92,5 @@ app.UseWebSockets();
 app.MapHub<ChatHub>("/hubs/chat");
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.Run();

@@ -55,13 +55,12 @@ public class KeyRepository(
             }
 
             var keyByUsers = await context.Keys
-                .Where(k => k.UserId == userId) 
+                .Where(k => k.UserId == userId)
                 .ToListAsync(cancellationToken);
 
             if (keyByUsers.Any())
             {
-                return keyByUsers.Select(
-                    k => new KeyDto(k.UserId.ToString(), k.Token, k.Expires, k.IsUsed, k.IsRevoked));
+                return KeyExtensions.KeyToDto(keyByUsers);
             }
 
             return Enumerable.Empty<KeyDto>();
@@ -70,6 +69,15 @@ public class KeyRepository(
         {
             throw new BadRequestException(e.Message);
         }
+    }
+
+    public async Task<string?> GetLastValidRefreshTokenAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var key = await context.Keys.AsNoTracking()
+            .Where(k => k.UserId == userId && !k.IsRevoked && !k.IsUsed && k.Expires > DateTime.UtcNow)
+            .OrderByDescending(k => k.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        return key?.Token;
     }
 
     public async Task<RefreshTokenByUserResponseDto> RefreshTokenByUser(RefreshTokenByUserRequestDto dto,
@@ -128,26 +136,27 @@ public class KeyRepository(
         }
     }
 
-    public async Task<PaginatedResult<KeyDto>> GetKeysAsync(PaginationRequest paginationRequest,
+    public async Task<PaginatedResult<KeyDto>> GetKeysAsync(string userId, PaginationRequest paginationRequest,
         CancellationToken cancellationToken = default)
     {
         try
         {
+            if (string.IsNullOrEmpty(userId))
+            {
+                throw new BadRequestException("User is required");
+            }
+
             int pageIndex = paginationRequest.PageIndex;
             int pageSize = paginationRequest.PageSize;
-            long keyCount = 0;
 
-            var cacheData = await cache.GetStringAsync("keys-list", cancellationToken);
+            // 26.7: user chỉ được liệt kê session của CHÍNH mình
+            var query = context.Keys.AsNoTracking().Where(k => k.UserId == userId);
 
-            // if (!string.IsNullOrEmpty(cacheData))
-            // {
-            //     
-            //     keyCount = JsonConvert.DeserializeObject<IEnumerable<KeyDto>>(cacheData)!.LongCount();
-            //     
-            // }
-            keyCount = await context.Keys.AsNoTracking().LongCountAsync(cancellationToken);
+            var keyCount = await query.LongCountAsync(cancellationToken);
 
-            var keys = await context.Keys.AsNoTracking().Skip(pageIndex * pageSize).Take(pageSize)
+            var keys = await query
+                .OrderByDescending(k => k.CreatedAt)
+                .Skip(pageIndex * pageSize).Take(pageSize)
                 .ToListAsync(cancellationToken);
 
             var keysDto = KeyExtensions.KeyToDto(keys);

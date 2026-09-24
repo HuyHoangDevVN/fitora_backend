@@ -17,4 +17,6 @@ public interface IChatService
     Task<bool> AddGroupMemberAsync(string conversationId, string userId);
     Task<bool> RemoveGroupMemberAsync(string conversationId, string userId);
     Task<bool> AssignGroupAdminAsync(string conversationId, string userId);
+    Task<Conversation> CreateOrGetGroupConversationAsync(string groupId, string userId, string? groupName = null, List<string>? memberIds = null);
+    Task<Conversation> SyncGroupMembersAsync(string groupId, List<string> memberIds);
 }

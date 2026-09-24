@@ -10,11 +10,13 @@ namespace ChatService.Infrastructure.Hubs
     {
         private readonly IChatService _chatService;
         private readonly IAuthorizeExtension _authorizeExtension;
+        private readonly IPresenceService _presenceService;
 
-        public ChatHub(IChatService chatService, IAuthorizeExtension authorizeExtension)
+        public ChatHub(IChatService chatService, IAuthorizeExtension authorizeExtension, IPresenceService presenceService)
         {
             _chatService = chatService;
             _authorizeExtension = authorizeExtension;
+            _presenceService = presenceService;
         }
 
         public override async Task OnConnectedAsync()
@@ -23,17 +25,31 @@ namespace ChatService.Infrastructure.Hubs
             if (!string.IsNullOrEmpty(userId))
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, userId);
+                try
+                {
+                    await _presenceService.SetOnlineAsync(userId);
+                    await Clients.All.SendAsync("UserOnline", userId);
+                }
+                catch { /* Redis unavailable — presence is best-effort */ }
             }
 
             await base.OnConnectedAsync();
         }
 
-        public override async Task OnDisconnectedAsync(Exception exception)
+        public override async Task OnDisconnectedAsync(Exception? exception)
         {
             var userId = Context.UserIdentifier;
             if (!string.IsNullOrEmpty(userId))
             {
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, userId);
+                try
+                {
+                    await _presenceService.SetOfflineAsync(userId);
+                    var map = await _presenceService.GetPresenceAsync(new[] { userId });
+                    var lastSeen = map.TryGetValue(userId, out var dto) ? dto.LastSeenAt : DateTime.UtcNow;
+                    await Clients.All.SendAsync("UserOffline", userId, lastSeen);
+                }
+                catch { }
             }
 
             await base.OnDisconnectedAsync(exception);
@@ -57,10 +73,8 @@ namespace ChatService.Infrastructure.Hubs
                 throw new HubException("User not authenticated.");
             }
 
-            // Lưu tin nhắn vào MongoDB thông qua IChatService, trả về message vừa lưu
             var message = await _chatService.SendMessageAsync(userId, conversationId, content, type);
 
-            // Gửi tin nhắn đến tất cả client trong conversation, bao gồm cả id và createdAt
             await Clients.Group(conversationId).SendAsync(
                 "ReceiveMessage",
                 message.Id,

@@ -9,6 +9,7 @@ using InteractService.Application.Services.IServices;
 using InteractService.Domain.Abstractions;
 using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Repositories;
+using InteractService.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -40,6 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         services.AddScoped<IUserApiService, UserApiService>();
+        // 13.7/26.8: filter bài viết của user/group đã bị chặn ra khỏi feed — gọi cross-service sang UserService.
+        services.AddScoped<IBlockedIdsProvider, HttpBlockedIdsProvider>();
         services.AddScoped<IElasticsearchPostService>(sp =>
         {
             var elasticUri = configuration["ElasticsearchSettings:Uri"];

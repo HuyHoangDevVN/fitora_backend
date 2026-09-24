@@ -1,8 +1,10 @@
+using BuildingBlocks.HealthChecks;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.OpenApi.Models;
 using NotificationService.API.Middleware;
 using NotificationService.Application;
 using NotificationService.Infrastructure;
+using NotificationService.Infrastructure.Data;
 using NotificationService.Infrastructure.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -72,6 +74,8 @@ builder.Services
     .AddInfrastructureServices(builder.Configuration)
     .AddApplicationAuthentication(builder.Configuration);
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DbContextHealthCheck<ApplicationDbContext>>("database");
 
 var app = builder.Build();
 
@@ -88,4 +92,5 @@ app.UseWebSockets();
 // Map SignalR Hub
 app.MapHub<NotificationHub>("/hubs/noti");
 app.MapControllers();
+app.MapHealthChecks("/health");
 app.Run();

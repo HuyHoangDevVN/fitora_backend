@@ -14,5 +14,5 @@ public interface IFriendshipRepository
     Task<PaginatedResult<FriendDto>> GetFriends(GetFriendsRequest request);
     Task<bool> AcceptFriendRequestAsync(CreateFriendRequest request);
     Task<bool> DeleteFriendRequestAsync(CreateFriendRequest request);
-    Task<bool> UnfriendAsync(Guid id);
+    Task<bool> UnfriendAsync(Guid currentUserId, Guid targetUserId);
 }

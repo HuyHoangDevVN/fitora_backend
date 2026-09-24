@@ -12,6 +12,10 @@ RUN dotnet restore fitora_backend.sln \
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0.11 AS runtime
 WORKDIR /app
+# liblept5/libtesseract5 runtime libs are required by AuthService's Tesseract OCR (CCCD identity verification).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends liblept5 libtesseract5 \
+ && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out /app
 USER app
 

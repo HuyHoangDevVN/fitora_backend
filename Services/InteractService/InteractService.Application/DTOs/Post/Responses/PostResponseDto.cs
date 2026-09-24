@@ -1,6 +1,7 @@
 using BuildingBlocks.Abstractions;
 using BuildingBlocks.Abstractions.Entities;
 using InteractService.Domain.Enums;
+using InteractService.Application.DTOs.React.Responses;
 
 namespace InteractService.Application.DTOs.Post.Responses;
 
@@ -20,4 +21,10 @@ public class PostResponseDto : EntityAuditBase<Guid>
     public PrivacyPost Privacy { get; set; } = PrivacyPost.Public;
     public UserWithInfoDto? User { get; set; }
     public VoteType? UserVoteType { get; set; }
+    public ReactSummaryDto? ReactSummary { get; set; }
+
+    public bool IsShared { get; set; } = false;
+    public Guid? OriginalPostId { get; set; }
+    public PostResponseDto? OriginalPost { get; set; }
+    public int SharesCount { get; set; } = 0;
 }

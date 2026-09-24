@@ -1,4 +1,5 @@
-﻿using AuthService.Application.Auths.Commands.AssignRoles;
+﻿using AuthService.Application.Auths.Commands.AdminDeleteAccount;
+using AuthService.Application.Auths.Commands.AssignRoles;
 using AuthService.Application.Auths.Commands.AuthChangePassword;
 using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
@@ -11,6 +12,7 @@ using AuthService.Application.Auths.Commands.EditInForUser;
 using AuthService.Application.Auths.Commands.RefreshToken;
 using AuthService.Application.Auths.Commands.RemoveRoles;
 using AuthService.Application.Auths.Commands.UpdateRole;
+using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Key;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.DTOs.Key.Responses;
@@ -42,8 +44,10 @@ public class ServiceProfile : Profile
         CreateMap<AuthChangePasswordCommand, ChangePasswordRequestDto>().ReverseMap();
         // Lock account
         CreateMap<AuthLockAccountCommand, LockUserRequestDto>().ReverseMap();
-        // Delete account
+        // Delete account (self-service — cần Password, userId lấy từ token)
         CreateMap<AuthDeleteAccountCommand, DeleteUserRequestDto>().ReverseMap();
+        // Delete account (admin — chỉ cần UserId, không cần Password)
+        CreateMap<AdminDeleteAccountRequestDto, AdminDeleteAccountCommand>().ReverseMap();
         #endregion
 
 

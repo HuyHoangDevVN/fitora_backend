@@ -13,16 +13,19 @@ public class GroupRepository : IGroupRepository
 {
     private readonly IRepositoryBase<Group> _groupRepo;
     private readonly IRepositoryBase<GroupMember> _groupMemberRepo;
+    private readonly IRepositoryBase<BlockedGroup> _blockedGroupRepo;
     private readonly DbSet<Group> _groupDbSet;
     private readonly DbSet<GroupMember> _groupMemberDbSet;
     private readonly IMapper _mapper;
 
     public GroupRepository(IRepositoryBase<Group> groupRepo, IRepositoryBase<GroupMember> groupMemberRepo,
+        IRepositoryBase<BlockedGroup> blockedGroupRepo,
         ApplicationDbContext dbContext,
         IMapper mapper)
     {
         _groupRepo = groupRepo;
         _groupMemberRepo = groupMemberRepo;
+        _blockedGroupRepo = blockedGroupRepo;
         _mapper = mapper;
     }
 
@@ -83,6 +86,27 @@ public class GroupRepository : IGroupRepository
             new PaginationRequest(request.PageIndex, request.PageSize),
             CancellationToken.None,
             g => groupIds.Contains(g.Id)
+        );
+    }
+
+    public async Task<PaginatedResult<Group>> SearchGroupsAsync(SearchGroupsRequest request, Guid currentUserId)
+    {
+        var q = request.Query?.Trim().ToLower();
+        var memberships = await _groupMemberRepo.FindAsync(gm => gm.UserId == currentUserId);
+        var memberGroupIds = memberships.Select(gm => gm.GroupId).ToList();
+
+        var blockedGroups = await _blockedGroupRepo.FindAsync(b => b.BlockerUserId == currentUserId);
+        var blockedGroupIds = blockedGroups.Select(b => b.GroupId).ToHashSet();
+
+        return await _groupRepo.GetPageAsync(
+            new PaginationRequest(request.PageIndex, request.PageSize),
+            CancellationToken.None,
+            g =>
+                (string.IsNullOrEmpty(q) ||
+                 g.Name.ToLower().Contains(q) ||
+                 g.Description.ToLower().Contains(q))
+                && (g.Privacy == GroupPrivacy.Public || memberGroupIds.Contains(g.Id))
+                && (blockedGroupIds.Count == 0 || !blockedGroupIds.Contains(g.Id))
         );
     }
 

@@ -24,7 +24,9 @@ public static class DependencyInjection
         services.AddSingleton(database);
         services.AddScoped<IMessageRepository, MessageRepository>();
         services.AddScoped<IConversationRepository, ConversationRepository>();
+        services.AddScoped<IGroupChatMappingRepository, GroupChatMappingRepository>();
         services.AddScoped<IChatService, Repositories.ChatService>();
+        services.AddScoped<IPresenceService, Services.PresenceService>();
         return services;
     }
     public static IServiceCollection AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration)

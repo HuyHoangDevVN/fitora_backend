@@ -14,11 +14,13 @@ namespace ChatService.API.Controllers
     {
         private readonly IChatService _chatService;
         private readonly IAuthorizeExtension _authorizeExtension;
+        private readonly IPresenceService _presenceService;
 
-        public ChatController(IChatService chatService, IAuthorizeExtension authorizeExtension)
+        public ChatController(IChatService chatService, IAuthorizeExtension authorizeExtension, IPresenceService presenceService)
         {
             _chatService = chatService;
             _authorizeExtension = authorizeExtension;
+            _presenceService = presenceService;
         }
 
         [HttpPost("conversations")]
@@ -32,6 +34,13 @@ namespace ChatService.API.Controllers
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.ConversationId))
+                return BadRequest(new ResponseDto(null, false, "ConversationId là bắt buộc"));
+            if (string.IsNullOrWhiteSpace(request.Content))
+                return BadRequest(new ResponseDto(null, false, "Nội dung tin nhắn không được để trống"));
+            if (request.Content.Length > 5000)
+                return BadRequest(new ResponseDto(null, false, "Nội dung tin nhắn không được vượt quá 5000 ký tự"));
+
             var userId = _authorizeExtension.GetUserFromClaimToken().Id;
             await _chatService.SendMessageAsync(userId.ToString(), request.ConversationId, request.Content,
                 request.Type);
@@ -113,6 +122,32 @@ namespace ChatService.API.Controllers
         {
             var response = await _chatService.AssignGroupAdminAsync(request.ConversationId, request.UserId);
             return Ok(new ResponseDto(response));
+        }
+
+        [HttpGet("presence")]
+        public async Task<IActionResult> GetPresence([FromQuery] string userIds)
+        {
+            if (string.IsNullOrWhiteSpace(userIds))
+                return Ok(new ResponseDto(new Dictionary<string, PresenceDto>()));
+            var ids = userIds.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var map = await _presenceService.GetPresenceAsync(ids);
+            return Ok(new ResponseDto(map));
+        }
+
+        [HttpPost("group-conversations/{groupId}/create-or-get")]
+        public async Task<IActionResult> CreateOrGetGroupConversation([FromRoute] string groupId, [FromBody] CreateOrGetGroupConversationRequest? request)
+        {
+            var userId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.CreateOrGetGroupConversationAsync(groupId, userId, request?.GroupName, request?.MemberIds);
+            return Ok(new ResponseDto(conv));
+        }
+
+        [HttpPost("group-conversations/{groupId}/sync-members")]
+        public async Task<IActionResult> SyncGroupMembers([FromRoute] string groupId, [FromBody] SyncGroupMembersRequest request)
+        {
+            if (request?.MemberIds == null) return BadRequest(new ResponseDto("MemberIds is required"));
+            var conv = await _chatService.SyncGroupMembersAsync(groupId, request.MemberIds);
+            return Ok(new ResponseDto(conv));
         }
     }
 }
