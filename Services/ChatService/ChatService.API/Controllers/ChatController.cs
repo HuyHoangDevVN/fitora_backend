@@ -67,6 +67,13 @@ namespace ChatService.API.Controllers
             var conversation = await _chatService.GetPrivateConversationAsync(userId, otherUserId);
             return Ok(new ResponseDto(conversation));
         }
+
+        [HttpGet("private-conversations")]
+        public async Task<IActionResult> GetPrivateConversationsByUserId([FromQuery] string userId)
+        {
+            var conversations = await _chatService.GetPrivateConversationsByUserIdAsync(userId);
+            return Ok(new ResponseDto(conversations));
+        }
         
         [HttpPost("delete-message")]
         public async Task<IActionResult> DeleteMessage([FromBody] string messageId)

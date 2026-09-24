@@ -90,6 +90,17 @@ namespace NotificationService.API.Controller
             if (!enabled)
                 return Ok(new { skipped = true, reason = "recipient disabled this notification type" });
 
+            if (request.SenderId.HasValue)
+            {
+                try
+                {
+                    var blocked = await _blockedIdsProvider.GetBlockedUserIdsAsync(request.UserId);
+                    if (blocked.Contains(request.SenderId.Value))
+                        return Ok(new { skipped = true, reason = "recipient has blocked sender" });
+                }
+                catch { }
+            }
+
             var notification = new Notification
             {
                 UserId = request.UserId,
@@ -190,8 +201,9 @@ namespace NotificationService.API.Controller
             var blocked = await _blockedIdsProvider.GetBlockedUserIdsAsync(currentUserId);
             if (blocked.Count == 0) return result;
             var filtered = result.Data.Where(n => n.SenderId == null || !blocked.Contains(n.SenderId.Value)).ToList();
+            var removed = result.Data.Count() - filtered.Count;
             return new BuildingBlocks.Pagination.Base.PaginatedResult<Notification>(
-                result.PageIndex, result.PageSize, result.Count, filtered);
+                result.PageIndex, result.PageSize, Math.Max(0, result.Count - removed), filtered);
         }
     }
 }

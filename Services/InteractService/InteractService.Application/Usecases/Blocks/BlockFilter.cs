@@ -20,8 +20,7 @@ public static class BlockFilter
         var posts = postsSource.ToList();
         if (posts.Count == 0) return posts;
 
-        var blockedUserIds = await blockedIdsProvider.GetBlockedUserIdsAsync(currentUserId, ct);
-        var blockedGroupIds = await blockedIdsProvider.GetBlockedGroupIdsAsync(currentUserId, ct);
+        var (blockedUserIds, blockedGroupIds) = await blockedIdsProvider.GetBlockedIdsAsync(currentUserId, ct);
 
         if (blockedUserIds.Count == 0 && blockedGroupIds.Count == 0) return posts;
 

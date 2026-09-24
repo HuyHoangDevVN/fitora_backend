@@ -6,4 +6,5 @@ public enum TargetType
     Comment = 2,
     User = 3,
     Group = 4,
+    ShortClip = 5,
 }

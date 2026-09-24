@@ -1,4 +1,5 @@
 using AuthService.Application.Services.IServices;
+using BuildingBlocks.Attributes;
 using BuildingBlocks.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -34,6 +35,7 @@ public class TwoFactorController : Controller
         return Ok(new ResponseDto(r));
     }
     [HttpPost("verify-setup")]
+    [RedisRateLimit(5, 60, "2fa_verify_setup")]
     public async Task<IActionResult> VerifySetup([FromBody] VerifySetupDto dto)
     {
         var r = await _sender.Send(new AuthService.Application.Auths.TwoFactor.VerifySetupCommand(dto.Code));
@@ -52,6 +54,7 @@ public class TwoFactorController : Controller
         return Ok(new ResponseDto(r, IsSuccess: r.IsSuccess, Message: r.Message));
     }
     [HttpPost("verify-login")]
+    [RedisRateLimit(5, 60, "2fa_verify_login")]
     [Microsoft.AspNetCore.Authorization.AllowAnonymous]
     public async Task<IActionResult> VerifyLogin([FromBody] VerifyLoginDto dto)
     {

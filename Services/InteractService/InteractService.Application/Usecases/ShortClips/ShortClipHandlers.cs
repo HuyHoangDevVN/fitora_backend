@@ -1,17 +1,29 @@
 using BuildingBlocks.CQRS;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Security;
+using InteractService.Application.Services.IServices;
 
 namespace InteractService.Application.Usecases.ShortClips;
+
+internal static class OptionalAuth
+{
+    // List/GetById không có [Authorize] (xem cho khách) — GetUserFromClaimToken() throw
+    // khi không có token, nên không thể dùng trực tiếp ở đây.
+    public static Guid? TryGetUserId(IAuthorizeExtension auth)
+    {
+        try { return auth.GetUserFromClaimToken().Id; }
+        catch { return null; }
+    }
+}
 
 public record CreateShortClipCommand(string VideoUrl, string? ThumbnailUrl, string Caption, int Duration) : ICommand<ShortClipDto>;
 public record GetShortClipByIdQuery(Guid Id) : IQuery<ShortClipDto>;
 public record GetShortClipsQuery(int PageIndex = 0, int PageSize = 20) : IQuery<PaginatedDto<ShortClipDto>>;
 public record DeleteShortClipCommand(Guid Id) : ICommand<ResponseDto>;
-public record ShortClipDto(Guid Id, Guid AuthorId, string VideoUrl, string? ThumbnailUrl, string Caption, int Duration, string Visibility, string Status, DateTime? CreatedAt);
+public record ShortClipDto(Guid Id, Guid AuthorId, string VideoUrl, string? ThumbnailUrl, string Caption, int Duration, string Visibility, string Status, DateTime? CreatedAt, string? AuthorUsername = null, string? AuthorAvatarUrl = null);
 public record PaginatedDto<T>(List<T> Items, int TotalCount, int PageIndex, int PageSize);
 
-public class ShortClipHandlers(IApplicationDbContext db, IAuthorizeExtension auth)
+public class ShortClipHandlers(IApplicationDbContext db, IAuthorizeExtension auth, IUserInfoBatchService userInfoBatchService)
     : ICommandHandler<CreateShortClipCommand, ShortClipDto>,
       IQueryHandler<GetShortClipByIdQuery, ShortClipDto>,
       IQueryHandler<GetShortClipsQuery, PaginatedDto<ShortClipDto>>,
@@ -29,18 +41,25 @@ public class ShortClipHandlers(IApplicationDbContext db, IAuthorizeExtension aut
         };
         db.ShortClips.Add(e);
         await db.SaveChangesAsync(ct);
-        return Map(e);
+        var authorInfo = await userInfoBatchService.GetUserDisplayInfosAsync(userId, new List<Guid> { userId }, ct);
+        return Map(e, authorInfo);
     }
     public async Task<ShortClipDto> Handle(GetShortClipByIdQuery q, CancellationToken ct)
     {
         var e = await db.ShortClips.FirstOrDefaultAsync(x => x.Id == q.Id, ct) ?? throw new BuildingBlocks.Exceptions.NotFoundException("ShortClip not found");
-        return Map(e);
+        var requestUserId = OptionalAuth.TryGetUserId(auth);
+        var authorInfo = await userInfoBatchService.GetUserDisplayInfosAsync(requestUserId, new List<Guid> { e.AuthorId }, ct);
+        return Map(e, authorInfo);
     }
     public async Task<PaginatedDto<ShortClipDto>> Handle(GetShortClipsQuery q, CancellationToken ct)
     {
-        var total = await db.ShortClips.CountAsync(ct);
-        var items = await db.ShortClips.OrderByDescending(x => x.CreatedAt).Skip(q.PageIndex * q.PageSize).Take(q.PageSize).ToListAsync(ct);
-        return new(items.Select(Map).ToList(), total, q.PageIndex, q.PageSize);
+        var published = db.ShortClips.Where(x => x.Status == "Published" && x.Visibility == "Public");
+        var total = await published.CountAsync(ct);
+        var items = await published.OrderByDescending(x => x.CreatedAt).Skip(q.PageIndex * q.PageSize).Take(q.PageSize).ToListAsync(ct);
+        var requestUserId = OptionalAuth.TryGetUserId(auth);
+        var authorIds = items.Select(x => x.AuthorId).Distinct().ToList();
+        var authorInfo = await userInfoBatchService.GetUserDisplayInfosAsync(requestUserId, authorIds, ct);
+        return new(items.Select(x => Map(x, authorInfo)).ToList(), total, q.PageIndex, q.PageSize);
     }
     public async Task<ResponseDto> Handle(DeleteShortClipCommand c, CancellationToken ct)
     {
@@ -51,5 +70,9 @@ public class ShortClipHandlers(IApplicationDbContext db, IAuthorizeExtension aut
         await db.SaveChangesAsync(ct);
         return new ResponseDto(Message: "Deleted");
     }
-    private static ShortClipDto Map(ShortClip e) => new(e.Id, e.AuthorId, e.VideoUrl, e.ThumbnailUrl, e.Caption, e.Duration, e.Visibility, e.Status, e.CreatedAt);
+    private static ShortClipDto Map(ShortClip e, Dictionary<Guid, UserDisplayInfo> authorInfo)
+    {
+        authorInfo.TryGetValue(e.AuthorId, out var author);
+        return new(e.Id, e.AuthorId, e.VideoUrl, e.ThumbnailUrl, e.Caption, e.Duration, e.Visibility, e.Status, e.CreatedAt, author?.Username, author?.ProfilePictureUrl);
+    }
 }
