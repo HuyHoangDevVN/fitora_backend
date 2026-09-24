@@ -3,10 +3,14 @@ using AuthService.API.Middleware;
 using AuthService.Application;
 using AuthService.Application.Helpers;
 using AuthService.Infrastructure;
+using AuthService.Infrastructure.Data;
 using BuildingBlocks.Abstractions;
+using BuildingBlocks.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -83,6 +87,16 @@ builder.Services.AddSwaggerGen(opt =>
     });
 });
 
+builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+{
+    var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+    return ConnectionMultiplexer.Connect(redisConnectionString);
+});
+
+builder.Services.AddHealthChecks()
+    .AddCheck<DbContextHealthCheck<ApplicationDbContext>>("database")
+    .AddCheck<RedisHealthCheck>("redis");
+
 // Đăng ký các service
 builder.Services
     .AddApplicationServices(builder.Configuration)
@@ -100,5 +114,6 @@ app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

@@ -301,6 +301,7 @@ public class CommentRepository : ICommentRepository
             Votes = x.VotesCount, // Sửa: dùng Votes thay vì VotesCount
             ReplyCount = x.ReplyCount,
             IsDeleted = x.Comment.IsDeleted,
+            CreatedAt = x.Comment.CreatedAt,
             User = userInfos.GetValueOrDefault(x.Comment.UserId.ToString("D")),
             UserVoteType = userVotes.ContainsKey(x.Comment.Id) ? userVotes[x.Comment.Id] : (VoteType?)null
         }).ToList();
@@ -394,7 +395,8 @@ public class CommentRepository : ICommentRepository
             ReplyCount = x.ReplyCount,
             IsDeleted = x.Comment.IsDeleted,
             User = userInfos.GetValueOrDefault(x.Comment.UserId.ToString("D")),
-            UserVoteType = userVotes.ContainsKey(x.Comment.Id) ? userVotes[x.Comment.Id] : (VoteType?)null
+            UserVoteType = userVotes.ContainsKey(x.Comment.Id) ? userVotes[x.Comment.Id] : (VoteType?)null,
+            CreatedAt = x.Comment.CreatedAt
         }).ToList();
 
         var totalCount = await query.CountAsync();
@@ -429,7 +431,8 @@ public class CommentRepository : ICommentRepository
             Votes = c.VotesCont,
             ReplyCount = c.ReplyCount,
             IsDeleted = c.IsDeleted,
-            UserVoteType = null
+            UserVoteType = null,
+            CreatedAt = c.CreatedAt
         }).ToList();
         return new PaginatedResult<CommentResponseDto>(
             comments.PageIndex,

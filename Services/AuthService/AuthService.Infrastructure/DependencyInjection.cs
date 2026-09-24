@@ -32,6 +32,8 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         services.AddScoped<AuthService.Application.Services.IServices.IEmailSender, Services.ConsoleEmailSender>();
+        services.AddHttpClient("OcrImageDownloader");
+        services.AddScoped<AuthService.Application.Services.IServices.IOcrService, Services.TesseractOcrService>();
         return services;
     }
 }

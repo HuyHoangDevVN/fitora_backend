@@ -256,5 +256,57 @@
   ],
   "GlobalConfiguration": {
     "BaseUrl": "http://localhost:4469"
-  }
+  },
+  "SwaggerEndPoints": [
+    {
+      "Key": "auth",
+      "Config": [
+        {
+          "Name": "AuthService API",
+          "Version": "v1",
+          "Url": "https://localhost:5002/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "user",
+      "Config": [
+        {
+          "Name": "UserService API",
+          "Version": "v1",
+          "Url": "https://localhost:5004/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "interact",
+      "Config": [
+        {
+          "Name": "InteractService API",
+          "Version": "v1",
+          "Url": "https://localhost:5006/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "chat",
+      "Config": [
+        {
+          "Name": "ChatService API",
+          "Version": "v1",
+          "Url": "https://localhost:5008/swagger/v1/swagger.json"
+        }
+      ]
+    },
+    {
+      "Key": "notification",
+      "Config": [
+        {
+          "Name": "NotificationService API",
+          "Version": "v1",
+          "Url": "https://localhost:5010/swagger/v1/swagger.json"
+        }
+      ]
+    }
+  ]
 }

@@ -1,9 +1,25 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using NotificationService.Application.Data;
 using NotificationService.Application.DTOs.MessegeQueue.Notification;
+using NotificationService.Domain.Models;
 
 namespace NotificationService.Application.Services
 {
+    // Mã NotificationTypeId dùng chung giữa các service publish (Comment/Follow/FriendRequest...).
+    // Không có bảng seed sẵn nên consumer tự tạo NotificationType nếu Id chưa tồn tại (FK bắt buộc phải có row).
+    public static class WellKnownNotificationTypes
+    {
+        public static readonly Dictionary<int, (string Code, string Name)> Map = new()
+        {
+            [1] = ("comment", "Bình luận"),
+            [2] = ("follow", "Theo dõi"),
+            [3] = ("friend_request", "Lời mời kết bạn"),
+            [4] = ("friend_request_accepted", "Chấp nhận kết bạn"),
+        };
+    }
+
     public class NotificationConsumerHostedService : BackgroundService
     {
         private readonly IRabbitMqConsumer<NotificationMessageDto> _rabbitMqConsumer;
@@ -30,6 +46,9 @@ namespace NotificationService.Application.Services
                 {
                     using var scope = _serviceProvider.CreateScope();
                     var notificationRepo = scope.ServiceProvider.GetRequiredService<INotificationRepository>();
+                    var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
+
+                    await EnsureNotificationTypeExistsAsync(db, message.NotificationTypeId);
 
                     var settingRepo = scope.ServiceProvider.GetRequiredService<INotificationSettingRepository>();
                     var enabled = await settingRepo.IsEnabledAsync(message.UserId, message.NotificationTypeId);
@@ -74,6 +93,26 @@ namespace NotificationService.Application.Services
         {
             Console.WriteLine("RabbitMQ Consumer for NotificationService is stopping.");
             return base.StopAsync(cancellationToken);
+        }
+
+        private static async Task EnsureNotificationTypeExistsAsync(IApplicationDbContext db, int notificationTypeId)
+        {
+            var exists = await db.NotificationTypes.AnyAsync(nt => nt.Id == notificationTypeId);
+            if (exists) return;
+
+            var (code, name) = WellKnownNotificationTypes.Map.TryGetValue(notificationTypeId, out var known)
+                ? known
+                : ($"type_{notificationTypeId}", $"Loại thông báo #{notificationTypeId}");
+
+            db.NotificationTypes.Add(new NotificationType { Id = notificationTypeId, Code = code, Name = name });
+            try
+            {
+                await db.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (DbUpdateException)
+            {
+                // Race: một consumer khác đã tạo row này trước — bỏ qua vì mục tiêu chỉ là đảm bảo tồn tại.
+            }
         }
     }
 }

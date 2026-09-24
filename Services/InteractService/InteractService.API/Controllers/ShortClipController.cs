@@ -1,10 +1,15 @@
 using BuildingBlocks.DTOs;
 using InteractService.Application.Usecases.ShortClips;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.FeatureManagement.Mvc;
 
 namespace InteractService.API.Controllers;
 
+// Mục 12 audit: gate bằng feature flag "ShortClip" (appsettings.json > FeatureManagement) —
+// cho phép tắt module Short Clip theo môi trường mà không cần deploy lại.
+[FeatureGate("ShortClip")]
 [Route("api/interact/short-clips")]
 [ApiController]
 public class ShortClipController : Controller
@@ -12,6 +17,9 @@ public class ShortClipController : Controller
     private readonly IMediator _mediator;
     public ShortClipController(IMediator mediator) => _mediator = mediator;
 
+    // Create/Delete cần AuthorId lấy từ token (auth.GetUserFromClaimToken()) —
+    // controller trước đây thiếu [Authorize] nên request không token vẫn vào được handler.
+    [Authorize]
     [HttpPost("")]
     public async Task<IActionResult> Create([FromBody] CreateShortClipDto dto)
     {
@@ -30,6 +38,7 @@ public class ShortClipController : Controller
         var r = await _mediator.Send(new GetShortClipByIdQuery(id));
         return Ok(new ResponseDto(r));
     }
+    [Authorize]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {

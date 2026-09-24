@@ -117,7 +117,8 @@ public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
     [HttpDelete("unfriend")]
     public async Task<IActionResult> Unfriend([FromQuery] Guid id)
     {
-        var result = await _sender.Send(new UnfriendCommand(id));
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new UnfriendCommand(userGuid, id));
         return Ok(new ResponseDto(null, result, result ? "Successed" : "Failed"));
     }
 

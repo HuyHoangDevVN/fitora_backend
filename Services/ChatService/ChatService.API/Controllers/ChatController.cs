@@ -34,6 +34,13 @@ namespace ChatService.API.Controllers
         [HttpPost("send-message")]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.ConversationId))
+                return BadRequest(new ResponseDto(null, false, "ConversationId là bắt buộc"));
+            if (string.IsNullOrWhiteSpace(request.Content))
+                return BadRequest(new ResponseDto(null, false, "Nội dung tin nhắn không được để trống"));
+            if (request.Content.Length > 5000)
+                return BadRequest(new ResponseDto(null, false, "Nội dung tin nhắn không được vượt quá 5000 ký tự"));
+
             var userId = _authorizeExtension.GetUserFromClaimToken().Id;
             await _chatService.SendMessageAsync(userId.ToString(), request.ConversationId, request.Content,
                 request.Type);

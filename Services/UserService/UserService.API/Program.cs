@@ -1,4 +1,5 @@
 using System.Text;
+using BuildingBlocks.HealthChecks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -8,6 +9,7 @@ using UserService.Application;
 using UserService.Application.Services;
 using UserService.Application.Services.IServices;
 using UserService.Infrastructure;
+using UserService.Infrastructure.Data;
 using UserService.Infrastructure.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -69,6 +71,9 @@ builder.Services
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddGrpc(options => options.EnableDetailedErrors = true);
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DbContextHealthCheck<ApplicationDbContext>>("database");
+
 var app = builder.Build();
 
 app.UseSwagger();
@@ -81,4 +86,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapGrpcService<UserGrpcService>();
+app.MapHealthChecks("/health");
 app.Run();

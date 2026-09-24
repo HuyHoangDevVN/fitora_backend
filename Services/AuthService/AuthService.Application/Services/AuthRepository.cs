@@ -18,11 +18,40 @@ public class AuthRepository(
     IKeyRepository<Guid> keyRepository,
     IHttpContextAccessor accessor,
     IRabbitMqPublisher<UserRegisteredMessageDto> rabbitMQPublisher,
-    IAuthorizeExtension authorizeExtension)
+    IAuthorizeExtension authorizeExtension,
+    IApplicationDbContext dbContext)
     : IAuthRepository
 {
     private static bool IsKeyValid(KeyDto k)
         => !k.IsUsed && !k.IsRevoked && k.Expire > DateTime.Now;
+
+    /// <summary>
+    /// Phát access/refresh token cho user đã xác thực đầy đủ (password, và OTP nếu có 2FA).
+    /// Tách riêng để VerifyLoginHandler (13.9) tái dùng sau khi OTP đúng, không copy-paste logic.
+    /// </summary>
+    public async Task<LoginResponseDto> IssueLoginTokensAsync(ApplicationUser user)
+    {
+        var roles = await userManager.GetRolesAsync(user);
+        string accessToken = await cache.GetStringAsync($"token-{user.Id}") ??
+                             jwtTokenGenerator.GeneratorToken(user, roles);
+
+        await cache.SetStringAsync($"token-{user.Id}", accessToken,
+            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
+
+        // Lấy refresh-token thật nội bộ — KHÔNG dùng GetKeysByUserIdAsync (đã mask token cho response ngoài).
+        var existingRefreshToken = await keyRepository.GetLastValidRefreshTokenAsync(user.Id);
+        string refreshToken = existingRefreshToken ?? jwtTokenGenerator.GeneratorRefreshToken(user.Id);
+
+        if (string.IsNullOrEmpty(existingRefreshToken))
+        {
+            await keyRepository.CreateKeyAsync(new CreateKeyRequestDto(refreshToken, user.Id));
+        }
+
+        var userDto = mapper.Map<UserDto>(user);
+        var token = new LoginTokenResponseDto(accessToken, refreshToken);
+
+        return new LoginResponseDto(true, userDto, token, "Đăng nhập thành công!");
+    }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto)
     {
@@ -58,26 +87,17 @@ public class AuthRepository(
             return new LoginResponseDto(false, null, null, "Tài khoản bị hạn chế");
         }
 
-        var roles = await userManager.GetRolesAsync(checkExitUser);
-        string accessToken = await cache.GetStringAsync($"token-{checkExitUser.Id}") ??
-                             jwtTokenGenerator.GeneratorToken(checkExitUser, roles);
-
-        await cache.SetStringAsync($"token-{checkExitUser.Id}", accessToken,
-            new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7) });
-
-        // Lấy refresh-token thật nội bộ — KHÔNG dùng GetKeysByUserIdAsync (đã mask token cho response ngoài).
-        var existingRefreshToken = await keyRepository.GetLastValidRefreshTokenAsync(checkExitUser.Id);
-        string refreshToken = existingRefreshToken ?? jwtTokenGenerator.GeneratorRefreshToken(checkExitUser.Id);
-
-        if (string.IsNullOrEmpty(existingRefreshToken))
+        // 13.9: password đúng nhưng nếu user đã bật 2FA thì KHÔNG phát token ngay —
+        // yêu cầu FE gọi tiếp /2fa/verify-login với OTP/recovery code trước khi có token thật.
+        var hasTwoFactor = await dbContext.TotpSecrets
+            .AnyAsync(x => x.UserId == checkExitUser.Id.ToString() && x.IsVerified);
+        if (hasTwoFactor)
         {
-            await keyRepository.CreateKeyAsync(new CreateKeyRequestDto(refreshToken, checkExitUser.Id));
+            var pendingUserDto = mapper.Map<UserDto>(checkExitUser);
+            return new LoginResponseDto(true, pendingUserDto, null, "Yêu cầu xác thực 2 lớp", RequiresTwoFactor: true);
         }
 
-        var userDto = mapper.Map<UserDto>(checkExitUser);
-        var token = new LoginTokenResponseDto(accessToken, refreshToken);
-
-        return new LoginResponseDto(true, userDto, token, "Đăng nhập thành công!");
+        return await IssueLoginTokensAsync(checkExitUser);
     }
 
     public async Task<LoginResponseDto> RegisterAsync(RegisterRequestDto dto)
@@ -277,10 +297,23 @@ public class AuthRepository(
     {
         try
         {
-            var user = await userManager.FindByIdAsync(dto.UserId);
+            // 27.1/13.6: không tin userId do client gửi lên — luôn lấy từ claim token
+            // để user A không thể xóa tài khoản của user B chỉ bằng cách đổi UserId trong request.
+            var uid = authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            if (string.IsNullOrEmpty(uid))
+            {
+                throw new BadRequestException("Invalid Token");
+            }
+
+            var user = await userManager.FindByIdAsync(uid);
             if (user is null)
             {
                 return false;
+            }
+
+            if (string.IsNullOrEmpty(dto.Password) || !await userManager.CheckPasswordAsync(user, dto.Password))
+            {
+                throw new BadRequestException("Mật khẩu không đúng");
             }
 
             user.Status = (int)UserStatus.Removed;
@@ -288,6 +321,32 @@ public class AuthRepository(
             if (!userUpdate.Succeeded)
             {
                 throw new BadRequestException(userUpdate.Errors.FirstOrDefault()!.Description);
+            }
+
+            return true;
+        }
+        catch (BadRequestException)
+        {
+            throw;
+        }
+        catch (Exception e)
+        {
+            throw new BadRequestException(e.Message);
+        }
+    }
+
+    /// <summary>Admin xóa tài khoản người khác theo userId — đã có [Authorize(Roles = "ADMIN")] ở Controller, không cần password.</summary>
+    public async Task<bool> DeleteUserByAdminAsync(Guid userId)
+    {
+        try
+        {
+            var userFound = await userManager.FindByIdAsync(userId.ToString()) ??
+                            throw new NotFoundException("User NotFound");
+            userFound.Status = (int)UserStatus.Removed;
+            var userUpdate = await userManager.UpdateAsync(userFound);
+            if (!userUpdate.Succeeded)
+            {
+                return false;
             }
 
             return true;

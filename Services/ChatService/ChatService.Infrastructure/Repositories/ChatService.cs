@@ -69,7 +69,14 @@ public class ChatService : IChatService
     {
         try
         {
+            // Lấy conversationId TRƯỚC khi xóa để còn biết group nào cần broadcast (1.1).
+            var existing = await _messageRepository.GetByIdAsync(messageId);
             await _messageRepository.DeleteAsync(messageId);
+            if (existing != null)
+            {
+                await _hubContext.Clients.Group(existing.GroupId)
+                    .SendAsync("MessageDeleted", messageId, existing.GroupId);
+            }
             return true;
         }
         catch
@@ -106,10 +113,15 @@ public class ChatService : IChatService
         {
             var reaction = new Reaction { UserId = userId, Emoji = emoji };
             await _messageRepository.AddReactionAsync(messageId, reaction);
-            // Phát reaction real-time cho mọi client trong hội thoại
-            var msg = (await _messageRepository.GetByConversationIdAsync(new GetHistoryChatRequest(messageId, 0, 1))).FirstOrDefault();
-            // Fallback: gửi theo messageId nếu không tìm thấy conversationId
-            await _hubContext.Clients.All.SendAsync("MessageReaction", messageId, userId, emoji);
+            // Broadcast đúng phạm vi hội thoại chứa message (trước đây Clients.All
+            // phát cho TOÀN hệ thống — lãng phí băng thông và lộ hoạt động chat
+            // cho người không liên quan tới conversation đó).
+            var msg = await _messageRepository.GetByIdAsync(messageId);
+            if (msg != null)
+            {
+                await _hubContext.Clients.Group(msg.GroupId)
+                    .SendAsync("MessageReaction", messageId, userId, emoji);
+            }
             return true;
         }
         catch
@@ -123,7 +135,12 @@ public class ChatService : IChatService
         try
         {
             await _messageRepository.MarkAsReadAsync(messageId, isRead);
-            await _hubContext.Clients.All.SendAsync("MessageRead", messageId, isRead);
+            var msg = await _messageRepository.GetByIdAsync(messageId);
+            if (msg != null)
+            {
+                await _hubContext.Clients.Group(msg.GroupId)
+                    .SendAsync("MessageRead", messageId, isRead);
+            }
             return true;
         }
         catch

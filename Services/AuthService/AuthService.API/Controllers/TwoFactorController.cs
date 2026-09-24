@@ -1,15 +1,25 @@
+using AuthService.Application.Services.IServices;
 using BuildingBlocks.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.FeatureManagement.Mvc;
 
 namespace AuthService.API.Controllers;
 
+// Mục 12 audit: gate bằng feature flag "Auth2FA" (appsettings.json > FeatureManagement) —
+// cho phép rollout dần 2FA theo môi trường mà không cần deploy lại code.
+[FeatureGate("Auth2FA")]
 [Route("api/auth/2fa")]
 [ApiController]
 public class TwoFactorController : Controller
 {
     private readonly ISender _sender;
-    public TwoFactorController(ISender sender) => _sender = sender;
+    private readonly IAuthRepository _authRepo;
+    public TwoFactorController(ISender sender, IAuthRepository authRepo)
+    {
+        _sender = sender;
+        _authRepo = authRepo;
+    }
 
     [HttpGet("status")]
     public async Task<IActionResult> Status()
@@ -46,6 +56,8 @@ public class TwoFactorController : Controller
     public async Task<IActionResult> VerifyLogin([FromBody] VerifyLoginDto dto)
     {
         var r = await _sender.Send(new AuthService.Application.Auths.TwoFactor.VerifyLoginCommand(dto.UserId, dto.Code));
+        // OTP/recovery code đúng => Tokens.Token có giá trị thật; set cookie giống luồng login thường (13.9).
+        if (r.Tokens?.Token != null) _authRepo.SetTokenInsideCookie(r.Tokens.Token, HttpContext);
         return Ok(new ResponseDto(r, IsSuccess: r.IsSuccess, Message: r.Message));
     }
     [HttpPost("regenerate-recovery-codes")]

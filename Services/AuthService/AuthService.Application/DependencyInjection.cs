@@ -47,7 +47,7 @@ public static class DependencyInjection
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IAuthorizeExtension, AuthorizeExtension>();
         //services.Decorate<IAuthRepository, TokenManagementRepository>();
-        services.AddAutoMapper(typeof(ServiceProfile));
+        services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceProfile)));
         return services;
     }
 

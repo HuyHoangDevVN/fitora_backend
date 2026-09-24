@@ -15,24 +15,34 @@ namespace NotificationService.API.Controller
         private readonly INotificationRepository _notificationRepository;
         private readonly IAuthorizeExtension _authorizeExtension;
         private readonly INotificationSettingRepository _settingRepo;
+        private readonly IBlockedIdsProvider _blockedIdsProvider;
 
-        public NotificationController(INotificationRepository notificationRepository, IAuthorizeExtension authorizeExtension, INotificationSettingRepository settingRepo)
+        public NotificationController(
+            INotificationRepository notificationRepository,
+            IAuthorizeExtension authorizeExtension,
+            INotificationSettingRepository settingRepo,
+            IBlockedIdsProvider blockedIdsProvider)
         {
             _notificationRepository = notificationRepository;
             _authorizeExtension = authorizeExtension;
             _settingRepo = settingRepo;
+            _blockedIdsProvider = blockedIdsProvider;
         }
 
         [HttpGet("get-notifications")]
         public async Task<IActionResult> GetNotifications([FromQuery] GetNotificationsRequest request)
         {
             var result = await _notificationRepository.GetNotificationsAsync(request);
-            return Ok(result);
+            var filtered = await FilterBlockedAsync(request.UserId, result);
+            return Ok(filtered);
         }
 
-        // Paginated history for current user: GET /api/noti/notification?pageIndex=&pageSize=&isRead=
         [HttpGet]
-        public async Task<IActionResult> GetMyNotifications([FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20, [FromQuery] bool? isRead = null, [FromQuery] int? notificationTypeId = null)
+        public async Task<IActionResult> GetMyNotifications(
+            [FromQuery] int pageIndex = 0,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] bool? isRead = null,
+            [FromQuery] int? notificationTypeId = null)
         {
             var userId = _authorizeExtension.GetUserFromClaimToken().Id;
             var req = new GetNotificationsRequest(userId, isRead, notificationTypeId)
@@ -41,14 +51,16 @@ namespace NotificationService.API.Controller
                 PageSize = pageSize,
             };
             var result = await _notificationRepository.GetNotificationsAsync(req);
-            return Ok(result);
+            var filtered = await FilterBlockedAsync(userId, result);
+            return Ok(filtered);
         }
 
         [HttpGet("unread")]
         public async Task<IActionResult> GetUnreadNotifications([FromQuery] GetUnreadNotificationsRequest request)
         {
             var result = await _notificationRepository.GetUnreadNotificationsAsync(request);
-            return Ok(result);
+            var filtered = await FilterBlockedAsync(request.UserId, result);
+            return Ok(filtered);
         }
 
         [HttpGet("get-notification")]
@@ -57,13 +69,23 @@ namespace NotificationService.API.Controller
             var result = await _notificationRepository.GetNotificationByIdAsync(id);
             if (result == null)
                 return NotFound();
+            if (result.SenderId.HasValue)
+            {
+                try
+                {
+                    var currentUserId = _authorizeExtension.GetUserFromClaimToken().Id;
+                    var blocked = await _blockedIdsProvider.GetBlockedUserIdsAsync(currentUserId);
+                    if (blocked.Contains(result.SenderId.Value))
+                        return NotFound();
+                }
+                catch { }
+            }
             return Ok(result);
         }
 
         [HttpPost("create-notification")]
         public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationRequest request)
         {
-            // Respect recipient's notification setting
             var enabled = await _settingRepo.IsEnabledAsync(request.UserId, request.NotificationTypeId);
             if (!enabled)
                 return Ok(new { skipped = true, reason = "recipient disabled this notification type" });
@@ -109,7 +131,6 @@ namespace NotificationService.API.Controller
             return updated ? Ok() : BadRequest();
         }
 
-        // PUT /api/noti/notification/{id}/read
         [HttpPut("{id:long}/read")]
         public async Task<IActionResult> MarkAsRead(long id)
         {
@@ -134,7 +155,6 @@ namespace NotificationService.API.Controller
             return ok ? Ok() : BadRequest();
         }
 
-        // PUT /api/noti/notification/read-all
         [HttpPut("read-all")]
         public async Task<IActionResult> MarkAllAsRead()
         {
@@ -154,13 +174,24 @@ namespace NotificationService.API.Controller
             return deleted ? Ok() : NotFound();
         }
 
-        // DELETE /api/noti/notification  -> clear all for current user
         [HttpDelete]
         public async Task<IActionResult> ClearAll()
         {
             var userId = _authorizeExtension.GetUserFromClaimToken().Id;
             await _notificationRepository.DeleteAllAsync(userId);
             return Ok();
+        }
+
+        private async Task<BuildingBlocks.Pagination.Base.PaginatedResult<Notification>> FilterBlockedAsync(
+            Guid currentUserId,
+            BuildingBlocks.Pagination.Base.PaginatedResult<Notification> result)
+        {
+            if (!result.Data.Any()) return result;
+            var blocked = await _blockedIdsProvider.GetBlockedUserIdsAsync(currentUserId);
+            if (blocked.Count == 0) return result;
+            var filtered = result.Data.Where(n => n.SenderId == null || !blocked.Contains(n.SenderId.Value)).ToList();
+            return new BuildingBlocks.Pagination.Base.PaginatedResult<Notification>(
+                result.PageIndex, result.PageSize, result.Count, filtered);
         }
     }
 }

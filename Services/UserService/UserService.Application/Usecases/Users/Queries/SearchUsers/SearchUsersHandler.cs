@@ -1,14 +1,18 @@
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.RepositoryBase.EntityFramework;
+using BuildingBlocks.Security;
 using UserService.Application.DTOs.User.Requests;
 using UserService.Application.DTOs.User.Responses;
+using UserService.Application.Services.IServices;
 
 namespace UserService.Application.Usecases.Users.Queries.SearchUsers;
 
 public class SearchUsersHandler(
     IRepositoryBase<User> userRepo,
-    IRepositoryBase<UserInfo> userInfoRepo)
+    IRepositoryBase<UserInfo> userInfoRepo,
+    IBlockRepository blockRepo,
+    IAuthorizeExtension auth)
     : IQueryHandler<SearchUsersQuery, ResponseDto>
 {
     public async Task<ResponseDto> Handle(SearchUsersQuery request, CancellationToken cancellationToken)
@@ -23,7 +27,14 @@ public class SearchUsersHandler(
             return new ResponseDto(empty);
         }
 
-        // Search by username / email / firstname / lastname
+        IReadOnlySet<Guid> blockedIds = new HashSet<Guid>();
+        try
+        {
+            var currentUserId = auth.GetUserFromClaimToken().Id;
+            blockedIds = await blockRepo.GetBlockedUserIdsAsync(currentUserId, cancellationToken);
+        }
+        catch { }
+
         var joined = await userRepo.SearchJoinAsync<UserInfo, Guid, UserWithInfoDto>(
             u => u.Id,
             ui => ui.UserId,
@@ -46,13 +57,13 @@ public class SearchUsersHandler(
         );
 
         var all = joined.Where(x =>
-            x.Username.ToLower().Contains(q)
+            (x.Username.ToLower().Contains(q)
             || x.Email.ToLower().Contains(q)
             || (x.FirstName != null && x.FirstName.ToLower().Contains(q))
-            || (x.LastName != null && x.LastName.ToLower().Contains(q))
+            || (x.LastName != null && x.LastName.ToLower().Contains(q)))
+            && (blockedIds.Count == 0 || !blockedIds.Contains(x.Id))
         ).ToList();
 
-        // De-duplicate by Id (SearchJoin may duplicate if predicate matched outer but inner filter broad)
         var distinct = all.GroupBy(x => x.Id).Select(g => g.First()).ToList();
         var total = distinct.Count;
         var paged = distinct.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();

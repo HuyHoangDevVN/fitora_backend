@@ -1,8 +1,10 @@
 using System.Text;
+using BuildingBlocks.HealthChecks;
 using Grpc.Net.Client;
 using InteractService.API.Middleware;
 using InteractService.Application;
 using InteractService.Infrastructure;
+using InteractService.Infrastructure.Data;
 using InteractService.Infrastructure.Grpc;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -91,6 +93,12 @@ builder.Services
 
 builder.Services.AddGrpc();
 
+builder.Services.AddHealthChecks()
+    .AddCheck<DbContextHealthCheck<ApplicationDbContext>>("database")
+    .AddCheck<RedisHealthCheck>("redis");
+builder.Services.AddScoped<DbContextHealthCheck<ApplicationDbContext>>();
+builder.Services.AddScoped<RedisHealthCheck>();
+
 var app = builder.Build();
 
 app.UseSwagger();
@@ -108,5 +116,6 @@ app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();

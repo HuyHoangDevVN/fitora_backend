@@ -1,11 +1,19 @@
 using BuildingBlocks.DTOs;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AuthService.API.Controllers;
 
+/// <summary>
+/// CCCD/OCR (26.17) — dữ liệu nhạy cảm nhất trong hệ thống (số CCCD, ảnh giấy tờ,
+/// ngày sinh, địa chỉ). Trước đây thiếu [Authorize]: request không token vẫn chạy
+/// tới tận Application layer mới bị chặn (GetUserFromClaimToken throw), thay vì bị
+/// chặn sớm ở middleware với 401 chuẩn.
+/// </summary>
 [Route("api/auth/identity-verification")]
 [ApiController]
+[Authorize]
 public class IdentityVerificationController : Controller
 {
     private readonly ISender _sender;

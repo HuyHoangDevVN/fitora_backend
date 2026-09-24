@@ -44,7 +44,8 @@ public class UserController : Microsoft.AspNetCore.Mvc.Controller
     public async Task<IActionResult> UpdateUser([FromBody] UserInfoDto updateUserInfoRequest)
     {
         var result = await _sender.Send(new UpdateUserCommand(updateUserInfoRequest));
-        var response = new ResponseDto(result, Message: "Update Successful");
+        var isSuccess = result != null;
+        var response = new ResponseDto(result, isSuccess, isSuccess ? "Update Successful" : "Cập nhật thất bại.");
         return Ok(response);
     }
 

@@ -4,7 +4,7 @@ public class UnfriendHandler (IFriendshipRepository friendshipRepo, IMapper mapp
 {
     public async Task<bool> Handle(UnfriendCommand request, CancellationToken cancellationToken)
     {
-        var isSuccess = await friendshipRepo.UnfriendAsync(request.Id);
+        var isSuccess = await friendshipRepo.UnfriendAsync(request.CurrentUserId, request.TargetUserId);
         return isSuccess;
     }
 }
