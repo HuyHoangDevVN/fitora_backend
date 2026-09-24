@@ -14,6 +14,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<Key> Keys => Set<Key>();
     public DbSet<ApplicationUser> Users => Set<ApplicationUser>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<TotpSecret> TotpSecrets => Set<TotpSecret>();
+    public DbSet<RecoveryCode> RecoveryCodes => Set<RecoveryCode>();
+    public DbSet<IdentityVerification> IdentityVerifications => Set<IdentityVerification>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

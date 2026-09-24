@@ -13,6 +13,8 @@ using UserService.Application.Usecases.Friendship.Commands.Unfriend;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Received;
 using UserService.Application.Usecases.Friendship.Queries.GetFriendRequests.Sended;
 using UserService.Application.Usecases.Friendship.Queries.GetFriends;
+using UserService.Application.Usecases.Friendship.Queries.GetRelationship;
+using UserService.Application.Usecases.Friendship.Queries.GetSuggestions;
 
 namespace UserService.API.Controller;
 
@@ -115,7 +117,28 @@ public class FriendShipController : Microsoft.AspNetCore.Mvc.Controller
     [HttpDelete("unfriend")]
     public async Task<IActionResult> Unfriend([FromQuery] Guid id)
     {
-        var result = await _sender.Send(new UnfriendCommand(id));
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new UnfriendCommand(userGuid, id));
         return Ok(new ResponseDto(null, result, result ? "Successed" : "Failed"));
+    }
+
+    [HttpGet("suggestions")]
+    public async Task<IActionResult> GetSuggestions([FromQuery] PaginationRequest request)
+    {
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var query = new GetSuggestionsQuery(userGuid, request.PageIndex, request.PageSize);
+        var result = await _sender.Send(query);
+        return Ok(result);
+    }
+
+    [HttpGet("relationship")]
+    public async Task<IActionResult> GetRelationship([FromQuery] Guid userId)
+    {
+        var currentUserId = _authorizeExtension.GetUserFromClaimToken().Id;
+        if (userId == Guid.Empty)
+            return BadRequest(new ResponseDto(null, false, "userId is required"));
+        var query = new GetRelationshipQuery(currentUserId, userId);
+        var result = await _sender.Send(query);
+        return Ok(new ResponseDto(result));
     }
 }

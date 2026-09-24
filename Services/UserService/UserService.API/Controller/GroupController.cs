@@ -9,11 +9,17 @@ using UserService.Application.DTOs.GroupMember.Requests;
 using UserService.Application.DTOs.GroupPost.Requests;
 using UserService.Application.Usecases.Group.Commands.CreateGroup;
 using UserService.Application.Usecases.Group.Commands.DeleteGroup;
+using UserService.Application.Usecases.Group.Commands.DissolveGroup;
+using UserService.Application.Usecases.Group.Commands.TransferOwner;
 using UserService.Application.Usecases.Group.Commands.UpdateGroup;
+using UserService.Application.Usecases.Group.Commands.UpdatePrivacy;
 using UserService.Application.Usecases.Group.Queries.GetGroupById;
 using UserService.Application.Usecases.Group.Queries.GetGroups;
 using UserService.Application.Usecases.Group.Queries.GetJoinedGroups;
 using UserService.Application.Usecases.Group.Queries.GetManagedGroups;
+using UserService.Application.Usecases.GroupPost.Commands.ApproveGroupPost;
+using UserService.Application.Usecases.GroupPost.Commands.RejectGroupPost;
+using UserService.Application.Usecases.GroupPost.Queries.GetPendingGroupPosts;
 using UserService.Application.Usecases.GroupInvite.Commands.AcceptGroupInvite;
 using UserService.Application.Usecases.GroupInvite.Commands.CreateGroupInvite;
 using UserService.Application.Usecases.GroupInvite.Commands.CreateGroupInvites;
@@ -27,6 +33,14 @@ using UserService.Application.Usecases.GroupMember.Queries.GetById;
 using UserService.Application.Usecases.GroupPost.Commands.CreateGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.DeleteGroupPost;
 using UserService.Application.Usecases.GroupPost.Commands.UpdateGroupPost;
+using UserService.Application.Usecases.Group.Queries.SearchGroups;
+using UserService.Application.Usecases.GroupEvent.Commands.CreateGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.DeleteGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.RsvpEvent;
+using UserService.Application.Usecases.GroupEvent.Commands.UpdateGroupEvent;
+using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEventById;
+using UserService.Application.Usecases.GroupEvent.Queries.GetGroupEvents;
+using UserService.Domain.Enums;
 
 namespace UserService.API.Controller;
 
@@ -116,6 +130,21 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
         return Ok(new ResponseDto(result));
     }
 
+    /// <summary>
+    /// Privacy-aware group search: public groups visible to everyone;
+    /// private/secret groups only when the caller is a member.
+    /// Keyword matches Name/Description (case-insensitive contains).
+    /// </summary>
+    [HttpGet("search")]
+    public async Task<IActionResult> SearchGroups(
+        [FromQuery] string? query, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 10)
+    {
+        var userId = _authorizeExtension.GetUserFromClaimToken().Id;
+        var result = await _sender.Send(new SearchGroupsQuery(
+            new SearchGroupsRequest(query, pageIndex, pageSize), userId));
+        return Ok(new ResponseDto(result));
+    }
+
     // ==============================
     // Group Membership
     // ==============================
@@ -133,23 +162,6 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
                 body.GroupId,
                 body.MemberId,
                 body.Role
-            )
-        ));
-        return Ok(result);
-    }
-
-    /// <summary>
-    /// Invites a single member to a group.
-    /// </summary>
-    [HttpPost("invite-new-member")]
-    public async Task<IActionResult> InviteNewMemberAsync([FromBody] CreateGroupInviteFormBody body)
-    {
-        var userId = _authorizeExtension.GetUserFromClaimToken().Id;
-        var result = await _sender.Send(new CreateGroupInviteCommand(
-            new CreateGroupInviteRequest(
-                body.GroupId,
-                userId,
-                body.ReceiverUserId
             )
         ));
         return Ok(result);
@@ -325,5 +337,126 @@ public class GroupController : Microsoft.AspNetCore.Mvc.Controller
             )
         ));
         return Ok(groups);
+    }
+
+    // ==============================
+    // Group Post Moderation (26.3)
+    // ==============================
+
+    /// <summary>Pending posts of a group (paginated).</summary>
+    [HttpGet("{groupId:guid}/pending-posts")]
+    public async Task<IActionResult> GetPendingGroupPosts(
+        [FromRoute] Guid groupId, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    {
+        var result = await _sender.Send(new GetPendingGroupPostsQuery(groupId, pageIndex, pageSize));
+        return Ok(new ResponseDto(result));
+    }
+
+    public record RejectBody(string? Reason);
+
+    /// <summary>Approve a pending group post (Owner/Admin/Moderator).</summary>
+    [HttpPost("posts/{postId:guid}/approve")]
+    public async Task<IActionResult> ApproveGroupPost([FromRoute] Guid postId)
+    {
+        var result = await _sender.Send(new ApproveGroupPostCommand(postId));
+        return Ok(result);
+    }
+
+    /// <summary>Reject a pending group post (Owner/Admin/Moderator).</summary>
+    [HttpPost("posts/{postId:guid}/reject")]
+    public async Task<IActionResult> RejectGroupPost([FromRoute] Guid postId, [FromBody] RejectBody body)
+    {
+        var result = await _sender.Send(new RejectGroupPostCommand(postId, body?.Reason));
+        return Ok(result);
+    }
+
+    // ==============================
+    // Ownership & Dissolve (26.2)
+    // ==============================
+
+    public record TransferOwnerBody(Guid NewOwnerId);
+    public record UpdatePrivacyBody(GroupPrivacy Privacy);
+
+    /// <summary>Transfer group ownership (Owner only).</summary>
+    [HttpPost("{groupId:guid}/transfer-owner")]
+    public async Task<IActionResult> TransferOwner([FromRoute] Guid groupId, [FromBody] TransferOwnerBody body)
+    {
+        var result = await _sender.Send(new TransferOwnerCommand(groupId, body.NewOwnerId));
+        return Ok(result);
+    }
+
+    /// <summary>Dissolve group (Owner only).</summary>
+    [HttpDelete("{groupId:guid}/dissolve")]
+    public async Task<IActionResult> DissolveGroup([FromRoute] Guid groupId)
+    {
+        var result = await _sender.Send(new DissolveGroupCommand(groupId));
+        return Ok(result);
+    }
+
+    /// <summary>Update group privacy (Owner/Admin only).</summary>
+    [HttpPut("{groupId:guid}/privacy")]
+    public async Task<IActionResult> UpdatePrivacy([FromRoute] Guid groupId, [FromBody] UpdatePrivacyBody body)
+    {
+        var result = await _sender.Send(new UpdatePrivacyCommand(groupId, body.Privacy));
+        return Ok(result);
+    }
+
+    // ==============================
+    // Group Events (27.2 / 26.16)
+    // ==============================
+
+    public record CreateEventBody(string Title, string Description, DateTime EventDate, string? Location);
+    public record UpdateEventBody(string Title, string Description, DateTime EventDate, string? Location);
+    public record RsvpBody(RsvpStatus Status);
+
+    /// <summary>Tạo sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpPost("{idGroup:guid}/events")]
+    public async Task<IActionResult> CreateGroupEvent([FromRoute] Guid idGroup, [FromBody] CreateEventBody body)
+    {
+        var result = await _sender.Send(new CreateGroupEventCommand(
+            idGroup, body.Title, body.Description, body.EventDate, body.Location));
+        return Ok(result);
+    }
+
+    /// <summary>Danh sách sự kiện của nhóm.</summary>
+    [HttpGet("{idGroup:guid}/events")]
+    public async Task<IActionResult> GetGroupEvents(
+        [FromRoute] Guid idGroup, [FromQuery] int pageIndex = 0, [FromQuery] int pageSize = 20)
+    {
+        var result = await _sender.Send(new GetGroupEventsQuery(idGroup, pageIndex, pageSize));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>Chi tiết một sự kiện.</summary>
+    [HttpGet("events/{eventId:guid}")]
+    public async Task<IActionResult> GetGroupEventById([FromRoute] Guid eventId)
+    {
+        var result = await _sender.Send(new GetGroupEventByIdQuery(eventId));
+        return Ok(new ResponseDto(result));
+    }
+
+    /// <summary>Cập nhật sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpPut("events/{eventId:guid}")]
+    public async Task<IActionResult> UpdateGroupEvent([FromRoute] Guid eventId, [FromBody] UpdateEventBody body)
+    {
+        var result = await _sender.Send(new UpdateGroupEventCommand(
+            eventId, body.Title, body.Description, body.EventDate, body.Location));
+        return Ok(result);
+    }
+
+    /// <summary>Xóa sự kiện (Owner/Admin/Moderator).</summary>
+    [HttpDelete("events/{eventId:guid}")]
+    public async Task<IActionResult> DeleteGroupEvent([FromRoute] Guid eventId)
+    {
+        var result = await _sender.Send(new DeleteGroupEventCommand(eventId));
+        return Ok(result);
+    }
+
+    /// <summary>RSVP đi/không thể/không (member).</summary>
+    [HttpPost("events/{eventId:guid}/rsvp")]
+    public async Task<IActionResult> RsvpGroupEvent([FromRoute] Guid eventId, [FromBody] RsvpBody body)
+    {
+        var result = await _sender.Send(new RsvpEventCommand(eventId, body.Status));
+        return Ok(result);
     }
 }

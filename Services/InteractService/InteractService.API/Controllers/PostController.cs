@@ -59,7 +59,8 @@ public class PostController : Controller
             return BadRequest(ModelState);
         }
 
-        var updatedPost = await _mediator.Send(new UpdatePostCommand(id, updatePostRequest));
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
+        var updatedPost = await _mediator.Send(new UpdatePostCommand(id, updatePostRequest, userGuid));
         return Ok(updatedPost);
     }
 

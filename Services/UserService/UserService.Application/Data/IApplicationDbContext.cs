@@ -10,6 +10,7 @@ public interface IApplicationDbContext
     DbSet<FriendShip> FriendShips { get; }
     DbSet<Follow> Follows { get; }
     DbSet<Block> Blocks { get; }
+    DbSet<BlockedGroup> BlockedGroups { get; }
     DbSet<Group> Groups { get; }
     DbSet<GroupInvite> GroupInvites { get; }
     DbSet<GroupMember> GroupMembers { get; }
@@ -19,6 +20,7 @@ public interface IApplicationDbContext
     DbSet<GroupLog> GroupLogs { get; }
     DbSet<GroupNotification> GroupNotifications { get; }
     DbSet<EventRsvp> EventRsvps { get; }
-    
+    DbSet<RecentSearch> RecentSearches { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

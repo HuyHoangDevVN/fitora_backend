@@ -3,11 +3,15 @@ using AuthService.Application.Auths.Commands.AuthDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
 using AuthService.Application.Auths.Commands.AuthLogin;
 using AuthService.Application.Auths.Commands.AuthRegister;
+using AuthService.Application.Auths.Commands.ForgotPassword;
 using AuthService.Application.Auths.Commands.RefreshToken;
+using AuthService.Application.Auths.Commands.ResetPassword;
+using AuthService.Application.Auths.Commands.VerifyResetOtp;
 using AuthService.Application.DTOs.Auth.Requests;
 using AuthService.Application.DTOs.Key.Requests;
 using AuthService.Application.Services.IServices;
 using AutoMapper;
+using BuildingBlocks.Attributes;
 using BuildingBlocks.DTOs;
 using BuildingBlocks.Security;
 using MediatR;
@@ -34,6 +38,7 @@ public class AuthController : Controller
         _authorizeExtension = authorizeExtension;
     }
 
+    [RedisRateLimit(10, 60, "auth-register")]
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequestDto req)
     {
@@ -44,6 +49,7 @@ public class AuthController : Controller
         return Ok(response);
     }
 
+    [RedisRateLimit(10, 60, "auth-login")]
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginRequestDto req)
     {
@@ -61,6 +67,7 @@ public class AuthController : Controller
         return Ok(new ResponseDto(Message: "Đăng xuất thành công !"));
     }
 
+    [RedisRateLimit(10, 60, "auth-change-password")]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequestDto req)
     {
@@ -97,6 +104,9 @@ public class AuthController : Controller
         return Ok(new ResponseDto(Message: "Refresh Token Failed", IsSuccess: false));
     }
 
+    // 27.1/13.6: self-service delete — bắt buộc đăng nhập; userId luôn lấy từ token trong
+    // AuthRepository.DeleteUserAsync (không tin req.UserId), và bắt buộc verify Password đúng.
+    [Authorize]
     [HttpDelete("delete-account")]
     public async Task<IActionResult> DeleteAccount(DeleteUserRequestDto req)
     {
@@ -126,5 +136,32 @@ public class AuthController : Controller
     {
         var token = Request.Cookies["accessToken"];
         return Ok(new { accessToken = token });
+    }
+
+    [AllowAnonymous]
+    [RedisRateLimit(5, 60, "auth-forgot-password")]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequestDto req)
+    {
+        var result = await _sender.Send(new ForgotPasswordCommand(req.Email));
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [RedisRateLimit(10, 60, "auth-verify-reset-otp")]
+    [HttpPost("verify-reset-otp")]
+    public async Task<IActionResult> VerifyResetOtp(VerifyResetOtpRequestDto req)
+    {
+        var result = await _sender.Send(new VerifyResetOtpCommand(req.Email, req.Otp));
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [RedisRateLimit(5, 60, "auth-reset-password")]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordRequestDto req)
+    {
+        var result = await _sender.Send(new ResetPasswordCommand(req.Email, req.Otp, req.NewPassword));
+        return Ok(result);
     }
 }

@@ -1,3 +1,3 @@
 namespace AuthService.Application.DTOs.Auth.Requests;
 
-public record DeleteUserRequestDto(string UserId);
+public record DeleteUserRequestDto(string UserId, string Password);

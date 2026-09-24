@@ -66,5 +66,13 @@ namespace NotificationService.Infrastructure.Repositories
             }
             return await _settingRepo.SaveChangesAsync() > 0 && result;
         }
+
+        public async Task<bool> IsEnabledAsync(Guid userId, int notificationTypeId)
+        {
+            var setting = await _settingRepo.GetAsync(s => s.UserId == userId && s.NotificationTypeId == notificationTypeId);
+            // null = chưa cấu hình -> mặc định bật (enabled)
+            if (setting == null) return true;
+            return setting.IsEnabled;
+        }
     }
 }

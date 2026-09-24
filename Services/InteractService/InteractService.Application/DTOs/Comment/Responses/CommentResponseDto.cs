@@ -13,6 +13,7 @@ public class CommentResponseDto
     public int Votes { get; set; } = 0;
     public int ReplyCount { get; set; } = 0;
     public double? Score { get; set; }
+    public DateTime? CreatedAt { get; set; }
     public UserWithInfoDto? User { get; set; }
     public VoteType? UserVoteType { get; set; }
     public bool IsDeleted { get; set; }

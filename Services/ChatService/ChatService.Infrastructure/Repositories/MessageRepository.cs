@@ -28,6 +28,11 @@ public class MessageRepository : IMessageRepository
             .ToListAsync();
     }
 
+    public async Task<Message?> GetByIdAsync(string messageId)
+    {
+        return await _messages.Find(m => m.Id == messageId).FirstOrDefaultAsync();
+    }
+
     public async Task UpdateAsync(Message message)
     {
         await _messages.ReplaceOneAsync(m => m.Id == message.Id, message);

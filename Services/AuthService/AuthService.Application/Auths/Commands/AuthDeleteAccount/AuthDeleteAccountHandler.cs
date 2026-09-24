@@ -12,5 +12,5 @@ public class AuthDeleteAccountHandler
     }
 
     private static DeleteUserRequestDto DeleteAccountCommandToDto(AuthDeleteAccountCommand command) =>
-        new DeleteUserRequestDto(command.UserId);
+        new DeleteUserRequestDto(command.UserId, command.Password);
 }

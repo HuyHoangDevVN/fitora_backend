@@ -15,9 +15,11 @@ using NotificationService.Application.Messaging.MessageHandlers;
 using NotificationService.Application.Messaging.MessageHandlers.IHandlers;
 using NotificationService.Application.Services;
 using NotificationService.Application.Services.IServices;
+using BuildingBlocks.Security;
 using NotificationService.Domain.Abstractions;
 using NotificationService.Infrastructure.Data;
 using NotificationService.Infrastructure.Repositories;
+using NotificationService.Infrastructure.Services;
 
 namespace NotificationService.Infrastructure;
 
@@ -42,9 +44,18 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotificationSettingRepository, NotificationSettingRepository>();
         services.AddScoped<INotificationTypeRepository, NotificationTypeRepository>();
         services.AddScoped(typeof(IRabbitMqPublisher<>), typeof(RabbitMqPublisher<>));
         services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMqSettings"));
+
+        services.AddTransient<BearerTokenHandler>();
+        services.AddScoped<Application.Services.IServices.IBlockedIdsProvider, HttpBlockedIdsProvider>();
+        services.AddHttpClient("UserService", client =>
+        {
+            client.BaseAddress = new Uri(configuration["UserService:BaseUrl"] ?? "https://localhost:5004/");
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        }).AddHttpMessageHandler<BearerTokenHandler>();
         
         services.AddSingleton<IRabbitMqPublisher<NotificationMessageDto>, RabbitMqPublisher<NotificationMessageDto>>();
         services.AddSingleton<IRabbitMqConsumer<NotificationMessageDto>, RabbitMqConsumer<NotificationMessageDto>>();
@@ -52,7 +63,7 @@ public static class DependencyInjection
         services.AddHostedService<NotificationConsumerHostedService>();
         services.AddHostedService<SignalRNotificationConsumerHostedService>();
 
-        services.AddAutoMapper(typeof(ServiceProfile));
+        services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceProfile)));
         return services;
     }
 

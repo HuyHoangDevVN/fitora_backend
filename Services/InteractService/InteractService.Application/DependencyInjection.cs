@@ -1,5 +1,6 @@
 using System.Reflection;
 using BuildingBlocks.Behaviors;
+using FluentValidation;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FeatureManagement;
@@ -18,6 +19,7 @@ public static class DependencyInjection
             config.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
 
+        services.AddValidatorsFromAssemblyContaining(typeof(DependencyInjection));
 
         services.AddStackExchangeRedisCache(options =>
         {
@@ -25,7 +27,7 @@ public static class DependencyInjection
         });
         services.AddFeatureManagement();
         services.AddHttpContextAccessor();
-        services.AddAutoMapper(typeof(ServiceProfile));
+        services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceProfile)));
         return services;
     }
 }

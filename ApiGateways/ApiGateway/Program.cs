@@ -1,6 +1,8 @@
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using Microsoft.AspNetCore.HttpOverrides;
+using MMLib.SwaggerForOcelot;
+using MMLib.SwaggerForOcelot.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,14 +41,27 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// Thêm Swagger cho kiểm tra API
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Thêm Swagger hợp nhất từ tất cả downstream service (MMLib.SwaggerForOcelot) —
+// đọc cấu hình SwaggerEndPoints trong ocelot.json để gộp docs của 5 service vào 1 UI.
+builder.Services.AddSwaggerForOcelot(builder.Configuration);
 
 var app = builder.Build(); // Build sau khi đăng ký xong
 
 app.UseForwardedHeaders();
 app.UseCors("AllowSpecificOrigin");
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
+    if (context.Request.IsHttps)
+    {
+        context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    }
+    await next();
+});
 
 app.Use(async (context, next) =>
 {
@@ -67,9 +82,8 @@ app.Use(async (context, next) =>
 app.UseHttpsRedirection();
 app.UseWebSockets();
 
-// Dùng await cho UseOcelot vì nó trả về Task
-app.UseSwagger();
-app.UseSwaggerUI();
+// Swagger hợp nhất: UI tại /swagger, dropdown chọn giữa 5 service (auth/user/interact/chat/notification)
+app.UseSwaggerForOcelotUI();
 
 app.Use(async (context, next) =>
 {
@@ -82,6 +96,7 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Dùng await cho UseOcelot vì nó trả về Task
 await app.UseOcelot();
 
 app.Run();

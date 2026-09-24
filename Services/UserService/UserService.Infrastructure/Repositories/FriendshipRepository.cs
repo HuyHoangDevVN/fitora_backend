@@ -194,13 +194,19 @@ namespace UserService.Infrastructure.Repositories
             return await _friendRequestRepo.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> UnfriendAsync(Guid id)
+        // 27.x: chỉ xóa quan hệ GIỮA 2 người này — trước đây nhận 1 id rồi xóa
+        // TOÀN BỘ friendship/friend-request mà id đó tham gia (với bất kỳ ai),
+        // nghĩa là user A có thể phá hủy hết bạn bè của user B chỉ bằng cách
+        // biết id của B và gọi unfriend?id=B.
+        public async Task<bool> UnfriendAsync(Guid currentUserId, Guid targetUserId)
         {
             await _friendshipRepo.DeleteAsync(fs =>
-                (fs.User1Id == id || fs.User2Id == id));
+                (fs.User1Id == currentUserId && fs.User2Id == targetUserId) ||
+                (fs.User1Id == targetUserId && fs.User2Id == currentUserId));
 
             await _friendRequestRepo.DeleteAsync(fr =>
-                (fr.SenderId == id || fr.ReceiverId == id));
+                (fr.SenderId == currentUserId && fr.ReceiverId == targetUserId) ||
+                (fr.SenderId == targetUserId && fr.ReceiverId == currentUserId));
 
             var friendshipDeleted = await _friendshipRepo.SaveChangesAsync() > 0;
             var friendRequestDeleted = await _friendRequestRepo.SaveChangesAsync() > 0;

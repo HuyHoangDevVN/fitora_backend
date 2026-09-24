@@ -7,5 +7,7 @@ public enum ReactType
     Haha = 2,        // Cười
     Wow = 3,         // Ngạc nhiên
     Sad = 4,         // Buồn
-    Angry = 5        // Giận
+    Angry = 5,       // Giận
+    Celebrate = 6,   // Chúc mừng
+    Insight = 7      // Hữu ích
 }

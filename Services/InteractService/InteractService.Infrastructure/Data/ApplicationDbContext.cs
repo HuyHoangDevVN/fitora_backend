@@ -21,6 +21,8 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<FollowCategory> FollowCategories => Set<FollowCategory>();
     public DbSet<CommentVotes> CommentVotes => Set<CommentVotes>();
     public DbSet<UserSaved> UserSaveds => Set<UserSaved>();
+    public DbSet<StudyPost> StudyPosts => Set<StudyPost>();
+    public DbSet<ShortClip> ShortClips => Set<ShortClip>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {

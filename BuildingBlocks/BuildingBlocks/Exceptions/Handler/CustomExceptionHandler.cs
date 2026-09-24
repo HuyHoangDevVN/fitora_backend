@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Sentry;
 
 namespace BuildingBlocks.Exceptions.Handler;
 
@@ -15,6 +16,15 @@ public class CustomExceptionHandler
         logger.LogError(
             "Error Message: {exceptionMessage}, Time of occurrence {time}",
             exception.Message, DateTime.UtcNow);
+
+        // Chỉ những lỗi hệ thống thật (5xx) mới gửi lên Sentry — lỗi nghiệp vụ (validation,
+        // not found, unauthorized) là luồng dự kiến, không phải sự cố cần alert.
+        // SentrySdk.CurrentHub tự động no-op nếu chưa gọi UseSentry() (chưa cấu hình DSN),
+        // nên không cần đăng ký IHub riêng qua DI.
+        if (exception is InternalServerException || exception.GetType() == typeof(Exception))
+        {
+            SentrySdk.CaptureException(exception);
+        }
 
         (string Detail, string Title, int StatusCode) details = exception switch
         {

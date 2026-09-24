@@ -1,5 +1,5 @@
 using AuthService.Application.Auths.Commands.AssignRoles;
-using AuthService.Application.Auths.Commands.AuthDeleteAccount;
+using AuthService.Application.Auths.Commands.AdminDeleteAccount;
 using AuthService.Application.Auths.Commands.AuthLockAccount;
 using AuthService.Application.Auths.Commands.CreateRole;
 using AuthService.Application.Auths.Commands.DeleteRole;
@@ -97,12 +97,11 @@ public class AdminController : Controller
     }
 
     [HttpDelete("delete-account")]
-    public async Task<IActionResult> DeleteAccount(DeleteUserRequestDto req)
+    public async Task<IActionResult> DeleteAccount(AdminDeleteAccountRequestDto req)
     {
-        var requestModel = _mapper.Map<AuthDeleteAccountCommand>(req);
+        var requestModel = _mapper.Map<AdminDeleteAccountCommand>(req);
         var result = await _sender.Send(requestModel);
-        var deleteAccountResult = _mapper.Map<AuthDeleteAccountResult>(result);
-        var response = new ResponseDto(deleteAccountResult, Message: "Delete Account Successful");
+        var response = new ResponseDto(result, Message: "Delete Account Successful");
         return Ok(response);
     }
 
@@ -155,7 +154,7 @@ public class AdminController : Controller
     }
 
     [HttpGet("get-role")]
-    public async Task<IActionResult> GetRoles([FromQuery] string id)
+    public async Task<IActionResult> GetRole([FromQuery] string id)
     {
         var result = await _sender.Send(new GetRoleQuery(id));
         var response = new ResponseDto(Data: result, Message: "Get Role Successful");

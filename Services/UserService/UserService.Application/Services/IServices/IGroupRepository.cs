@@ -14,4 +14,10 @@ public interface IGroupRepository
     Task<PaginatedResult<Group>> GetManagedGroupsAsync(GetManagedGroupsRequest request);
     Task<PaginatedResult<Group>> GetJoinedGroupsAsync(GetJoinedGroupsRequest request);
     Task<GroupDto?> GetGroupByIdAsync(Guid id);
+
+    /// <summary>
+    /// Privacy-aware search: public groups visible to all; private/secret groups only if user is member.
+    /// Keyword matches Name / Description (case-insensitive, contains).
+    /// </summary>
+    Task<PaginatedResult<Group>> SearchGroupsAsync(SearchGroupsRequest request, Guid currentUserId);
 }

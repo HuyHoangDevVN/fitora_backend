@@ -14,4 +14,5 @@ public interface INotificationRepository
     Task<NotificationDto?> GetNotificationByIdAsync(long id);
     Task<NotificationDto> CreateAndReturnAsync(CreateNotificationRequest request);
     Task MarkAllAsReadAsync(Guid userId);
+    Task<bool> DeleteAllAsync(Guid userId);
 }
