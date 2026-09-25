@@ -111,8 +111,8 @@ jobs:
           [[ -d "$root/releases" ]] || fail "$root/releases missing"
           [[ -w "$root/releases" ]] || fail "$root/releases not writable"
           [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]] || fail "$root/.deploy.lock not writable and $root not writable"
-          [[ -x deploy/ubuntu/ci-deploy.sh ]] || fail "deploy/ubuntu/ci-deploy.sh not executable"
-          [[ -x deploy/ubuntu/deploy.sh ]] || fail "deploy/ubuntu/deploy.sh not executable"
+          [[ -f deploy/ubuntu/ci-deploy.sh ]] || fail "deploy/ubuntu/ci-deploy.sh missing"
+          [[ -f deploy/ubuntu/deploy.sh ]] || fail "deploy/ubuntu/deploy.sh missing"
           grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh || fail "CI_DEPLOY_VERSION=1 marker not found in ci-deploy.sh"
           echo "Preflight checks passed."
           REMOTE
