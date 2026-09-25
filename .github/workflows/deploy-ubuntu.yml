@@ -89,24 +89,32 @@ jobs:
           target="${FITORA_DEPLOY_USER}@${FITORA_DEPLOY_HOST}"
           ssh -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p "$FITORA_DEPLOY_PORT" "$target" 'bash -s' <<'REMOTE'
           set -euo pipefail
+          fail() { echo "PREFLIGHT FAILED: $1" >&2; exit 1; }
           root=/home/fitdnu/fitora
-          [[ "$(id -un)" == "fitora-deploy" ]]
-          [[ "$(hostname)" == "aiotlab-server2" ]]
-          [[ -d "$root/fitora_backend/deploy/ubuntu" && -d "$root/fitora_ui" && -f "$root/fitora_backend/deploy/ubuntu/.env" ]]
-          docker compose version >/dev/null
+          [[ "$(id -un)" == "fitora-deploy" ]] || fail "SSH user is $(id -un), expected fitora-deploy"
+          [[ "$(hostname)" == "aiotlab-server2" ]] || fail "hostname is $(hostname), expected aiotlab-server2"
+          [[ -d "$root/fitora_backend/deploy/ubuntu" ]] || fail "$root/fitora_backend/deploy/ubuntu missing"
+          [[ -d "$root/fitora_ui" ]] || fail "$root/fitora_ui missing"
+          [[ -f "$root/fitora_backend/deploy/ubuntu/.env" ]] || fail "$root/fitora_backend/deploy/ubuntu/.env missing"
+          docker compose version >/dev/null || fail "docker compose not available"
           cd "$root/fitora_backend"
-          docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet
+          docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet || fail "docker compose config invalid"
           services="$(docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services)"
           for service in rabbitmq elasticsearch redis mariadb user interact notification auth mongodb chat gateway frontend; do
-            grep -Fxq "$service" <<< "$services"
+            grep -Fxq "$service" <<< "$services" || fail "compose service '$service' not found (services: $services)"
           done
           for volume in elasticsearch-data mariadb-data mongodb-data rabbitmq-data redis-data uploads-data; do
-            docker volume inspect "fitora_${volume}" >/dev/null
+            docker volume inspect "fitora_${volume}" >/dev/null || fail "docker volume fitora_${volume} not found"
           done
-          [[ -d "$root/incoming" && -w "$root/incoming" && -d "$root/releases" && -w "$root/releases" ]]
-          [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]]
-          [[ -x deploy/ubuntu/ci-deploy.sh && -x deploy/ubuntu/deploy.sh ]]
-          grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh
+          [[ -d "$root/incoming" ]] || fail "$root/incoming missing"
+          [[ -w "$root/incoming" ]] || fail "$root/incoming not writable"
+          [[ -d "$root/releases" ]] || fail "$root/releases missing"
+          [[ -w "$root/releases" ]] || fail "$root/releases not writable"
+          [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]] || fail "$root/.deploy.lock not writable and $root not writable"
+          [[ -x deploy/ubuntu/ci-deploy.sh ]] || fail "deploy/ubuntu/ci-deploy.sh not executable"
+          [[ -x deploy/ubuntu/deploy.sh ]] || fail "deploy/ubuntu/deploy.sh not executable"
+          grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh || fail "CI_DEPLOY_VERSION=1 marker not found in ci-deploy.sh"
+          echo "Preflight checks passed."
           REMOTE
 
   deploy:
