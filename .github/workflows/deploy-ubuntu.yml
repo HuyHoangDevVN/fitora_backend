@@ -1,8 +1,6 @@
 name: Deploy backend to Ubuntu
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       mode:
@@ -22,18 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  production-branch:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 1
-    steps:
-      - run: |
-          [[ "$GITHUB_REF" == "refs/heads/main" ]] || {
-            echo "Production deployment must be dispatched from main." >&2
-            exit 1
-          }
-
   verify:
-    needs: production-branch
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -52,23 +39,8 @@ jobs:
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
-    environment: production
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Connect ephemeral runner to Tailscale
-        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8
-        with:
-          oauth-client-id: ${{ secrets.FITORA_TAILSCALE_CLIENT_ID }}
-          audience: ${{ secrets.FITORA_TAILSCALE_AUDIENCE }}
-          tags: tag:fitora-ci
-          hostname: fitora-ci-${{ github.run_id }}-${{ github.run_attempt }}
-          version: 1.102.3
-          timeout: 2m
-          use-cache: false
-          ping: ${{ vars.FITORA_DEPLOY_HOST }}
       - name: Verify Ubuntu deployment target without mutation
         env:
           FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
@@ -89,56 +61,33 @@ jobs:
           target="${FITORA_DEPLOY_USER}@${FITORA_DEPLOY_HOST}"
           ssh -i ~/.ssh/id_fitora -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -p "$FITORA_DEPLOY_PORT" "$target" 'bash -s' <<'REMOTE'
           set -euo pipefail
-          fail() { echo "PREFLIGHT FAILED: $1" >&2; exit 1; }
           root=/home/fitdnu/fitora
-          [[ "$(id -un)" == "fitora-deploy" ]] || fail "SSH user is $(id -un), expected fitora-deploy"
-          [[ "$(hostname)" == "aiotlab-server2" ]] || fail "hostname is $(hostname), expected aiotlab-server2"
-          [[ -d "$root/fitora_backend/deploy/ubuntu" ]] || fail "$root/fitora_backend/deploy/ubuntu missing"
-          [[ -d "$root/fitora_ui" ]] || fail "$root/fitora_ui missing"
-          [[ -f "$root/fitora_backend/deploy/ubuntu/.env" ]] || fail "$root/fitora_backend/deploy/ubuntu/.env missing"
-          docker compose version >/dev/null || fail "docker compose not available"
+          [[ "$(id -un)" == "fitdnu" ]]
+          [[ "$(hostname)" == "aiotlab-server2" ]]
+          [[ -d "$root/fitora_backend/deploy/ubuntu" && -d "$root/fitora_ui" && -f "$root/fitora_backend/deploy/ubuntu/.env" ]]
+          docker compose version >/dev/null
           cd "$root/fitora_backend"
-          docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet || fail "docker compose config invalid"
-          services="$(docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services)"
+          docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --quiet
           for service in rabbitmq elasticsearch redis mariadb user interact notification auth mongodb chat gateway frontend; do
-            grep -Fxq "$service" <<< "$services" || fail "compose service '$service' not found (services: $services)"
+            docker compose --env-file deploy/ubuntu/.env -f deploy/ubuntu/compose.yml config --services | grep -Fxq "$service"
           done
           for volume in elasticsearch-data mariadb-data mongodb-data rabbitmq-data redis-data uploads-data; do
-            docker volume inspect "fitora_${volume}" >/dev/null || fail "docker volume fitora_${volume} not found"
+            docker volume inspect "fitora_${volume}" >/dev/null
           done
-          [[ -d "$root/incoming" ]] || fail "$root/incoming missing"
-          [[ -w "$root/incoming" ]] || fail "$root/incoming not writable"
-          [[ -d "$root/releases" ]] || fail "$root/releases missing"
-          [[ -w "$root/releases" ]] || fail "$root/releases not writable"
-          [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]] || fail "$root/.deploy.lock not writable and $root not writable"
-          [[ -x deploy/ubuntu/ci-deploy.sh ]] || fail "deploy/ubuntu/ci-deploy.sh not executable"
-          [[ -x deploy/ubuntu/deploy.sh ]] || fail "deploy/ubuntu/deploy.sh not executable"
-          grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh || fail "CI_DEPLOY_VERSION=1 marker not found in ci-deploy.sh"
-          echo "Preflight checks passed."
+          [[ -d "$root/incoming" && -w "$root/incoming" && -d "$root/releases" && -w "$root/releases" ]]
+          [[ -w "$root/.deploy.lock" || ( ! -e "$root/.deploy.lock" && -w "$root" ) ]]
+          [[ -x deploy/ubuntu/ci-deploy.sh && -x deploy/ubuntu/deploy.sh ]]
+          grep -Fxq 'CI_DEPLOY_VERSION=1' deploy/ubuntu/ci-deploy.sh
           REMOTE
 
   deploy:
-    if: ${{ github.event_name == 'push' || inputs.mode == 'deploy' }}
+    if: ${{ inputs.mode == 'deploy' }}
     needs: [verify, preflight]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: production
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - name: Connect ephemeral runner to Tailscale
-        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8
-        with:
-          oauth-client-id: ${{ secrets.FITORA_TAILSCALE_CLIENT_ID }}
-          audience: ${{ secrets.FITORA_TAILSCALE_AUDIENCE }}
-          tags: tag:fitora-ci
-          hostname: fitora-ci-${{ github.run_id }}-${{ github.run_attempt }}
-          version: 1.102.3
-          timeout: 2m
-          use-cache: false
-          ping: ${{ vars.FITORA_DEPLOY_HOST }}
       - name: Upload source and run backend deployment
         env:
           FITORA_DEPLOY_HOST: ${{ vars.FITORA_DEPLOY_HOST }}
