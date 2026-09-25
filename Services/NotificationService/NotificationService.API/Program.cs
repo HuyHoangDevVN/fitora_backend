@@ -1,7 +1,6 @@
 using BuildingBlocks.HealthChecks;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.OpenApi.Models;
-using NotificationService.API.Middleware;
 using NotificationService.Application;
 using NotificationService.Infrastructure;
 using NotificationService.Infrastructure.Data;
@@ -84,7 +83,6 @@ app.UseSwaggerUI();
 
 if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();

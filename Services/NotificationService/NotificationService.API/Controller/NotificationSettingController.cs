@@ -32,6 +32,8 @@ namespace NotificationService.API.Controller
         [HttpGet("{userId:Guid}")]
         public async Task<IActionResult> GetSettings(Guid userId)
         {
+            var callerId = _auth.GetUserFromClaimToken().Id;
+            if (userId != callerId) return Forbid();
             var result = await _settingRepo.GetSettingsAsync(userId);
             return Ok(result);
         }

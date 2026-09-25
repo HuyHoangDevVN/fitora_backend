@@ -121,9 +121,12 @@ namespace NotificationService.API.Controller
         [HttpPut("{id:long}")]
         public async Task<IActionResult> UpdateNotification(long id, [FromBody] UpdateNotificationRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id;
             var notification = await _notificationRepository.GetNotificationByIdAsync(id);
             if (notification == null)
                 return NotFound();
+
+            if (notification.UserId != callerId) return Forbid();
 
             var updatedNotification = new Notification
             {

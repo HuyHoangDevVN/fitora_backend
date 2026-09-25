@@ -1,7 +1,6 @@
 using System.Text;
 using BuildingBlocks.HealthChecks;
 using Grpc.Net.Client;
-using InteractService.API.Middleware;
 using InteractService.Application;
 using InteractService.Infrastructure;
 using InteractService.Infrastructure.Data;
@@ -25,10 +24,19 @@ if (builder.Environment.IsProduction())
 
 builder.Services.AddSingleton<UserGrpcClient>(sp =>
 {
-    var handler = new HttpClientHandler
+    bool isDev = !builder.Environment.IsProduction();
+    HttpMessageHandler handler;
+    if (isDev)
     {
-        ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
-    };
+        handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true
+        };
+    }
+    else
+    {
+        handler = new HttpClientHandler();
+    }
     var channel = GrpcChannel.ForAddress(
         builder.Configuration["UserService:GrpcUrl"] ?? "https://localhost:5004", new GrpcChannelOptions
     {
@@ -112,7 +120,6 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/api/interact/upload/file"
 });
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

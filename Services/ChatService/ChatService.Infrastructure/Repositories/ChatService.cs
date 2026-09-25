@@ -65,6 +65,11 @@ public class ChatService : IChatService
         return message;
     }
 
+    public async Task<Conversation?> GetConversationByIdAsync(string conversationId)
+    {
+        return await _conversationRepository.GetByIdAsync(conversationId);
+    }
+
     public async Task<List<Message>> GetChatHistoryAsync(GetHistoryChatRequest request)
     {
         return await _messageRepository.GetByConversationIdAsync(request);

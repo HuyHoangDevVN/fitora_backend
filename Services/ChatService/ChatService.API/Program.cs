@@ -1,6 +1,5 @@
 using System.Text;
 using BuildingBlocks.HealthChecks;
-using ChatService.API.Middleware;
 using ChatService.Application;
 using ChatService.Infrastructure;
 using ChatService.Infrastructure.HealthChecks;
@@ -84,7 +83,6 @@ app.UseSwaggerUI();
 
 if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseWebSockets();

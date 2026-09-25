@@ -1,5 +1,4 @@
 using System.Text;
-using AuthService.API.Middleware;
 using AuthService.Application;
 using AuthService.Application.Helpers;
 using AuthService.Infrastructure;
@@ -119,7 +118,6 @@ app.UseSwaggerUI();
 
 if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -76,4 +76,13 @@ if [[ "$component" == "frontend" ]]; then
   fail "Frontend deploy failed and source/image were restored."
 fi
 
-fail "Backend deploy failed after source swap. Previous source is at $backup; no automatic rollback occurs after migrations."
+# Backend: thử khôi phục lại source cũ để service không ở trạng thái nửa mới/nửa cũ.
+# Lưu ý: migration DB đã có thể chạy trước khi deploy.sh fail nên DB không tự rollback được — cần xử lý thủ công nếu cần.
+failed="$releases/${sha}-failed"
+mv "$live" "$failed"
+mv "$backup" "$live"
+if (cd "$root/fitora_backend" && bash deploy/ubuntu/deploy.sh --component backend); then
+  fail "Backend deploy failed but source was rolled back to previous version ($backup -> $live). DB migrations (if any) may need manual revert; inspect $failed."
+fi
+
+fail "Backend deploy and rollback both failed. Previous source was at $backup (now $failed); live restored attempt also failed."

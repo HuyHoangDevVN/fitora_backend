@@ -9,12 +9,14 @@ using InteractService.Application.Usecases.Comments.Queries.GetCommentById;
 using InteractService.Application.Usecases.Comments.Queries.GetCommentReplies;
 using InteractService.Application.Usecases.Comments.Queries.GetCommentsByPost;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
 [Route("api/interact/comment")]
 [ApiController]
+[Authorize]
 public class CommentController : Controller
 {
     private readonly IMediator _mediator;
@@ -53,7 +55,7 @@ public class CommentController : Controller
     [HttpPut("vote")]
     public async Task<IActionResult> Vote([FromBody] VoteCommentRequest request)
     {
-        var userGuid = request.UserId != Guid.Empty ? request.UserId : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
         var response =
             await _mediator.Send(
                 new VoteCommentCommand(new VoteCommentRequest(userGuid, request.CommentId, request.VoteType)));
