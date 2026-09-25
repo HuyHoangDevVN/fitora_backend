@@ -1,3 +1,4 @@
+@@ -1,88 +1,96 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -87,10 +88,11 @@ if [[ "$component" == "all" ]]; then
 fi
 
 if [[ "$component" == "all" || "$component" == "frontend" ]]; then
-  wait_for_status "https://${domain}/login" 200
+wait_for_status "https://${domain}/login" 200
 fi
 if [[ "$component" == "all" || "$component" == "backend" ]]; then
-  wait_for_status "https://${domain}/api/auth/auth/check-cookie" 200
-  wait_for_status "https://${domain}/api/auth/admin/is-authorized" 401
+if [[ "$component" == "all" || "$component" == "frontend" ]]; then
+ wait_for_status "https://${domain}/api/auth/auth/check-cookie" 200
+ wait_for_status "https://${domain}/api/auth/admin/is-authorized" 401
 fi
 printf 'Fitora is available at https://%s\n' "$domain"
