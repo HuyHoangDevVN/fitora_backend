@@ -50,13 +50,19 @@ namespace ChatService.API.Controllers
         [HttpGet("history")]
         public async Task<IActionResult> GetChatHistory([FromQuery] GetHistoryChatRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.GetConversationByIdAsync(request.ConversationId);
+            if (conv == null || !conv.ParticipantIds.Contains(callerId))
+                return Forbid();
             var messages = await _chatService.GetChatHistoryAsync(request);
             return Ok(new ResponseDto(messages));
         }
-        
+
         [HttpGet("group-conversations")]
         public async Task<IActionResult> GetGroupConversationsByUserId([FromQuery] string userId)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            if (userId != callerId) return Forbid();
             var conversations = await _chatService.GetGroupConversationsByUserIdAsync(userId);
             return Ok(new ResponseDto(conversations));
         }
@@ -64,6 +70,8 @@ namespace ChatService.API.Controllers
         [HttpGet("private-conversation")]
         public async Task<IActionResult> GetPrivateConversation([FromQuery] string userId, string otherUserId)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            if (userId != callerId) return Forbid();
             var conversation = await _chatService.GetPrivateConversationAsync(userId, otherUserId);
             return Ok(new ResponseDto(conversation));
         }
@@ -71,6 +79,8 @@ namespace ChatService.API.Controllers
         [HttpGet("private-conversations")]
         public async Task<IActionResult> GetPrivateConversationsByUserId([FromQuery] string userId)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            if (userId != callerId) return Forbid();
             var conversations = await _chatService.GetPrivateConversationsByUserIdAsync(userId);
             return Ok(new ResponseDto(conversations));
         }
@@ -92,7 +102,8 @@ namespace ChatService.API.Controllers
         [HttpPost("add-reaction")]
         public async Task<IActionResult> AddReaction([FromBody] AddReactionRequest request)
         {
-            var response = await _chatService.AddReactionAsync(request.MessageId, request.UserId, request.Emoji);
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var response = await _chatService.AddReactionAsync(request.MessageId, callerId, request.Emoji);
             return Ok(new ResponseDto(response));
         }
 
@@ -106,6 +117,10 @@ namespace ChatService.API.Controllers
         [HttpPut("update-group-info")]
         public async Task<IActionResult> UpdateGroupInfo([FromBody] UpdateGroupInfoRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.GetConversationByIdAsync(request.ConversationId);
+            if (conv == null || !conv.ParticipantIds.Contains(callerId))
+                return Forbid();
             var response = await _chatService.UpdateGroupInfoAsync(request.ConversationId, request.GroupInfo);
             return Ok(new ResponseDto(response));
         }
@@ -113,6 +128,10 @@ namespace ChatService.API.Controllers
         [HttpPost("add-group-member")]
         public async Task<IActionResult> AddGroupMember([FromBody] GroupMemberRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.GetConversationByIdAsync(request.ConversationId);
+            if (conv == null || !conv.ParticipantIds.Contains(callerId))
+                return Forbid();
             var response = await _chatService.AddGroupMemberAsync(request.ConversationId, request.UserId);
             return Ok(new ResponseDto(response));
         }
@@ -120,6 +139,10 @@ namespace ChatService.API.Controllers
         [HttpPost("remove-group-member")]
         public async Task<IActionResult> RemoveGroupMember([FromBody] GroupMemberRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.GetConversationByIdAsync(request.ConversationId);
+            if (conv == null || (!conv.GroupInfo.AdminIds.Contains(callerId) && request.UserId != callerId))
+                return Forbid();
             var response = await _chatService.RemoveGroupMemberAsync(request.ConversationId, request.UserId);
             return Ok(new ResponseDto(response));
         }
@@ -127,6 +150,10 @@ namespace ChatService.API.Controllers
         [HttpPost("assign-group-admin")]
         public async Task<IActionResult> AssignGroupAdmin([FromBody] GroupMemberRequest request)
         {
+            var callerId = _authorizeExtension.GetUserFromClaimToken().Id.ToString();
+            var conv = await _chatService.GetConversationByIdAsync(request.ConversationId);
+            if (conv == null || !conv.GroupInfo.AdminIds.Contains(callerId))
+                return Forbid();
             var response = await _chatService.AssignGroupAdminAsync(request.ConversationId, request.UserId);
             return Ok(new ResponseDto(response));
         }

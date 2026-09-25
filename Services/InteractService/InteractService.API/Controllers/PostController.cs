@@ -14,12 +14,14 @@ using InteractService.Application.Usecases.Posts.Queries.GetPersonal;
 using InteractService.Application.Usecases.Posts.Queries.GetSavedPosts;
 using InteractService.Application.Usecases.Posts.Queries.GetTrending;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
 [Route("api/interact/post")]
 [ApiController]
+[Authorize]
 public class PostController : Controller
 {
     private readonly IMediator _mediator;
@@ -44,6 +46,7 @@ public class PostController : Controller
     }
 
     [HttpGet("get-by-id/{id}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetById([FromRoute] Guid id)
     {
         var post = await _mediator.Send(new GetPostByIdQuery(id));
@@ -67,7 +70,7 @@ public class PostController : Controller
     [HttpPut("vote")]
     public async Task<IActionResult> Vote([FromBody] VotePostRequest request)
     {
-        var userGuid = request.UserId != Guid.Empty ? request.UserId : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
         var response =
             await _mediator.Send(new VotePostCommand(new VotePostRequest(userGuid, request.PostId, request.VoteType)));
         return Ok(response);
@@ -76,7 +79,7 @@ public class PostController : Controller
     [HttpPost("save-post")]
     public async Task<IActionResult> SavePost([FromBody] SavePostRequest request)
     {
-        var userGuid = request.UserId != Guid.Empty ? request.UserId : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
         var response = await _mediator.Send(new SavePostCommand(new SavePostRequest(userGuid, request.PostId)));
         return Ok(response);
     }
@@ -100,7 +103,7 @@ public class PostController : Controller
     [HttpGet("newfeed")]
     public async Task<IActionResult> GetNewFeed([FromQuery] GetPostRequest request)
     {
-        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
             new GetNewfeedQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.IsFriend, request.KeySearch,
@@ -115,7 +118,7 @@ public class PostController : Controller
     [HttpGet("trending-feed")]
     public async Task<IActionResult> GetTrendingFeed([FromQuery] GetTrendingPostRequest request)
     {
-        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
             new GetTrendingQuery(new GetTrendingPostRequest(userGuid, request.Cursor,
@@ -129,7 +132,7 @@ public class PostController : Controller
     [HttpGet("explore-feed")]
     public async Task<IActionResult> GetExploreFeed([FromQuery] GetExplorePostRequest request)
     {
-        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
             new GetExploreFeedQuery(new GetExplorePostRequest(userGuid, request.Cursor,
@@ -143,7 +146,7 @@ public class PostController : Controller
     [HttpGet("saved-posts")]
     public async Task<IActionResult> GetSavedPosts([FromQuery] GetSavedPostsRequest request)
     {
-        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
             new GetSavedPostsQuery(new GetSavedPostsRequest(userGuid, request.Cursor,
@@ -157,7 +160,7 @@ public class PostController : Controller
     [HttpGet("personal")]
     public async Task<IActionResult> GetPersonal([FromQuery] GetPostRequest request)
     {
-        var userGuid = request.Id != Guid.Empty ? request.Id : _authorizeExtension.GetUserFromClaimToken().Id;
+        var userGuid = _authorizeExtension.GetUserFromClaimToken().Id;
 
         var post = await _mediator.Send(
             new GetPersonalQuery(new GetPostRequest(userGuid, request.FeedType, request.CategoryId, request.IsFriend, request.KeySearch,

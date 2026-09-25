@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using UserService.API;
-using UserService.API.Middleware;
 using UserService.Application;
 using UserService.Application.Services;
 using UserService.Application.Services.IServices;
@@ -81,7 +80,6 @@ app.UseSwaggerUI();
 
 if (!app.Environment.IsProduction()) app.UseHttpsRedirection();
 app.UseCors("AllowSpecificOrigin");
-app.UseMiddleware<HybridAuthMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

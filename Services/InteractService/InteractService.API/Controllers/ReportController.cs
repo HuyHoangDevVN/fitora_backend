@@ -3,12 +3,14 @@ using BuildingBlocks.Security;
 using InteractService.Application.DTOs.Report.Requests;
 using InteractService.Application.Usecases.Report.Commands.CreateReport;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
 [Route("api/interact/report")]
 [ApiController]
+[Authorize]
 public class ReportController : Controller
 {
     private readonly IMediator _mediator;

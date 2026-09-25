@@ -9,12 +9,14 @@ using InteractService.Application.Usecases.Category.Queries.GetCategoriesFollowe
 using InteractService.Application.Usecases.Category.Queries.GetCategory;
 using InteractService.Application.Usecases.Category.Queries.GetTrendingCategories;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace InteractService.API.Controllers;
 
 [Route("api/interact/category")]
 [ApiController]
+[Authorize]
 public class CategoryController : Controller
 {
     private readonly IMediator _mediator;
@@ -63,6 +65,7 @@ public class CategoryController : Controller
 
 
     [HttpGet("get-list")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetList([FromQuery] GetCategoriesRequest request)
     {
         var response = await _mediator.Send(new GetCategoriesQuery(request));
@@ -70,6 +73,7 @@ public class CategoryController : Controller
     }
 
     [HttpGet("get")]
+    [AllowAnonymous]
     public async Task<IActionResult> Get([FromQuery] Guid id)
     {
         var response = await _mediator.Send(new GetCategoryQuery(id));
@@ -87,6 +91,7 @@ public class CategoryController : Controller
     }
 
     [HttpGet("get-trending")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetTrending([FromQuery] GetTrendingCategoriesRequest request)
     {
         var response = await _mediator.Send(new GetTrendingCategoriesQuery(request));

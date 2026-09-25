@@ -67,6 +67,7 @@ public class AuthController : Controller
         return Ok(new ResponseDto(Message: "Đăng xuất thành công !"));
     }
 
+    [Authorize]
     [RedisRateLimit(10, 60, "auth-change-password")]
     [HttpPost("change-password")]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequestDto req)
@@ -78,6 +79,7 @@ public class AuthController : Controller
         return Ok(response);
     }
 
+    [Authorize]
     [HttpPost("lock-account")]
     public async Task<IActionResult> LockAccount(LockUserRequestDto req)
     {
@@ -117,6 +119,7 @@ public class AuthController : Controller
         return Ok(response);
     }
 
+    [Authorize]
     [HttpGet("me")]
     public IActionResult GetCurrentUser()
     {

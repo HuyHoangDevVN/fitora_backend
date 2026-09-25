@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using BuildingBlocks.Exceptions;
 using BuildingBlocks.Pagination.Base;
 using BuildingBlocks.RepositoryBase.EntityFramework;
 using UserService.Application.DTOs.Friendship.Requests;
@@ -50,8 +51,11 @@ public class UserRepository : IUserRepository
 
     public async Task<bool> UpdateUserAsync(UserInfoDto request)
     {
+        var existing = await _userInfoRepository.GetAsync(u => u.UserId == request.UserId)
+            ?? throw new NotFoundException("UserInfo not found");
         var user = _mapper.Map<UserInfo>(request);
-        await _userInfoRepository.UpdateAsync(u => u.Id == request.Id, user);
+        user.Id = existing.Id;
+        await _userInfoRepository.UpdateAsync(u => u.UserId == request.UserId, user);
         var result = (await _userInfoRepository.SaveChangesAsync() > 0);
         return result;
     }
